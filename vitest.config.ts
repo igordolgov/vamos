@@ -15,6 +15,8 @@ export default defineConfig({
     alias: {
       '~': resolve(__dirname, 'app'),
       '@': resolve(__dirname, 'app'),
+      // Аналогично Nuxt: общий слой доступен по алиасу #shared
+      '#shared': resolve(__dirname, 'shared'),
     },
   },
   test: {

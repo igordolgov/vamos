@@ -11,7 +11,7 @@
 
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import { emptyProgress, type Progress } from '../../shared/types'
+import { emptyProgress, type Progress } from '#shared/types'
 
 // ============================================================
 // Хеширование PIN

@@ -4,8 +4,8 @@
 // вариант (утверждение/отрицание/вопрос) и озвучка.
 // ============================================================
 import { computed } from 'vue'
-import { KIND_LABELS } from '../../shared/phrases/schema'
-import type { PhraseKind } from '../../shared/phrases/schema'
+import { KIND_LABELS } from '#shared/phrases/schema'
+import type { PhraseKind } from '#shared/phrases/schema'
 import { useT, useLocale } from '~/composables/useI18n'
 import SpeakButton from './SpeakButton.vue'
 

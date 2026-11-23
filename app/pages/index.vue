@@ -12,11 +12,11 @@ import {
   phraseStats,
   progressByPos,
   opportunities,
-} from '../../shared/stats'
-import { currentStreak } from '../../shared/streak'
-import { WORD_COUNT } from '../../shared/data/words'
-import { LESSONS } from '../../shared/data/lessons'
-import { ACHIEVEMENTS } from '../../shared/achievements'
+} from '#shared/stats'
+import { currentStreak } from '#shared/streak'
+import { WORD_COUNT } from '#shared/data/words'
+import { LESSONS } from '#shared/data/lessons'
+import { ACHIEVEMENTS } from '#shared/achievements'
 import StatRing from '~/components/StatRing.vue'
 import StreakWidget from '~/components/StreakWidget.vue'
 import OpportunityCard from '~/components/OpportunityCard.vue'

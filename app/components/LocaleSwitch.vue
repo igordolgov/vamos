@@ -4,7 +4,7 @@
 // ============================================================
 import { useT, useLocale, setLocale } from '~/composables/useI18n'
 import { setProgressSetting } from '~/composables/useProgress'
-import type { Locale } from '../../shared/i18n'
+import type { Locale } from '#shared/i18n'
 
 const t = useT()
 const locale = useLocale()

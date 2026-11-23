@@ -10,9 +10,9 @@ import { ensureLoaded } from '~/composables/useProgress'
 import { readTheme } from '~/composables/useTheme'
 import { warmUpVoices } from '~/composables/useSpeech'
 import { initInstallPrompt } from '~/composables/useInstall'
-import { WORD_COUNT } from '../../shared/data/words'
-import { allTemplates } from '../../shared/phrases/templates'
-import { totalPhrases } from '../../shared/stats'
+import { WORD_COUNT } from '#shared/data/words'
+import { allTemplates } from '#shared/phrases/templates'
+import { totalPhrases } from '#shared/stats'
 
 // Динамические цифры для футера (кеш внутри totalPhrases —
 // на SSR считается один раз, а не на каждый запрос)

@@ -5,7 +5,7 @@
 import { computed, onMounted } from 'vue'
 import { useT } from '~/composables/useI18n'
 import { useProgress } from '~/composables/useProgress'
-import { ACHIEVEMENTS } from '../../shared/achievements'
+import { ACHIEVEMENTS } from '#shared/achievements'
 import BadgeCard from '~/components/BadgeCard.vue'
 
 const t = useT()

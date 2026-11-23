@@ -3,7 +3,7 @@
 // BadgeCard.vue — карточка достижения.
 // ============================================================
 import { useT, useLocale } from '~/composables/useI18n'
-import type { Achievement } from '../../shared/achievements'
+import type { Achievement } from '#shared/achievements'
 
 const props = defineProps<{
   achievement: Achievement

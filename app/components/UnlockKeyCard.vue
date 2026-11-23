@@ -3,7 +3,7 @@
 // UnlockKeyCard.vue — карточка-«ключ»: словам не хватает
 // обязательных слов шаблонов; выучите набор — откроются фразы.
 // ============================================================
-import type { UnlockKey } from '../../shared/stats'
+import type { UnlockKey } from '#shared/stats'
 import { useT } from '~/composables/useI18n'
 
 defineProps<{ unlock: UnlockKey }>()

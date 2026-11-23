@@ -5,7 +5,7 @@
 import { computed, onMounted } from 'vue'
 import { useT } from '~/composables/useI18n'
 import { useProgress } from '~/composables/useProgress'
-import { progressByLessons } from '../../../shared/stats'
+import { progressByLessons } from '#shared/stats'
 import LessonCard from '~/components/LessonCard.vue'
 
 const t = useT()

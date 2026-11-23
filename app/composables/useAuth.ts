@@ -7,7 +7,7 @@
 // ============================================================
 
 import { computed, ref } from 'vue'
-import type { AuthResponse } from '../../shared/types'
+import type { AuthResponse } from '#shared/types'
 
 const TOKEN_KEY = 'vamos.token'
 const NAME_KEY = 'vamos.name'

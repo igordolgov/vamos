@@ -2,8 +2,8 @@
 // ============================================================
 // OpportunityCard.vue — проекция «выучишь слово → +N фраз».
 // ============================================================
-import { POS_LABELS } from '../../shared/data/words'
-import type { Word } from '../../shared/types'
+import { POS_LABELS } from '#shared/data/words'
+import type { Word } from '#shared/types'
 import { useT, useLocale } from '~/composables/useI18n'
 
 const props = defineProps<{

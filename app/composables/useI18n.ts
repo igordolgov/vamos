@@ -6,7 +6,7 @@
 // ============================================================
 
 import { ref } from 'vue'
-import { DICTS, interpolate, type Dict, type Locale } from '../../shared/i18n'
+import { DICTS, interpolate, type Dict, type Locale } from '#shared/i18n'
 
 // Фолбэк-состояние (только вне Nuxt — в тестах)
 const fallbackLocale = ref<Locale>('ru')

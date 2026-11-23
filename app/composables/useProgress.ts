@@ -11,11 +11,11 @@
 // ============================================================
 
 import { computed, ref } from 'vue'
-import { emptyProgress, type Progress, type Word } from '../../shared/types'
-import { evaluateAchievements, type Achievement } from '../../shared/achievements'
-import { recordAnswer } from '../../shared/practice'
-import type { Exercise } from '../../shared/practice'
-import { touchStreak } from '../../shared/streak'
+import { emptyProgress, type Progress, type Word } from '#shared/types'
+import { evaluateAchievements, type Achievement } from '#shared/achievements'
+import { recordAnswer } from '#shared/practice'
+import type { Exercise } from '#shared/practice'
+import { touchStreak } from '#shared/streak'
 import { authHeaders } from './useAuth'
 
 const LS_KEY = 'vamos.progress'

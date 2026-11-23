@@ -8,7 +8,7 @@ import { useT, setLocale, useLocale } from '~/composables/useI18n'
 import { setTheme, useTheme, readTheme } from '~/composables/useTheme'
 import { useProgress } from '~/composables/useProgress'
 import { useInstall } from '~/composables/useInstall'
-import type { Locale } from '../../shared/i18n'
+import type { Locale } from '#shared/i18n'
 import type { Theme } from '~/composables/useTheme'
 import AuthPanel from '~/components/AuthPanel.vue'
 

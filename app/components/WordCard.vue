@@ -4,8 +4,8 @@
 // грамматические данные, статус и озвучка.
 // ============================================================
 import { computed } from 'vue'
-import type { Word } from '../../shared/types'
-import { POS_LABELS } from '../../shared/data/words'
+import type { Word } from '#shared/types'
+import { POS_LABELS } from '#shared/data/words'
 import { useT, useLocale } from '~/composables/useI18n'
 import SpeakButton from './SpeakButton.vue'
 
