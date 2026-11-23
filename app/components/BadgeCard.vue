@@ -18,7 +18,7 @@ const locale = useLocale()
 
 <template lang="pug">
 .card(:class="unlocked ? 'bg-base-100 shadow-sm border border-accent/40' : 'bg-base-200 opacity-60'")
-  .card-body.p-3.gap-1.items-center.text-center
+  .card-body.gap-1.items-center.text-center(class="p-2.5")
     span.text-4xl(class="lg:text-3xl" :class="unlocked ? '' : 'grayscale'") {{ achievement.icon }}
     h3.font-semibold.text-sm(:class="unlocked ? 'text-primary' : 'text-base-content/50'")
       | {{ locale === 'es' ? achievement.titleEs : achievement.titleRu }}

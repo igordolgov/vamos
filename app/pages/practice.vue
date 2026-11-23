@@ -106,16 +106,16 @@ function speakAudio() {
 
 <template lang="pug">
 h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
-p(class="text-base-content/60 mb-3") {{ t('practice.subtitle') }}
+p(class="text-base-content/60 mb-2") {{ t('practice.subtitle') }}
 
 // Баннер режима закрепления урока
-.alert.mb-3(v-if="lessonFilter" class="bg-primary/10 border border-primary/40 py-2")
+.alert.mb-2(v-if="lessonFilter" class="bg-primary/10 border border-primary/40 py-2")
   span.text-sm.font-medium {{ t('practice.lessonMode', { n: lessonFilter }) }}
   NuxtLink.btn.btn-ghost.btn-xs(to="/practice") {{ t('practice.lessonAll') }}
 
 // Меню выбора типа упражнения
-.card.bg-base-100.shadow-sm.border.border-base-300.mb-3(v-if="mode === 'menu'")
-  .card-body.p-4.gap-3
+.card.bg-base-100.shadow-sm.border.border-base-300.mb-2(v-if="mode === 'menu'")
+  .card-body(class="p-3 sm:p-4 gap-2.5")
     h2.card-title.text-lg {{ t('practice.source') }}
     .grid.grid-cols-2(class="sm:grid-cols-4 gap-2")
       button.btn.btn-outline(:class="kind === 'choice' ? 'btn-primary' : ''" @click="kind = 'choice'")
@@ -130,7 +130,7 @@ p(class="text-base-content/60 mb-3") {{ t('practice.subtitle') }}
 
 // Сессия
 .max-w-xl.mx-auto(v-else-if="mode === 'session'")
-  .flex.items-center.justify-between.mb-3
+  .flex.items-center.justify-between.mb-2
     p(class="text-sm text-base-content/60") {{ t('practice.progress', { n: index + 1, total: SESSION_LENGTH }) }}
     p.text-sm
       span(class="text-success font-bold") {{ correctCount }} ✓
@@ -158,7 +158,7 @@ p(class="text-base-content/60 mb-3") {{ t('practice.subtitle') }}
 
     // Аудио: озвучка + выбор перевода
     template(v-else-if="current.kind === 'audio'")
-      .card.bg-base-100.shadow-lg.border.border-base-300.w-full.mb-3
+      .card.bg-base-100.shadow-lg.border.border-base-300.w-full.mb-2
         .card-body.p-4.items-center
           p(class="text-sm text-base-content/60") {{ t('practice.listen') }}
           button.btn.btn-circle.btn-lg.btn-primary(@click="speakAudio()") 🔊
@@ -171,8 +171,8 @@ p(class="text-base-content/60 mb-3") {{ t('practice.subtitle') }}
       )
 
     // Обратная связь и переход
-    .card.bg-base-200.mt-3.border(v-if="showExplanation" :class="lastCorrect ? 'border-success' : 'border-error'")
-      .card-body.p-4.gap-1
+    .card.bg-base-200.mt-2.border(v-if="showExplanation" :class="lastCorrect ? 'border-success' : 'border-error'")
+      .card-body(class="p-3 sm:p-4 gap-1")
         p.font-bold(:class="lastCorrect ? 'text-success' : 'text-error'")
           | {{ lastCorrect ? t('practice.correct') : t('practice.wrong') }}
         p.text-sm(v-if="!lastCorrect && current.kind !== 'build'")

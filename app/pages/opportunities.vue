@@ -43,16 +43,16 @@ const groupOps = computed(() => {
 
 <template lang="pug">
 h1.text-2xl.font-bold.text-primary {{ t('opps.title') }}
-p(class="text-base-content/60 mb-3")
+p(class="text-base-content/60 mb-2")
   | {{ t('opps.subtitle') }} ·
   | {{ fmt(stats.known) }} / {{ fmt(stats.total) }}
 
 // Ключи к запертым шаблонам — главный ответ на вопрос
 // «какие слова открывают фразы», поэтому идут первыми
-div(v-if="keys.length" class="mb-6")
+div(v-if="keys.length" class="mb-4")
   h2.text-lg.font-bold(class="mb-1") {{ t('opps.keys') }}
-  p(class="text-sm text-base-content/60 mb-3") {{ t('opps.keysHint') }}
-  .grid.grid-cols-1(class="md:grid-cols-2 gap-3")
+  p(class="text-sm text-base-content/60 mb-2") {{ t('opps.keysHint') }}
+  .grid.grid-cols-1(class="md:grid-cols-2 xl:grid-cols-3 gap-2 lg:gap-3")
     UnlockKeyCard(
       v-for="k in keys"
       :key="k.words.map((w) => w.id).join('+')"
@@ -60,7 +60,7 @@ div(v-if="keys.length" class="mb-6")
     )
 
 // Топ-слова по открытым фразам
-.grid.grid-cols-1(class="md:grid-cols-2 xl:grid-cols-3 gap-3 mb-6")
+.grid.grid-cols-1(class="md:grid-cols-2 xl:grid-cols-3 gap-2 lg:gap-3 mb-4")
   OpportunityCard(
     v-for="opp in list"
     :key="opp.word.id"

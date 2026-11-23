@@ -27,7 +27,7 @@ const kindBadge = computed(() => {
 </script>
 
 <template lang="pug">
-.card.bg-base-100.shadow-sm.border.border-base-300.p-3
+.card.bg-base-100.shadow-sm.border.border-base-300(class="p-2.5")
   .flex.items-start.justify-between.gap-2
     .min-w-0
       .font-semibold.text-primary.flex.items-center.gap-2

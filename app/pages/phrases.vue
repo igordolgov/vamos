@@ -67,11 +67,11 @@ const kindLabel = (k: PhraseKind | 'all') =>
 
 <template lang="pug">
 h1.text-2xl.font-bold.text-primary {{ t('phrases.title') }}
-p(class="text-base-content/60 mb-3")
+p(class="text-base-content/60 mb-2")
   | {{ t('phrases.subtitle', { known: fmt(stats.known), total: fmt(stats.total) }) }}
 
 // Фильтры
-.flex.flex-wrap.gap-2.mb-3
+.flex.flex-wrap.gap-2.mb-2
   select.select.select-bordered.select-sm.w-52(v-model="groupFilter")
     option(value="all") {{ t('phrases.groupAll') }}
     option(v-for="g in PHRASE_GROUPS" :key="g" :value="g") {{ g }}
@@ -83,7 +83,7 @@ template(v-if="activeTemplate && pageData.total > 0")
     | {{ activeTemplate.id }} · {{ t('phrases.total', { n: fmt(pageData.total) }) }}
 
   // Страница фраз
-  .flex.flex-col.gap-2
+  .flex.flex-col(class="gap-1.5")
     PhraseRow(
       v-for="p in pageData.phrases"
       :key="p.key"
@@ -93,18 +93,18 @@ template(v-if="activeTemplate && pageData.total > 0")
     )
 
   // Пагинация
-  .join.mt-4.w-fit(v-if="pageData.total > PAGE_SIZE")
+  .join.mt-3.w-fit(v-if="pageData.total > PAGE_SIZE")
     button.join-item.btn.btn-sm(:disabled="page === 0" @click="page--") ←
     button.join-item.btn.btn-sm.btn-ghost {{ page + 1 }}
     button.join-item.btn.btn-sm(:disabled="(page + 1) * PAGE_SIZE >= pageData.total" @click="page++") →
 
 template(v-else)
   // Подсказка: какие слова откроют фразы (когда список пуст)
-  .card.bg-base-100.shadow-sm.border.border-base-300(class="mb-3" v-if="keys.length")
-    .card-body.p-4.gap-2
+  .card.bg-base-100.shadow-sm.border.border-base-300(class="mb-2" v-if="keys.length")
+    .card-body(class="p-3 sm:p-4 gap-2")
       h2.card-title.text-base {{ t('phrases.keysTitle') }}
       p(class="text-sm text-base-content/60") {{ t('phrases.keysIntro') }}
-      .grid.grid-cols-1(class="md:grid-cols-2 gap-3")
+      .grid.grid-cols-1(class="md:grid-cols-2 gap-2 lg:gap-3")
         UnlockKeyCard(
           v-for="k in keys"
           :key="k.words.map((w) => w.id).join('+')"

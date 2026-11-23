@@ -22,9 +22,9 @@ const unlockedCount = computed(() => badges.value.filter((b) => b.unlocked).leng
 
 <template lang="pug">
 h1.text-2xl.font-bold.text-primary {{ t('ach.title') }}
-p(class="text-base-content/60 mb-3") {{ t('ach.subtitle', { n: unlockedCount, total: ACHIEVEMENTS.length }) }}
+p(class="text-base-content/60 mb-2") {{ t('ach.subtitle', { n: unlockedCount, total: ACHIEVEMENTS.length }) }}
 
-.grid.grid-cols-2(class="sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-3")
+.grid.grid-cols-2(class="sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-2 lg:gap-3")
   BadgeCard(
     v-for="b in badges"
     :key="b.achievement.id"

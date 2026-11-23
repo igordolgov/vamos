@@ -53,7 +53,7 @@ function check() {
 
 <template lang="pug">
 .card.bg-base-100.shadow-lg.border.border-base-300.w-full
-  .card-body.p-4.gap-4
+  .card-body(class="p-3 sm:p-4 gap-3 sm:gap-4")
     // Подсказка-перевод
     .text-center
       p(class="text-sm text-base-content/60") {{ t('practice.buildHint') }}

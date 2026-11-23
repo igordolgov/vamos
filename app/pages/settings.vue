@@ -58,8 +58,8 @@ h1.text-2xl.font-bold.text-primary.mb-2 {{ t('set.title') }}
 
 // Интерфейс, тема и размер шрифта
 .card.bg-base-100.shadow-sm.border.border-base-300.mb-2
-  .card-body.p-4.gap-3
-    .grid.grid-cols-1(class="sm:grid-cols-2 lg:grid-cols-3 gap-3")
+  .card-body(class="p-3 sm:p-4 gap-2 sm:gap-3")
+    .grid.grid-cols-1(class="sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3")
       label.form-control
         .label
           span.label-text {{ t('set.interface') }}
@@ -85,7 +85,7 @@ AuthPanel.mb-2
 
 // Установка PWA
 .card.bg-base-100.shadow-sm.border.border-base-300.mb-2(v-if="canInstall")
-  .card-body.p-4.gap-2
+  .card-body(class="p-3 sm:p-4 gap-2")
     h2.card-title.text-lg {{ t('set.install') }}
     p(class="text-sm text-base-content/60") {{ t('set.installHint') }}
     button.btn.btn-primary.btn-sm.w-fit(@click="install()") 📲 {{ t('dash.install') }}
@@ -93,7 +93,7 @@ AuthPanel.mb-2
 // Сброс прогресса + о приложении (в 2 колонки на десктопе)
 .grid.grid-cols-1(class="lg:grid-cols-2 gap-2 mb-2 items-start")
   .card.bg-base-100.shadow-sm.border(class="border-error/40 h-full")
-    .card-body.p-4.gap-2
+    .card-body(class="p-3 sm:p-4 gap-2")
       h2.card-title.text-lg.text-error {{ t('set.reset') }}
       button.btn.btn-error.btn-sm.w-fit(v-if="!confirmReset" @click="confirmReset = true") {{ t('set.reset') }}
       template(v-else='')
@@ -103,7 +103,7 @@ AuthPanel.mb-2
           button.btn.btn-ghost.btn-sm(@click="confirmReset = false") {{ t('common.cancel') }}
 
   .card.bg-base-100.shadow-sm.border.border-base-300(class="h-full")
-    .card-body.p-4.gap-2
+    .card-body(class="p-3 sm:p-4 gap-2")
       h2.card-title.text-lg {{ t('set.about') }}
       p(class="text-sm text-base-content/70") {{ t('set.aboutText') }}
       p(class="text-xs text-base-content/40") Nuxt 4 · PWA · DaisyUI 5 · Pug · TypeScript · Vitest · node:sqlite

@@ -22,11 +22,12 @@ const label = t('lessons.knownOf', { known: props.known, total: props.total })
 <template lang="pug">
 NuxtLink(:to="'/lessons/' + number")
   .card.bg-base-100.shadow-sm.border.border-base-300.h-full(class="hover:shadow-md hover:border-primary transition-all")
-    .card-body.p-3.gap-2
+    .card-body.p-3(class="gap-1.5")
       .flex.items-center.justify-between
         span.badge.badge-primary.badge-outline № {{ number }}
-        .radial-progress.text-primary(:style="'--value:' + percent + ';--size:2.6rem;--thickness:4px'" role="progressbar" :aria-valuenow="percent")
+        .radial-progress.text-primary(:style="'--value:' + percent + ';--size:2.6rem;--thickness:4px'" role="progressbar" :aria-valuenow="percent" v-if="percent > 0")
           span(class="text-[10px]") {{ percent }}%
+        span.text-xs.font-semibold(v-else class="text-base-content/40") 0%
       h3.font-semibold.text-base-content {{ locale === 'es' ? titleEs : titleRu }}
       p.text-xs(class="text-base-content/60") {{ hintRu }}
       progress.progress.progress-primary.h-1(:value="known" :max="total" :aria-label="label")

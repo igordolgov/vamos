@@ -49,7 +49,7 @@ async function logout() {
 
 <template lang="pug">
 .card.bg-base-100.shadow-sm.border.border-base-300
-  .card-body.p-4.gap-3
+  .card-body(class="p-3 sm:p-4 gap-2 sm:gap-3")
 
     // Вошли: показываем профиль и выход
     template(v-if="auth.authed.value")

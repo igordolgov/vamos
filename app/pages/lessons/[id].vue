@@ -56,7 +56,7 @@ template(v-if="lesson")
   p(class="text-sm text-secondary mb-2" v-if="lesson.unlocksFrom")
     | ⚡ {{ t('lessons.unlockHint') }}: {{ lesson.unlocksFrom }}
 
-  .grid.grid-cols-1(class="md:grid-cols-2 lg:grid-cols-3 gap-3")
+  .grid.grid-cols-1(class="md:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-3")
     WordCard(
       v-for="card in cards"
       :key="card.word.id"
