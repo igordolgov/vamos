@@ -34,5 +34,5 @@ p(class="text-base-content/60 mb-2") {{ t('lessons.subtitle') }}
     :total="lesson.total"
   )
 
-p(class="text-sm text-base-content/50 mt-3") {{ totalKnown }} {{ t('dash.stats.words') }}
+p(class="text-sm text-base-content/50 mt-3") {{ t('dash.stats.words', { n: totalKnown }) }}
 </template>

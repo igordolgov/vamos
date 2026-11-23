@@ -5,6 +5,7 @@
 import { POS_LABELS } from '#shared/data/words'
 import type { Word } from '#shared/types'
 import { useT, useLocale } from '~/composables/useI18n'
+import { phrasesWord } from '#shared/i18n/plural'
 
 const props = defineProps<{
   word: Word
@@ -24,9 +25,9 @@ const locale = useLocale()
       span.font-bold.text-primary.text-lg {{ word.es }}
       span.text-sm(class="text-base-content/60") — {{ word.ru[0] }}
     p.text-sm
-      | {{ t('opps.learn') }} «{{ word.es }}»
+      | {{ t('opps.learn', { es: word.es }) }}
       span.text-success.font-bold
-        |  — {{ t('opps.newPhrases', { n: newPhrases.toLocaleString('ru-RU') }) }}
+        |  — {{ t('opps.newPhrases', { n: newPhrases.toLocaleString('ru-RU'), w: phrasesWord(newPhrases, locale) }) }}
     p.text-xs(class="text-base-content/50")
-      | {{ t('opps.willKnow') }}: {{ totalAfter.toLocaleString('ru-RU') }}
+      | {{ t('opps.willKnow', { n: totalAfter.toLocaleString('ru-RU') }) }}
 </template>

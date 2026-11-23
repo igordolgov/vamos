@@ -7,6 +7,7 @@ import { computed } from 'vue'
 import type { Word } from '#shared/types'
 import { POS_LABELS } from '#shared/data/words'
 import { useT, useLocale } from '~/composables/useI18n'
+import { phrasesWord } from '#shared/i18n/plural'
 import SpeakButton from './SpeakButton.vue'
 
 const props = defineProps<{
@@ -105,5 +106,5 @@ const nounInfo = computed(() => {
 
     // Проекция «выучишь — узнаешь»
     p(class="text-xs text-secondary mt-0.5" v-if="unlock && unlock > 0")
-      | ⚡ {{ t('words.youLearn', { n: unlock.toLocaleString('ru-RU') }) }}
+      | ⚡ {{ t('words.youLearn', { n: unlock.toLocaleString('ru-RU'), w: phrasesWord(unlock, locale) }) }}
 </template>

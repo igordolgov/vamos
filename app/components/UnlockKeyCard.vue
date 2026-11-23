@@ -4,11 +4,13 @@
 // обязательных слов шаблонов; выучите набор — откроются фразы.
 // ============================================================
 import type { UnlockKey } from '#shared/stats'
-import { useT } from '~/composables/useI18n'
+import { useT, useLocale } from '~/composables/useI18n'
+import { phrasesWord } from '#shared/i18n/plural'
 
 defineProps<{ unlock: UnlockKey }>()
 
 const t = useT()
+const locale = useLocale()
 
 function fmt(n: number): string {
   return n.toLocaleString('ru-RU')
@@ -25,5 +27,5 @@ function fmt(n: number): string {
       | {{ unlock.words.map((w) => w.ru[0]).join(', ') }}
     p.text-sm
       span.font-bold.text-success
-        | +{{ fmt(unlock.potential) }} {{ t('opps.keysTemplates', { n: unlock.templates }) }}
+        | +{{ fmt(unlock.potential) }} {{ t('opps.keysTemplates', { w: phrasesWord(unlock.potential, locale), tpl: unlock.templates }) }}
 </template>
