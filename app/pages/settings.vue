@@ -1,12 +1,12 @@
 <script setup lang="ts">
 // ============================================================
-// pages/settings.vue — язык интерфейса, тема, профиль,
-// сброс прогресса и справка о приложении.
+// pages/settings.vue — язык интерфейса, тема, размер шрифта,
+// профиль, сброс прогресса и справка о приложении.
 // ============================================================
 import { onMounted, ref } from 'vue'
 import { useT, setLocale, useLocale } from '~/composables/useI18n'
 import { setTheme, useTheme, readTheme } from '~/composables/useTheme'
-import { setProgressSetting, useProgress } from '~/composables/useProgress'
+import { applyFontSize, setProgressSetting, useProgress } from '~/composables/useProgress'
 import { useInstall } from '~/composables/useInstall'
 import type { Locale } from '#shared/i18n'
 import type { Theme } from '~/composables/useTheme'
@@ -15,13 +15,17 @@ import AuthPanel from '~/components/AuthPanel.vue'
 const t = useT()
 const locale = useLocale()
 const theme = useTheme()
-const {resetProgress, ensureLoaded} = useProgress()
+const {progress, resetProgress, ensureLoaded} = useProgress()
 const {canInstall, install} = useInstall()
 const confirmReset = ref(false)
+type FontSize = 's' | 'm' | 'l'
+const fontSize = ref<FontSize>('m')
 
 onMounted(() => {
   void ensureLoaded()
   readTheme()
+  // ensureLoaded синхронно читает localStorage — настройка уже в состоянии
+  fontSize.value = progress.value.settings.fontSize ?? 'm'
 })
 
 function onLocale(e: Event) {
@@ -36,6 +40,13 @@ function onTheme(e: Event) {
   setProgressSetting('theme', value)
 }
 
+function onFontSize(e: Event) {
+  const value = (e.target as HTMLSelectElement).value as FontSize
+  fontSize.value = value
+  setProgressSetting('fontSize', value)
+  applyFontSize()
+}
+
 function onReset() {
   resetProgress()
   confirmReset.value = false
@@ -45,10 +56,10 @@ function onReset() {
 <template lang="pug">
 h1.text-2xl.font-bold.text-primary.mb-3 {{ t('set.title') }}
 
-// Интерфейс и тема
+// Интерфейс, тема и размер шрифта
 .card.bg-base-100.shadow-sm.border.border-base-300.mb-3
   .card-body.p-4.gap-3
-    .grid.grid-cols-1(class="sm:grid-cols-2 gap-3")
+    .grid.grid-cols-1(class="sm:grid-cols-2 lg:grid-cols-3 gap-3")
       label.form-control
         .label
           span.label-text {{ t('set.interface') }}
@@ -61,6 +72,13 @@ h1.text-2xl.font-bold.text-primary.mb-3 {{ t('set.title') }}
         select.select.select-bordered.select-sm(v-model="theme" @change="onTheme")
           option(value="light") {{ t('set.theme.light') }}
           option(value="dark") {{ t('set.theme.dark') }}
+      label.form-control
+        .label
+          span.label-text {{ t('set.fontSize') }}
+        select.select.select-bordered.select-sm(v-model="fontSize" @change="onFontSize")
+          option(value="s") {{ t('set.fontSize.s') }}
+          option(value="m") {{ t('set.fontSize.m') }}
+          option(value="l") {{ t('set.fontSize.l') }}
 
 // Профиль и синхронизация
 AuthPanel.mb-3

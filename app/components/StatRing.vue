@@ -17,7 +17,10 @@ const sizeClass = computed(() => props.size ?? 'size-24')
 </script>
 
 <template lang="pug">
-.flex.flex-col.items-center.gap-1
+// Карточка: обводка + тень (используется в «Прогресс по частям речи»)
+.flex.flex-col.items-center.gap-1.w-full.rounded-xl.border.border-base-300.bg-base-100.shadow-sm(
+  class="px-1 py-3"
+)
   .radial-progress.text-primary.font-semibold(
     :class="sizeClass"
     :style="{ '--value': percent, '--size': '5rem', '--thickness': '0.5rem' }"

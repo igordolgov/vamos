@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { emptyProgress } from '../../shared/types'
-import { ALL_WORDS } from '../../shared/data/words'
+import { ALL_WORDS, getWord } from '../../shared/data/words'
 import { makeExercise } from '../../shared/practice'
 
 /** Прогресс со словами первых 13 уроков (correct = 2 — «выучено») */
@@ -47,5 +47,36 @@ describe('makeExercise', () => {
   it('гость без прогресса получает хотя бы choice', () => {
     const ex = makeExercise('choice', emptyProgress())
     expect(ex).not.toBeNull()
+  })
+
+  it('гость без прогресса получает и сборку фразы (раньше — «не работает»)', () => {
+    // Баг: сборка брала слова только из выученных (knownSet), у новичка их
+    // нет — makeExercise возвращал null и сессия мгновенно «завершалась».
+    // Теперь пул практики разрешён как источник слов.
+    let ex = makeExercise('build', emptyProgress())
+    for (let i = 0; i < 20 && !ex; i++) ex = makeExercise('build', emptyProgress())
+    expect(ex).not.toBeNull()
+    expect(ex!.kind).toBe('build')
+    expect(ex!.tiles!.length).toBeGreaterThan(0)
+    expect(ex!.hint.length).toBeGreaterThan(0)
+  })
+
+  it('практика по уроку — слова только этого урока', () => {
+    for (let i = 0; i < 10; i++) {
+      const ex = makeExercise('choice', richProgress(), Math.random, { lesson: 2 })
+      expect(ex).not.toBeNull()
+      for (const id of ex!.wordIds) {
+        expect(getWord(id).lesson).toBe(2)
+      }
+    }
+  })
+
+  it('практика по уроку: сборка фразы работает без выученных слов', () => {
+    let ex = makeExercise('build', emptyProgress(), Math.random, { lesson: 1 })
+    for (let i = 0; i < 20 && !ex; i++) {
+      ex = makeExercise('build', emptyProgress(), Math.random, { lesson: 1 })
+    }
+    expect(ex).not.toBeNull()
+    expect(ex!.kind).toBe('build')
   })
 })

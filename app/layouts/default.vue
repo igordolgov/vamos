@@ -7,7 +7,7 @@ import { onMounted } from 'vue'
 import AppHeader from '~/components/AppHeader.vue'
 import AppToasts from '~/components/AppToasts.vue'
 import { useT } from '~/composables/useI18n'
-import { ensureLoaded } from '~/composables/useProgress'
+import { ensureLoaded, applyFontSize } from '~/composables/useProgress'
 import { warmUpVoices } from '~/composables/useSpeech'
 import { initInstallPrompt } from '~/composables/useInstall'
 import { WORD_COUNT } from '#shared/data/words'
@@ -21,8 +21,10 @@ const templateCount = allTemplates().length
 const totalMln = (totalPhrases() / 1e6).toFixed(1).replace('.', ',')
 
 onMounted(() => {
-  // Загружаем прогресс, голоса синтеза и хук установки PWA
+  // Загружаем прогресс, голоса синтеза и хук установки PWA.
+  // ensureLoaded синхронно читает localStorage — размер шрифта применяем сразу
   void ensureLoaded()
+  applyFontSize()
   warmUpVoices()
   initInstallPrompt()
 })

@@ -40,7 +40,11 @@ const cards = computed(() =>
 </script>
 
 <template lang="pug">
-NuxtLink.btn.btn-ghost.btn-sm.mb-2(to="/lessons") ← {{ t('lessons.back') }}
+.flex.items-center.justify-between.gap-2.mb-2
+  NuxtLink.btn.btn-ghost.btn-sm.px-2(to="/lessons") ← {{ t('lessons.back') }}
+  // Закрепление урока: практика только по словам этого урока
+  NuxtLink.btn.btn-primary.btn-sm(v-if="lesson" :to="`/practice?lesson=${lesson.number}`")
+    | 🎯 {{ t('lessons.practice') }}
 
 template(v-if="lesson")
   h1.text-2xl.font-bold.text-primary № {{ lesson.number }} — {{ lesson.titleRu }}
