@@ -1,0 +1,27 @@
+# Зависимости и сборка
+node_modules/
+.nuxt/
+.output/
+.data/
+dist/
+
+# База данных (локальные файлы)
+db/*.db
+db/*.db-journal
+db/*.db-wal
+db/*.db-shm
+
+# Секреты и локальное окружение
+.env
+
+# Служебные каталоги песочницы (не часть проекта)
+skills/
+upload/
+download/
+tool-results/
+agent-ctx/
+.zscripts/
+
+# Прочее
+*.log
+.DS_Store

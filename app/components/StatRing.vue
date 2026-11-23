@@ -1,0 +1,36 @@
+<script setup lang="ts">
+// ============================================================
+// StatRing.vue — кольцо прогресса (DaisyUI radial-progress).
+// ============================================================
+import { computed } from 'vue'
+
+const props = defineProps<{
+  value: number
+  total: number
+  label: string
+  emoji?: string
+  size?: string
+}>()
+
+/** Доля 0..100 и число для daisyui radial-progress (--value) */
+const percent = computed(() => (props.total > 0 ? Math.round((props.value / props.total) * 100) : 0))
+const sizeClass = computed(() => props.size ?? 'size-24')
+</script>
+
+<template lang="pug">
+.flex.flex-col.items-center.gap-1
+  .radial-progress.text-primary.font-semibold(
+    :class="sizeClass"
+    :style="{ '--value': percent, '--size': '5rem', '--thickness': '0.5rem' }"
+    role="progressbar"
+    :aria-valuenow="percent"
+    aria-valuemin="0"
+    aria-valuemax="100"
+    :aria-label="label"
+  )
+    span.text-sm {{ percent }}%
+  .text-xs.text-center(class="text-base-content/70")
+    span(v-if="emoji" class="mr-1") {{ emoji }}
+    span {{ label }}
+  .text-xs(class="text-base-content/50") {{ value }} / {{ total }}
+</template>

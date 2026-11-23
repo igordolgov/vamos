@@ -1,0 +1,172 @@
+<script setup lang="ts">
+// ============================================================
+// pages/practice.vue — тренировочная сессия:
+// тест-выбор / сборка фразы / аудио, счёт, итоги.
+// ============================================================
+import { computed, onMounted, ref } from 'vue'
+import { useT } from '~/composables/useI18n'
+import { speakEs } from '~/composables/useSpeech'
+import { useProgress, applyAnswer } from '~/composables/useProgress'
+import { makeExercise, type Exercise, type ExerciseKind } from '../../shared/practice'
+import { knownWordsCount } from '../../shared/stats'
+import QuizChoice from '~/components/QuizChoice.vue'
+import QuizBuild from '~/components/QuizBuild.vue'
+import SessionResult from '~/components/SessionResult.vue'
+
+const t = useT()
+const {progress, ensureLoaded} = useProgress()
+onMounted(() => {
+  void ensureLoaded()
+})
+
+// ============================================================
+// Состояние сессии
+// ============================================================
+const SESSION_LENGTH = 10
+
+const mode = ref<'menu' | 'session' | 'result'>('menu')
+const kind = ref<ExerciseKind | 'mixed'>('choice')
+const current = ref<Exercise | null>(null)
+const index = ref(0)
+const correctCount = ref(0)
+const wrongCount = ref(0)
+const newWords = ref<Array<{ es: string; ru: string[] }>>([])
+const lastCorrect = ref<boolean | null>(null)
+const showExplanation = ref(false)
+
+// Пул практики всегда содержит новые слова — блокировать нечего
+const wordsKnown = computed(() => knownWordsCount(progress.value))
+
+// Режим «микс» чередует типы упражнений
+function pickKind(): ExerciseKind {
+  if (kind.value !== 'mixed') return kind.value
+  const types: ExerciseKind[] = ['choice', 'build', 'audio']
+  return types[Math.floor(Math.random() * types.length)]
+}
+
+function startSession() {
+  index.value = 0
+  correctCount.value = 0
+  wrongCount.value = 0
+  newWords.value = []
+  mode.value = 'session'
+  nextExercise()
+}
+
+function nextExercise() {
+  lastCorrect.value = null
+  showExplanation.value = false
+  current.value = makeExercise(pickKind(), progress.value)
+  if (!current.value) {
+    mode.value = 'result'
+    return
+  }
+}
+
+function onAnswered(correct: boolean) {
+  if (!current.value || lastCorrect.value !== null) return
+  lastCorrect.value = correct
+  showExplanation.value = true
+  const newly = applyAnswer(current.value, correct)
+  if (correct) correctCount.value++
+  else wrongCount.value++
+  if (newly.length) newWords.value = [...newWords.value, ...newly.map((w) => ({ es: w.es, ru: w.ru }))]
+}
+
+function goNext() {
+  index.value++
+  if (index.value >= SESSION_LENGTH) {
+    mode.value = 'result'
+    return
+  }
+  nextExercise()
+}
+
+function speakAudio() {
+  if (current.value?.speak) speakEs(current.value.speak)
+}
+</script>
+
+<template lang="pug">
+h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
+p(class="text-base-content/60 mb-4") {{ t('practice.subtitle') }}
+
+// Меню выбора типа упражнения
+.card.bg-base-100.shadow-sm.border.border-base-300.mb-4(v-if="mode === 'menu'")
+  .card-body.p-5.gap-3
+    h2.card-title.text-lg {{ t('practice.source') }}
+    .grid.grid-cols-2(class="sm:grid-cols-4 gap-2")
+      button.btn.btn-outline(:class="kind === 'choice' ? 'btn-primary' : ''" @click="kind = 'choice'")
+        | ✅ {{ t('practice.choice') }}
+      button.btn.btn-outline(:class="kind === 'build' ? 'btn-primary' : ''" @click="kind = 'build'")
+        | 🧩 {{ t('practice.build') }}
+      button.btn.btn-outline(:class="kind === 'audio' ? 'btn-primary' : ''" @click="kind = 'audio'")
+        | 🔊 {{ t('practice.audio') }}
+      button.btn.btn-outline(:class="kind === 'mixed' ? 'btn-primary' : ''" @click="kind = 'mixed'")
+        | 🎲 {{ t('practice.mixed') }}
+    button.btn.btn-primary.btn-wide(@click="startSession") {{ t('practice.start') }}
+
+// Сессия
+.max-w-xl.mx-auto(v-else-if="mode === 'session'")
+  .flex.items-center.justify-between.mb-3
+    p(class="text-sm text-base-content/60") {{ t('practice.progress', { n: index + 1, total: SESSION_LENGTH }) }}
+    p.text-sm
+      span(class="text-success font-bold") {{ correctCount }} ✓
+      span(class="text-error font-bold ml-2") {{ wrongCount }} ✗
+
+  template(v-if="current")
+    QuizChoice(
+      v-if="current.kind === 'choice'"
+      :key="index"
+      :question-es="current.questionEs"
+      :question-ru="current.questionRu"
+      :options="current.options"
+      :answer-index="current.answerIndex"
+      @answered="onAnswered"
+    )
+
+    QuizBuild(
+      v-else-if="current.kind === 'build'"
+      :key="index"
+      :tiles="current.tiles ?? []"
+      :answer-tiles="current.answerTiles ?? []"
+      :hint="current.hint ?? ''"
+      @answered="onAnswered"
+    )
+
+    // Аудио: озвучка + выбор перевода
+    template(v-else-if="current.kind === 'audio'")
+      .card.bg-base-100.shadow-lg.border.border-base-300.w-full.mb-3
+        .card-body.p-5.items-center
+          p(class="text-sm text-base-content/60") {{ t('practice.listen') }}
+          button.btn.btn-circle.btn-lg.btn-primary(@click="speakAudio()") 🔊
+
+      QuizChoice(
+        :key="'audio-' + index"
+        :options="current.options"
+        :answer-index="current.answerIndex"
+        @answered="onAnswered"
+      )
+
+    // Обратная связь и переход
+    .card.bg-base-200.mt-3.border(v-if="showExplanation" :class="lastCorrect ? 'border-success' : 'border-error'")
+      .card-body.p-4.gap-1
+        p.font-bold(:class="lastCorrect ? 'text-success' : 'text-error'")
+          | {{ lastCorrect ? t('practice.correct') : t('practice.wrong') }}
+        p.text-sm(v-if="!lastCorrect && current.kind !== 'build'")
+          | {{ t('practice.answerWas') }} {{ current.options[current.answerIndex] }}
+        p.text-sm(v-if="!lastCorrect && current.kind === 'build'")
+          | {{ t('practice.answerWas') }} {{ current.answerTiles?.join(' ') }}
+        p(class="text-xs text-base-content/50") {{ current.explanation }}
+        button.btn.btn-primary.mt-2(@click="goNext") {{ t('practice.next') }}
+
+// Итоги
+SessionResult(
+  v-else=''
+  :correct="correctCount"
+  :wrong="wrongCount"
+  :new-words="newWords"
+  @again="startSession"
+  @finish="mode = 'menu'"
+)
+</template>

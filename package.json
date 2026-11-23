@@ -1,0 +1,40 @@
+{
+  "name": "vamos-spanish",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "¡Vamos! — PWA-приложение для изучения латиноамериканского испанского языка (Nuxt 4 + DaisyUI 5 + Pug + TypeScript)",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run --project unit",
+    "test:components": "vitest run --project components",
+    "typecheck": "nuxt typecheck",
+    "icons": "node scripts/make-icons.mjs"
+  },
+  "dependencies": {
+    "nuxt": "^4.6.4",
+    "vue": "^3.5.0",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@nuxt/test-utils": "^4.4.0",
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/pug": "^2.0.6",
+    "@vite-pwa/nuxt": "^2.0.4",
+    "@vue/test-utils": "^2.4.6",
+    "daisyui": "^5.8.2",
+    "happy-dom": "^20.0.11",
+    "pug": "^3.0.4",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^5.9.0",
+    "vitest": "^5.1.1",
+    "vue-tsc": "^3.3.14"
+  }
+}

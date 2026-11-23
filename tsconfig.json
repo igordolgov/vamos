@@ -1,0 +1,16 @@
+// ============================================================
+// tsconfig.json — корневой solution-style конфиг проекта.
+// Nuxt 4 генерирует четыре проекта в .nuxt/ (app, server,
+// shared, node) — здесь только ссылки на них для `nuxt typecheck`
+// (vue-tsc -b --noEmit). Компиляторные опции настраиваются в
+// nuxt.config.ts → typescript.tsConfig.
+// ============================================================
+{
+  "files": [],
+  "references": [
+    { "path": "./.nuxt/tsconfig.app.json" },
+    { "path": "./.nuxt/tsconfig.server.json" },
+    { "path": "./.nuxt/tsconfig.shared.json" },
+    { "path": "./.nuxt/tsconfig.node.json" }
+  ]
+}
