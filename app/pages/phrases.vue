@@ -67,11 +67,11 @@ const kindLabel = (k: PhraseKind | 'all') =>
 
 <template lang="pug">
 h1.text-2xl.font-bold.text-primary {{ t('phrases.title') }}
-p(class="text-base-content/60 mb-4")
+p(class="text-base-content/60 mb-3")
   | {{ t('phrases.subtitle', { known: fmt(stats.known), total: fmt(stats.total) }) }}
 
 // Фильтры
-.flex.flex-wrap.gap-2.mb-4
+.flex.flex-wrap.gap-2.mb-3
   select.select.select-bordered.select-sm.w-52(v-model="groupFilter")
     option(value="all") {{ t('phrases.groupAll') }}
     option(v-for="g in PHRASE_GROUPS" :key="g" :value="g") {{ g }}
@@ -100,7 +100,7 @@ template(v-if="activeTemplate && pageData.total > 0")
 
 template(v-else)
   // Подсказка: какие слова откроют фразы (когда список пуст)
-  .card.bg-base-100.shadow-sm.border.border-base-300(class="mb-4" v-if="keys.length")
+  .card.bg-base-100.shadow-sm.border.border-base-300(class="mb-3" v-if="keys.length")
     .card-body.p-4.gap-2
       h2.card-title.text-base {{ t('phrases.keysTitle') }}
       p(class="text-sm text-base-content/60") {{ t('phrases.keysIntro') }}

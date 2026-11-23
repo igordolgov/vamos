@@ -13,8 +13,9 @@
 import type { Progress, Word } from './types'
 import { isWordKnown, KNOWN_THRESHOLD } from './types'
 import { ALL_WORDS, getWord } from './data/words'
+import { LESSONS } from './data/lessons'
 import { allTemplates } from './phrases/templates'
-import { sampleFill } from './phrases/engine'
+import { sampleFill, countTemplate } from './phrases/engine'
 import { knownSet } from './stats'
 import { phraseKey } from './phrases/schema'
 import type { Fill } from './phrases/schema'
@@ -201,16 +202,38 @@ export function audioExercise(
   }
 }
 
+/** Слова конкретного урока (для практики «закрепить урок») */
+export function lessonPool(lesson: number): Word[] {
+  return ALL_WORDS.filter((w) => w.lesson === lesson)
+}
+
+/** Пул практики: слова урока (если задан и не пуст) или общий пул */
+function pickPool(progress: Progress, lesson?: number): Word[] {
+  if (lesson && lesson > 0) {
+    const words = lessonPool(lesson)
+    if (words.length) return words
+  }
+  return practicePool(progress)
+}
+
+/** Опции генератора упражнений */
+export interface MakeExerciseOpts {
+  /** Практика по уроку: пул — только слова этого урока */
+  lesson?: number
+}
+
 /**
  * Сгенерировать случайное упражнение заданного типа.
  * Для «choice» направление ES→RU / RU→ES чередуется случайно.
+ * opts.lesson — практика по конкретному уроку (закрепление).
  */
 export function makeExercise(
   kind: ExerciseKind,
   progress: Progress,
   rand: () => number = Math.random,
+  opts: MakeExerciseOpts = {},
 ): Exercise | null {
-  const pool = practicePool(progress)
+  const pool = pickPool(progress, opts.lesson)
   if (pool.length === 0) return null
   const word = pool[Math.floor(rand() * pool.length)]
   if (kind === 'choice') {
@@ -220,23 +243,35 @@ export function makeExercise(
   if (kind === 'audio') {
     return audioExercise(word, ALL_WORDS, rand)
   }
-  // build — только фразы: берём случайный шаблон, доступный пулу
+  // build — только фразы. ВАЖНО: разрешаем не только «выученные» слова
+  // (knownSet, 2+ верных ответа), а весь материал до текущего уровня —
+  // урока практики или максимального урока пула: у новичка выученных слов
+  // нет, и «Сборка фразы» мгновенно завершала сессию (выглядело как
+  // «не работает»). Если на этом уровне фразы ещё не собираются (первые
+  // уроки — только местоимения и артикли), расширяем материал вверх
+  // по урокам, пока не появится хотя бы один собираемый шаблон.
+  // Новые слова в упражнении — тоже закрепление: ответ записывается в прогресс.
   const known = knownSet(progress)
-  const templates = allTemplates().filter((t) => templateActive(t, known))
-  if (templates.length === 0) return null
-  for (let i = 0; i < 10; i++) {
-    const t = templates[Math.floor(rand() * templates.length)]
-    const fill = sampleFill(t, known, rand)
-    if (!fill) continue
-    const kind2 = t.variants[Math.floor(rand() * t.variants.length)]
-    return buildExercise(fill, t.id, kind2, rand)
+  const base = opts.lesson && opts.lesson > 0
+    ? opts.lesson
+    : pool.reduce((m, w) => Math.max(m, w.lesson), 0)
+  for (let limit = base; limit <= LESSONS.length; limit++) {
+    const allowed = new Set([
+      ...ALL_WORDS.filter((w) => w.lesson <= limit).map((w) => w.id),
+      ...known,
+    ])
+    // Шаблоны, в которых собирается хотя бы одна фраза из разрешённых слов
+    const templates = allTemplates().filter((t) => countTemplate(t, allowed) > 0)
+    if (templates.length === 0) continue
+    for (let i = 0; i < 10; i++) {
+      const t = templates[Math.floor(rand() * templates.length)]
+      const fill = sampleFill(t, allowed, rand)
+      if (!fill) continue
+      const kind2 = t.variants[Math.floor(rand() * t.variants.length)]
+      return buildExercise(fill, t.id, kind2, rand)
+    }
   }
   return null
-}
-
-/** Шаблон активен (все обязательные слова в известном множестве)? */
-function templateActive(t: import('./phrases/schema').Template, known: Set<string>): boolean {
-  return t.requires.every((id) => known.has(id))
 }
 
 /** Записать ответ в прогресс: возвращает слова, которые стали выученными */

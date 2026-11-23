@@ -246,6 +246,8 @@ export interface Progress {
   settings: {
     locale?: 'ru' | 'es'
     theme?: 'light' | 'dark'
+    /** Размер шрифта интерфейса: s — мелкий, m — обычный, l — крупный */
+    fontSize?: 's' | 'm' | 'l'
   }
   updatedAt: number
 }

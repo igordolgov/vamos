@@ -2,6 +2,8 @@
 // ============================================================
 // pages/practice.vue — тренировочная сессия:
 // тест-выбор / сборка фразы / аудио, счёт, итоги.
+// Режим закрепления урока: /practice?lesson=N — пул только из
+// слов этого урока (кнопка «Практика» на странице урока).
 // ============================================================
 import { computed, onMounted, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
@@ -13,6 +15,7 @@ import QuizChoice from '~/components/QuizChoice.vue'
 import QuizBuild from '~/components/QuizBuild.vue'
 import SessionResult from '~/components/SessionResult.vue'
 
+const route = useRoute()
 const t = useT()
 const {progress, ensureLoaded} = useProgress()
 onMounted(() => {
@@ -44,6 +47,12 @@ function pickKind(): ExerciseKind {
   return types[Math.floor(Math.random() * types.length)]
 }
 
+// Закрепление урока: /practice?lesson=N (0 или мусор — весь словарь)
+const lessonFilter = computed(() => {
+  const n = Number(route.query.lesson)
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0
+})
+
 function startSession() {
   index.value = 0
   correctCount.value = 0
@@ -56,7 +65,15 @@ function startSession() {
 function nextExercise() {
   lastCorrect.value = null
   showExplanation.value = false
-  current.value = makeExercise(pickKind(), progress.value)
+  const opts = { lesson: lessonFilter.value || undefined }
+  const chosen = pickKind()
+  current.value = makeExercise(chosen, progress.value, Math.random, opts)
+  // Страховка: если выбранный тип не собрался (например, в миксе попалась
+  // сборка без подходящих шаблонов) — пробуем тест-выбор, и только потом
+  // завершаем сессию
+  if (!current.value && chosen !== 'choice') {
+    current.value = makeExercise('choice', progress.value, Math.random, opts)
+  }
   if (!current.value) {
     mode.value = 'result'
     return
@@ -89,11 +106,16 @@ function speakAudio() {
 
 <template lang="pug">
 h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
-p(class="text-base-content/60 mb-4") {{ t('practice.subtitle') }}
+p(class="text-base-content/60 mb-3") {{ t('practice.subtitle') }}
+
+// Баннер режима закрепления урока
+.alert.mb-3(v-if="lessonFilter" class="bg-primary/10 border border-primary/40 py-2")
+  span.text-sm.font-medium {{ t('practice.lessonMode', { n: lessonFilter }) }}
+  NuxtLink.btn.btn-ghost.btn-xs(to="/practice") {{ t('practice.lessonAll') }}
 
 // Меню выбора типа упражнения
-.card.bg-base-100.shadow-sm.border.border-base-300.mb-4(v-if="mode === 'menu'")
-  .card-body.p-5.gap-3
+.card.bg-base-100.shadow-sm.border.border-base-300.mb-3(v-if="mode === 'menu'")
+  .card-body.p-4.gap-3
     h2.card-title.text-lg {{ t('practice.source') }}
     .grid.grid-cols-2(class="sm:grid-cols-4 gap-2")
       button.btn.btn-outline(:class="kind === 'choice' ? 'btn-primary' : ''" @click="kind = 'choice'")
@@ -137,7 +159,7 @@ p(class="text-base-content/60 mb-4") {{ t('practice.subtitle') }}
     // Аудио: озвучка + выбор перевода
     template(v-else-if="current.kind === 'audio'")
       .card.bg-base-100.shadow-lg.border.border-base-300.w-full.mb-3
-        .card-body.p-5.items-center
+        .card-body.p-4.items-center
           p(class="text-sm text-base-content/60") {{ t('practice.listen') }}
           button.btn.btn-circle.btn-lg.btn-primary(@click="speakAudio()") 🔊
 

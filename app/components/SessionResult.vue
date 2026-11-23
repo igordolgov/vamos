@@ -20,7 +20,7 @@ const percent = total > 0 ? Math.round((props.correct / total) * 100) : 0
 
 <template lang="pug">
 .card.bg-base-100.shadow-lg.border.border-base-300.w-full.max-w-md.mx-auto
-  .card-body.p-6.gap-4.items-center.text-center
+  .card-body.p-5.gap-4.items-center.text-center
     h2.text-2xl.font-bold.text-primary {{ t('practice.result') }}
 
     .radial-progress.text-primary.font-semibold(

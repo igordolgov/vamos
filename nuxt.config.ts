@@ -101,8 +101,10 @@ export default defineNuxtConfig({
   },
 
   // ============================================================
-  // HTML «шапка»: заголовок, иконки, мгновенное применение темы
-  // (скрипт ставит data-theme до первой отрисовки, чтобы не мигало)
+  // HTML «шапка»: заголовок, иконки, мгновенное применение темы.
+  // Скрипт до первой отрисовки читает localStorage; если там нет
+  // валидного значения — светлая (системную тему НЕ слушаем:
+  // тёмная включается только вручную).
   // ============================================================
   app: {
     head: {
@@ -120,8 +122,9 @@ export default defineNuxtConfig({
       ],
       script: [
         {
-          // Раннее применение сохранённой темы (до гидратации)
-          innerHTML: `(function(){try{var t=localStorage.getItem('vamos.theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'vamos-dark':'vamos-light';}document.documentElement.dataset.theme=t;}catch(e){}})();`,
+          // Раннее применение сохранённой темы (до гидратации), дефолт — светлая.
+          // Легаси-значение 'dark' из старых версий тоже признаём.
+          innerHTML: `(function(){try{var t=localStorage.getItem('vamos.theme');t=(t==='vamos-dark'||t==='dark')?'vamos-dark':'vamos-light';document.documentElement.dataset.theme=t;}catch(e){}})();`,
         },
       ],
     },

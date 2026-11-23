@@ -4,7 +4,7 @@
 // прогресса, топ-возможности и кнопка продолжения учёбы.
 // ============================================================
 import { computed, onMounted } from 'vue'
-import { useT } from '~/composables/useI18n'
+import { useT, useLocale } from '~/composables/useI18n'
 import { useProgress } from '~/composables/useProgress'
 import { useInstall } from '~/composables/useInstall'
 import {
@@ -23,6 +23,7 @@ import OpportunityCard from '~/components/OpportunityCard.vue'
 import BadgeCard from '~/components/BadgeCard.vue'
 
 const t = useT()
+const locale = useLocale()
 const {progress, ensureLoaded} = useProgress()
 const {canInstall, install} = useInstall()
 onMounted(() => {
@@ -50,36 +51,35 @@ const recentBadges = computed(() => {
 
 <template lang="pug">
 // Приветствие и кнопка продолжения
-section.hero.bg-base-100.rounded-2xl.shadow-sm.border.border-base-300.mb-4
-  .hero-content.p-6.w-full.text-left.justify-between.flex-col(class="lg:flex-row lg:gap-8")
+section.hero.bg-base-100.rounded-2xl.shadow-sm.border.border-base-300.mb-2
+  .hero-content.p-3.w-full.text-left.justify-between.flex-col(class="sm:p-4 lg:flex-row lg:items-center lg:gap-6")
     .flex-1
-      h1.text-3xl.font-bold.text-primary {{ t('dash.greeting') }}
+      h1.font-bold.text-primary(class="text-2xl sm:text-3xl") {{ t('dash.greeting') }}
       p.mt-1(class="text-base-content/60")
         | {{ t('dash.stats.wordsTotal', { n: WORD_COUNT }) }} ·
         | {{ t('dash.stats.phrasesTotal', { n: phrases.total.toLocaleString('ru-RU') }) }}
-      NuxtLink.btn.btn-primary.mt-3(:to="`/lessons/${nextLesson.number}`") {{ t('dash.continue') }}
+      NuxtLink.btn.btn-primary.mt-1.btn-sm(class="lg:btn-md" :to="`/lessons/${nextLesson.number}`") {{ t('dash.continue') }}
 
-    .flex.gap-4.mt-4(class="lg:mt-0")
+    .flex.gap-3.mt-2(class="lg:mt-0")
       StreakWidget(:streak="streak")
 
-// Статистика: кольца
-section.card.bg-base-100.shadow-sm.border.border-base-300.mb-4
-  .card-body.p-4
+// Статистика: кольца (на десктопе — все 11 в один ряд)
+section.card.bg-base-100.shadow-sm.border.border-base-300.mb-2
+  .card-body(class="p-3 sm:p-4")
     h2.card-title.text-lg {{ t('dash.progressByPos') }}
-    .grid.grid-cols-3(class="sm:grid-cols-6 gap-2 mt-2")
+    .grid.grid-cols-3(class="sm:grid-cols-6 lg:grid-cols-11 gap-x-2 gap-y-3 lg:gap-y-2 mt-1")
       StatRing(
         v-for="p in posProgress.slice(0, 12)"
         :key="p.pos"
         :value="p.known"
         :total="p.total"
-        :label="t('dash.stats.words')"
-        :emoji="p.label.emoji"
-        size="size-20"
+        :label="locale === 'es' ? p.label.es : p.label.ru"
+        size="size-20 lg:size-16"
       )
 
 // Возможности «выучишь — будешь знать»
-section.mb-4
-  .flex.items-center.justify-between.mb-2
+section.mb-2
+  .flex.items-center.justify-between.mb-1
     h2.text-lg.font-semibold {{ t('dash.opportunities') }}
     NuxtLink.btn.btn-ghost.btn-sm(to="/opportunities") {{ t('dash.opportunitiesMore') }}
   .grid.grid-cols-1(class="md:grid-cols-3 gap-2")
@@ -93,7 +93,7 @@ section.mb-4
 
 // Достижения + установка PWA
 section
-  .flex.items-center.justify-between.mb-2
+  .flex.items-center.justify-between.mb-1
     h2.text-lg.font-semibold {{ t('dash.badges') }}
     NuxtLink.btn.btn-ghost.btn-sm(to="/achievements") {{ t('dash.badgesAll') }}
   .grid.grid-cols-2(class="sm:grid-cols-4 gap-2")
@@ -102,8 +102,9 @@ section
       :key="a.id"
       :achievement="a"
       :unlocked="true"
+      compact=""
     )
-  button.btn.btn-outline.btn-wide.mt-4(
+  button.btn.btn-outline.btn-wide.mt-3(
     v-if="canInstall"
     @click="install()"
   )

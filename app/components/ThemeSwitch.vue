@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // ============================================================
 // ThemeSwitch.vue — переключатель светлой/тёмной темы.
+// Иконка показывает ЦЕЛЬ переключения, как в системах iOS/Android:
+// в светлой теме — луна («уйти в тёмную»), в тёмной — солнце.
 // ============================================================
 import { onMounted } from 'vue'
 import { useT } from '~/composables/useI18n'
@@ -23,6 +25,10 @@ function onToggle() {
 </script>
 
 <template lang="pug">
-button.btn.btn-ghost.btn-circle(:aria-label="t('set.theme')" :title="theme === 'dark' ? t('set.theme.light') : t('set.theme.dark')" @click="onToggle")
-  span.text-xl {{ theme === 'dark' ? '☀️' : '🌙' }}
+button.btn.btn-ghost.btn-circle.btn-sm(
+  :aria-label="t('set.theme')"
+  :title="theme === 'dark' ? t('set.theme.light') : t('set.theme.dark')"
+  @click="onToggle"
+)
+  span.text-base {{ theme === 'dark' ? '☀️' : '🌙' }}
 </template>

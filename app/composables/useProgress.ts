@@ -167,7 +167,10 @@ export function applyAnswer(ex: Exercise, correct: boolean): Word[] {
 }
 
 /** Сохранить настройки в прогресс (и синхронизировать) */
-export function setProgressSetting(key: 'locale' | 'theme', value: string): void {
+export function setProgressSetting(
+  key: 'locale' | 'theme' | 'fontSize',
+  value: string,
+): void {
   const next: Progress = {
     ...progressState.value,
     settings: { ...progressState.value.settings, [key]: value as never },
@@ -176,6 +179,24 @@ export function setProgressSetting(key: 'locale' | 'theme', value: string): void
   progressState.value = next
   lsSet(next)
   scheduleSync()
+}
+
+/** Размер шрифта → базовый rem-размер (масштабирует весь rem-based UI) */
+const FONT_SIZE_STYLE: Record<'s' | 'm' | 'l', string> = {
+  s: '87.5%', // ~14px при базовых 16
+  m: '', // обычный — сбрасываем инлайн-стиль
+  l: '112.5%', // ~18px
+}
+
+/**
+ * Применить размер шрифта из настроек прогресса.
+ * Вызывается при старте (layout onMounted — прогресс уже прочитан
+ * из localStorage синхронной частью ensureLoaded) и при смене в настройках.
+ */
+export function applyFontSize(): void {
+  if (typeof document === 'undefined') return
+  const size = progressState.value.settings.fontSize ?? 'm'
+  document.documentElement.style.fontSize = FONT_SIZE_STYLE[size]
 }
 
 /** Полный сброс прогресса */

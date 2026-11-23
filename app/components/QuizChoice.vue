@@ -36,7 +36,7 @@ function btnClass(index: number): string {
 
 <template lang="pug">
 .card.bg-base-100.shadow-lg.border.border-base-300.w-full
-  .card-body.p-5.gap-4
+  .card-body.p-4.gap-4
     // Вопрос
     .text-center
       p.text-sm.mb-2(class="text-base-content/60" v-if="questionRu") {{ questionRu }}
@@ -44,8 +44,8 @@ function btnClass(index: number): string {
         h2.text-3xl.font-bold.text-primary {{ questionEs }}
         SpeakButton(:text="questionEs")
 
-    // Варианты
-    .grid.grid-cols-1(class="sm:grid-cols-2 gap-2")
+    // Варианты — 2 колонки и на мобильных (как на десктопе)
+    .grid.grid-cols-2.gap-2
       button.btn.justify-start.text-left.h-auto.py-3.normal-case(
         v-for="(option, i) in options"
         :key="i"

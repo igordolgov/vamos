@@ -76,6 +76,8 @@ export const RU = {
   'practice.start': 'Начать сессию',
   'practice.source': 'Источник слов',
   'practice.source.all': 'Весь словарь',
+  'practice.lessonMode': 'Закрепление урока №{n}',
+  'practice.lessonAll': 'Вся практика',
   'practice.repeat': 'Повторение',
   'practice.question': 'Как переводится?',
   'practice.questionRuEs': 'Как это по-испански?',
@@ -121,6 +123,10 @@ export const RU = {
   'set.theme': 'Тема оформления',
   'set.theme.light': 'Светлая',
   'set.theme.dark': 'Тёмная',
+  'set.fontSize': 'Размер шрифта',
+  'set.fontSize.s': 'Мелкий',
+  'set.fontSize.m': 'Обычный',
+  'set.fontSize.l': 'Крупный',
   'set.profile': 'Профиль и синхронизация',
   'set.profileHint': 'Создайте профиль — прогресс синхронизируется между устройствами через сервер',
   'set.auth.register': 'Регистрация',
@@ -150,6 +156,8 @@ export const RU = {
   'common.error': 'Ошибка',
   'common.today': 'сегодня',
   'common.of': 'из',
+  'footer.tagline': '¡Vamos! — латиноамериканский испанский · Nuxt 4 + PWA',
+  'footer.stats': '{words} слов · {templates} шаблонов · {mln} млн фраз',
 } as const
 
 export type Dict = Record<keyof typeof RU, string>

@@ -6,8 +6,8 @@
 import { onMounted } from 'vue'
 import AppHeader from '~/components/AppHeader.vue'
 import AppToasts from '~/components/AppToasts.vue'
-import { ensureLoaded } from '~/composables/useProgress'
-import { readTheme } from '~/composables/useTheme'
+import { useT } from '~/composables/useI18n'
+import { ensureLoaded, applyFontSize } from '~/composables/useProgress'
 import { warmUpVoices } from '~/composables/useSpeech'
 import { initInstallPrompt } from '~/composables/useInstall'
 import { WORD_COUNT } from '#shared/data/words'
@@ -21,20 +21,22 @@ const templateCount = allTemplates().length
 const totalMln = (totalPhrases() / 1e6).toFixed(1).replace('.', ',')
 
 onMounted(() => {
-  // Загружаем прогресс, тему, голоса синтеза и хук установки PWA
+  // Загружаем прогресс, голоса синтеза и хук установки PWA.
+  // ensureLoaded синхронно читает localStorage — размер шрифта применяем сразу
   void ensureLoaded()
-  readTheme()
+  applyFontSize()
   warmUpVoices()
   initInstallPrompt()
 })
 
-// Пункты мобильной нижней навигации
+// Пункты мобильной нижней навигации (labels — ключи i18n)
+const t = useT()
 const mobileNav = [
-  { to: '/', label: 'Главная', icon: '🏠' },
-  { to: '/lessons', label: 'Уроки', icon: '📘' },
-  { to: '/practice', label: 'Практика', icon: '🎯' },
-  { to: '/words', label: 'Слова', icon: '🔤' },
-  { to: '/settings', label: 'Ещё', icon: '⚙️' },
+  { to: '/', key: 'nav.dashboard', icon: '🏠' },
+  { to: '/lessons', key: 'nav.lessons', icon: '📘' },
+  { to: '/practice', key: 'nav.practice', icon: '🎯' },
+  { to: '/words', key: 'nav.words', icon: '🔤' },
+  { to: '/settings', key: 'nav.settings', icon: '⚙️' },
 ]
 </script>
 
@@ -42,18 +44,18 @@ const mobileNav = [
 .min-h-screen.flex.flex-col.bg-base-200
   AppHeader
 
-  // Контент страницы
-  main.flex-1.w-full.max-w-5xl.mx-auto.px-3(class="sm:px-6 py-4 pb-24 lg:pb-8")
+  // Контент страницы (на десктопе шире — меньше вертикальной прокрутки)
+  main.flex-1.w-full(class="max-w-5xl lg:max-w-6xl xl:max-w-7xl mx-auto px-2.5 sm:px-4 pt-3 pb-24 lg:pb-3")
     NuxtPage
 
   // Липкий футер (прижат к низу на коротких страницах)
-  footer.mt-auto.border-t.border-base-300.bg-base-100.py-3.hidden(class="lg:block")
-    .max-w-5xl.mx-auto.px-6.flex.justify-between.text-xs(class="text-base-content/50")
-      span ¡Vamos! — латиноамериканский испанский · Nuxt 4 + PWA
-      span {{ wordCount }} слов · {{ templateCount }} шаблонов · {{ totalMln }} млн фраз
+  footer.mt-auto.border-t.border-base-300.bg-base-100.hidden(class="lg:block py-2")
+    .max-w-6xl.mx-auto.px-4.flex.justify-between.text-xs(class="xl:max-w-7xl text-base-content/50")
+      span {{ t('footer.tagline') }}
+      span {{ t('footer.stats', { words: wordCount, templates: templateCount, mln: totalMln }) }}
 
-  // Мобильная нижняя навигация
-  nav.btn-nav.fixed.bottom-0.inset-x-0.bg-base-100.border-t.border-base-300.z-40(class="lg:hidden")
+  // Мобильная нижняя навигация (крупные иконки + safe-area для iPhone)
+  nav.fixed.bottom-0.inset-x-0.border-t.border-base-300.z-40(class="lg:hidden bg-base-100/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]")
     .grid.grid-cols-5
       NuxtLink.flex.flex-col.items-center.py-2.text-xs(
         v-for="item in mobileNav"
@@ -63,8 +65,8 @@ const mobileNav = [
         exact-active-class="text-primary font-semibold"
         :class="'text-base-content/60'"
       )
-        span.text-lg {{ item.icon }}
-        span {{ item.label }}
+        span.text-2xl {{ item.icon }}
+        span {{ t(item.key) }}
 
   AppToasts
 </template>

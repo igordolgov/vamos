@@ -1,7 +1,10 @@
 /* ============================================================
    main.css — глобальные стили приложения «¡Vamos!»
-   Tailwind CSS 4 + DaisyUI 5 с двумя кастомными темами:
-   vamos-light (крем/терракота/бирюза) и vamos-dark.
+   Tailwind CSS 4 + DaisyUI 5, две кастомные темы:
+   • vamos-light — тёплая кремовая база (по умолчанию)
+   • vamos-dark  — тёмный графит с холодным подтоном:
+     терракота на графите смотрится контрастнее, карточки
+     чуть светлее фона (эффект приподнятости).
    ============================================================ */
 
 @import "tailwindcss";
@@ -14,6 +17,7 @@
 /* ============================================================
    Светлая тема: тёплая кремовая база, терракотовый primary,
    бирюзовый secondary, янтарный accent.
+   default: true → применяется к :root без data-theme.
    ============================================================ */
 @plugin "daisyui/theme" {
   name: "vamos-light";
@@ -54,36 +58,38 @@
 }
 
 /* ============================================================
-   Тёмная тема: тёплая тёмно-коричневая база, приглушённые
-   терракота и бирюза — удобно для вечерних занятий.
+   Тёмная тема «Графит»: холодный тёмно-серый база с лёгким
+   синим подтоном (hue 255), яркая терракота как primary.
+   base-100 (карточки) светлее base-200 (фон страницы) —
+   карточки «приподняты». Светлая остаётся темой по умолчанию:
+   тёмная включается только вручную.
    ============================================================ */
 @plugin "daisyui/theme" {
   name: "vamos-dark";
-  prefersdark: true;
   color-scheme: dark;
 
-  --color-base-100: oklch(22% 0.015 55);
-  --color-base-200: oklch(26% 0.018 55);
-  --color-base-300: oklch(31% 0.02 55);
-  --color-base-content: oklch(91% 0.01 80);
+  --color-base-100: oklch(23% 0.014 255);
+  --color-base-200: oklch(19% 0.012 255);
+  --color-base-300: oklch(30% 0.02 255);
+  --color-base-content: oklch(92% 0.01 255);
 
-  --color-primary: oklch(68% 0.15 40);
-  --color-primary-content: oklch(18% 0.02 40);
-  --color-secondary: oklch(70% 0.09 195);
-  --color-secondary-content: oklch(16% 0.02 195);
+  --color-primary: oklch(72% 0.15 45);
+  --color-primary-content: oklch(19% 0.02 45);
+  --color-secondary: oklch(75% 0.1 195);
+  --color-secondary-content: oklch(17% 0.02 195);
   --color-accent: oklch(80% 0.13 85);
-  --color-accent-content: oklch(20% 0.02 85);
-  --color-neutral: oklch(31% 0.02 55);
-  --color-neutral-content: oklch(90% 0.01 80);
+  --color-accent-content: oklch(21% 0.02 85);
+  --color-neutral: oklch(28% 0.015 255);
+  --color-neutral-content: oklch(90% 0.008 255);
 
-  --color-info: oklch(72% 0.12 220);
-  --color-info-content: oklch(16% 0.02 220);
-  --color-success: oklch(70% 0.15 150);
-  --color-success-content: oklch(16% 0.02 150);
-  --color-warning: oklch(82% 0.15 85);
-  --color-warning-content: oklch(20% 0.02 85);
-  --color-error: oklch(66% 0.2 25);
-  --color-error-content: oklch(16% 0.02 25);
+  --color-info: oklch(74% 0.11 220);
+  --color-info-content: oklch(17% 0.02 220);
+  --color-success: oklch(72% 0.14 150);
+  --color-success-content: oklch(17% 0.02 150);
+  --color-warning: oklch(82% 0.14 85);
+  --color-warning-content: oklch(21% 0.02 85);
+  --color-error: oklch(68% 0.18 25);
+  --color-error-content: oklch(17% 0.02 25);
 
   --radius-selector: 1rem;
   --radius-field: 0.5rem;
@@ -93,4 +99,25 @@
   --border: 1px;
   --depth: 1;
   --noise: 0;
+}
+
+/* ============================================================
+   Глобальная UX-полировка
+   ============================================================ */
+
+/* Без вспышки при тапе на мобильных, плавная прокрутка */
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Активный пункт меню в шапке (десктоп) */
+.navbar-center ul.menu a.router-link-active {
+  color: var(--color-primary);
+  font-weight: 600;
 }

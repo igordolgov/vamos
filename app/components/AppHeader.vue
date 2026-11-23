@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // ============================================================
-// AppHeader.vue — шапка: логотип, навигация, тема, язык.
+// AppHeader.vue — компактная шапка: логотип, навигация, тема, язык.
 // ============================================================
 import { useT } from '~/composables/useI18n'
 import ThemeSwitch from './ThemeSwitch.vue'
@@ -10,12 +10,14 @@ const t = useT()
 </script>
 
 <template lang="pug">
-header.navbar.bg-base-200.shadow-sm.sticky.top-0.z-40.px-2(class="sm:px-4")
+// Компактная шапка: переопределяем высоту .navbar (по умолчанию 4rem);
+// полупрозрачный фон + блюр при прокрутке
+header.navbar.shadow-sm.sticky.top-0.z-40(class="px-2 min-h-12! sm:px-4 sm:min-h-14! bg-base-200/90 backdrop-blur-md")
   // Логотип
   .navbar-start
-    NuxtLink.btn.btn-ghost.text-lg.font-bold.text-primary(to="/")
+    NuxtLink.btn.btn-ghost.btn-sm.px-2.text-base.font-bold.text-primary(class="sm:text-lg sm:px-3" to="/")
       | {{ t('app.name') }}
-    span.hidden(class="md:inline text-sm text-base-content/60 ml-1")
+    span.hidden(class="md:inline text-xs text-base-content/60 ml-1 sm:text-sm")
       | {{ t('app.tagline') }}
 
   // Навигация (десктоп)
@@ -37,7 +39,7 @@ header.navbar.bg-base-200.shadow-sm.sticky.top-0.z-40.px-2(class="sm:px-4")
         NuxtLink(to="/achievements") {{ t('nav.achievements') }}
 
   // Переключатели (правая часть)
-  .navbar-end.gap-1
+  .navbar-end(class="gap-0.5")
     ThemeSwitch
     LocaleSwitch
 

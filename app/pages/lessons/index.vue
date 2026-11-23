@@ -20,7 +20,7 @@ const totalKnown = computed(() => lessons.value.reduce((acc, l) => acc + l.known
 
 <template lang="pug">
 h1.text-2xl.font-bold.text-primary {{ t('lessons.title') }}
-p(class="text-base-content/60 mb-4") {{ t('lessons.subtitle') }}
+p(class="text-base-content/60 mb-3") {{ t('lessons.subtitle') }}
 
 .grid.grid-cols-1(class="sm:grid-cols-2 lg:grid-cols-3 gap-3")
   LessonCard(
