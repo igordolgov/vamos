@@ -45,7 +45,7 @@ function btnClass(index: number): string {
         SpeakButton(:text="questionEs")
 
     // Варианты — 2 колонки
-    .grid.grid-cols-2(class="gap-1.5 sm:gap-2")
+    .grid.grid-cols-4(class="gap-1.5 sm:gap-2")
       button.btn.justify-start.text-left.h-auto.py-3.normal-case(
         v-for="(option, i) in options"
         :key="i"
