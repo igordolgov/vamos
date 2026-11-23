@@ -60,7 +60,7 @@ div(v-if="keys.length" class="mb-6")
     )
 
 // Топ-слова по открытым фразам
-.grid.grid-cols-1(class="md:grid-cols-2 gap-3 mb-6")
+.grid.grid-cols-1(class="md:grid-cols-2 xl:grid-cols-3 gap-3 mb-6")
   OpportunityCard(
     v-for="opp in list"
     :key="opp.word.id"

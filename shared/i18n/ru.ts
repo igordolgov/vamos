@@ -156,6 +156,8 @@ export const RU = {
   'common.error': 'Ошибка',
   'common.today': 'сегодня',
   'common.of': 'из',
+  'footer.tagline': '¡Vamos! — латиноамериканский испанский · Nuxt 4 + PWA',
+  'footer.stats': '{words} слов · {templates} шаблонов · {mln} млн фраз',
 } as const
 
 export type Dict = Record<keyof typeof RU, string>

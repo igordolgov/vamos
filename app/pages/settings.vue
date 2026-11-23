@@ -54,10 +54,10 @@ function onReset() {
 </script>
 
 <template lang="pug">
-h1.text-2xl.font-bold.text-primary.mb-3 {{ t('set.title') }}
+h1.text-2xl.font-bold.text-primary.mb-2 {{ t('set.title') }}
 
 // Интерфейс, тема и размер шрифта
-.card.bg-base-100.shadow-sm.border.border-base-300.mb-3
+.card.bg-base-100.shadow-sm.border.border-base-300.mb-2
   .card-body.p-4.gap-3
     .grid.grid-cols-1(class="sm:grid-cols-2 lg:grid-cols-3 gap-3")
       label.form-control
@@ -81,30 +81,30 @@ h1.text-2xl.font-bold.text-primary.mb-3 {{ t('set.title') }}
           option(value="l") {{ t('set.fontSize.l') }}
 
 // Профиль и синхронизация
-AuthPanel.mb-3
+AuthPanel.mb-2
 
 // Установка PWA
-.card.bg-base-100.shadow-sm.border.border-base-300.mb-3(v-if="canInstall")
+.card.bg-base-100.shadow-sm.border.border-base-300.mb-2(v-if="canInstall")
   .card-body.p-4.gap-2
     h2.card-title.text-lg {{ t('set.install') }}
     p(class="text-sm text-base-content/60") {{ t('set.installHint') }}
     button.btn.btn-primary.btn-sm.w-fit(@click="install()") 📲 {{ t('dash.install') }}
 
-// Сброс прогресса
-.card.bg-base-100.shadow-sm.border.mb-3(class="border-error/40")
-  .card-body.p-4.gap-2
-    h2.card-title.text-lg.text-error {{ t('set.reset') }}
-    button.btn.btn-error.btn-sm.w-fit(v-if="!confirmReset" @click="confirmReset = true") {{ t('set.reset') }}
-    template(v-else='')
-      p(class="text-sm text-base-content/70") {{ t('set.resetConfirm') }}
-      .flex.gap-2
-        button.btn.btn-error.btn-sm(@click="onReset") {{ t('common.yes') }}
-        button.btn.btn-ghost.btn-sm(@click="confirmReset = false") {{ t('common.cancel') }}
+// Сброс прогресса + о приложении (в 2 колонки на десктопе)
+.grid.grid-cols-1(class="lg:grid-cols-2 gap-2 mb-2 items-start")
+  .card.bg-base-100.shadow-sm.border(class="border-error/40 h-full")
+    .card-body.p-4.gap-2
+      h2.card-title.text-lg.text-error {{ t('set.reset') }}
+      button.btn.btn-error.btn-sm.w-fit(v-if="!confirmReset" @click="confirmReset = true") {{ t('set.reset') }}
+      template(v-else='')
+        p(class="text-sm text-base-content/70") {{ t('set.resetConfirm') }}
+        .flex.gap-2
+          button.btn.btn-error.btn-sm(@click="onReset") {{ t('common.yes') }}
+          button.btn.btn-ghost.btn-sm(@click="confirmReset = false") {{ t('common.cancel') }}
 
-// О приложении
-.card.bg-base-100.shadow-sm.border.border-base-300
-  .card-body.p-4.gap-2
-    h2.card-title.text-lg {{ t('set.about') }}
-    p(class="text-sm text-base-content/70") {{ t('set.aboutText') }}
-    p(class="text-xs text-base-content/40") Nuxt 4 · PWA · DaisyUI 5 · Pug · TypeScript · Vitest · node:sqlite
+  .card.bg-base-100.shadow-sm.border.border-base-300(class="h-full")
+    .card-body.p-4.gap-2
+      h2.card-title.text-lg {{ t('set.about') }}
+      p(class="text-sm text-base-content/70") {{ t('set.aboutText') }}
+      p(class="text-xs text-base-content/40") Nuxt 4 · PWA · DaisyUI 5 · Pug · TypeScript · Vitest · node:sqlite
 </template>

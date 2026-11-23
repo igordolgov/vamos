@@ -149,4 +149,6 @@ export const ES: Dict = {
   'common.error': 'Error',
   'common.today': 'hoy',
   'common.of': 'de',
+  'footer.tagline': '¡Vamos! — español latinoamericano · Nuxt 4 + PWA',
+  'footer.stats': '{words} palabras · {templates} plantillas · {mln} millones de frases',
 }

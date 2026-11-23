@@ -44,15 +44,15 @@ const mobileNav = [
 .min-h-screen.flex.flex-col.bg-base-200
   AppHeader
 
-  // Контент страницы
-  main.flex-1.w-full.max-w-5xl.mx-auto(class="px-2.5 sm:px-4 pt-3 pb-24 lg:pb-6")
+  // Контент страницы (на десктопе шире — меньше вертикальной прокрутки)
+  main.flex-1.w-full(class="max-w-5xl lg:max-w-6xl xl:max-w-7xl mx-auto px-2.5 sm:px-4 pt-3 pb-24 lg:pb-3")
     NuxtPage
 
   // Липкий футер (прижат к низу на коротких страницах)
   footer.mt-auto.border-t.border-base-300.bg-base-100.hidden(class="lg:block py-2")
-    .max-w-5xl.mx-auto.px-4.flex.justify-between.text-xs(class="text-base-content/50")
-      span ¡Vamos! — латиноамериканский испанский · Nuxt 4 + PWA
-      span {{ wordCount }} слов · {{ templateCount }} шаблонов · {{ totalMln }} млн фраз
+    .max-w-6xl.mx-auto.px-4.flex.justify-between.text-xs(class="xl:max-w-7xl text-base-content/50")
+      span {{ t('footer.tagline') }}
+      span {{ t('footer.stats', { words: wordCount, templates: templateCount, mln: totalMln }) }}
 
   // Мобильная нижняя навигация (крупные иконки + safe-area для iPhone)
   nav.fixed.bottom-0.inset-x-0.border-t.border-base-300.z-40(class="lg:hidden bg-base-100/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]")
