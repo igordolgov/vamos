@@ -1,37 +1,28 @@
 <script setup lang="ts">
 // ============================================================
-// pages/settings.vue — язык интерфейса, тема, профиль,
+// pages/settings.vue — язык интерфейса, профиль,
 // сброс прогресса и справка о приложении.
 // ============================================================
 import { onMounted, ref } from 'vue'
 import { useT, setLocale, useLocale } from '~/composables/useI18n'
-import { setTheme, useTheme, readTheme } from '~/composables/useTheme'
 import { useProgress } from '~/composables/useProgress'
 import { useInstall } from '~/composables/useInstall'
 import type { Locale } from '#shared/i18n'
-import type { Theme } from '~/composables/useTheme'
 import AuthPanel from '~/components/AuthPanel.vue'
 
 const t = useT()
 const locale = useLocale()
-const theme = useTheme()
 const {resetProgress, ensureLoaded} = useProgress()
 const {canInstall, install} = useInstall()
 const confirmReset = ref(false)
 
 onMounted(() => {
   void ensureLoaded()
-  readTheme()
 })
 
 function onLocale(e: Event) {
   const value = (e.target as HTMLSelectElement).value as Locale
   setLocale(value)
-}
-
-function onTheme(e: Event) {
-  const value = (e.target as HTMLSelectElement).value as Theme
-  setTheme(value)
 }
 
 function onReset() {
@@ -43,23 +34,13 @@ function onReset() {
 <template lang="pug">
 h1.text-2xl.font-bold.text-primary.mb-4 {{ t('set.title') }}
 
-// Интерфейс и тема
+// Интерфейс
 .card.bg-base-100.shadow-sm.border.border-base-300.mb-4
   .card-body.p-5.gap-4
-    h2.card-title.text-lg {{ t('set.interface') }} / {{ t('set.theme') }}
-    .grid.grid-cols-1(class="sm:grid-cols-2 gap-4")
-      label.form-control
-        .label
-          span.label-text {{ t('set.interface') }}
-        select.select.select-bordered.select-sm(v-model="locale" @change="onLocale")
-          option(value="ru") Русский (RU)
-          option(value="es") Español (ES)
-      label.form-control
-        .label
-          span.label-text {{ t('set.theme') }}
-        select.select.select-bordered.select-sm(v-model="theme" @change="onTheme")
-          option(value="light") {{ t('set.theme.light') }}
-          option(value="dark") {{ t('set.theme.dark') }}
+    h2.card-title.text-lg {{ t('set.interface') }}
+    select.select.select-bordered.select-sm.w-full(v-model="locale" @change="onLocale")
+      option(value="ru") Русский (RU)
+      option(value="es") Español (ES)
 
 // Профиль и синхронизация
 AuthPanel.mb-4

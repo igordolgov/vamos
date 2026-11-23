@@ -29,7 +29,7 @@ const sizeClass = computed(() => props.size ?? 'size-24')
     :aria-label="label"
   )
     span.text-sm {{ percent }}%
-  .text-xs.text-center(class="text-base-content/70")
+  .text-xs.text-center.font-medium(class="text-base-content/80")
     span(v-if="emoji" class="mr-1") {{ emoji }}
     span {{ label }}
   .text-xs(class="text-base-content/50") {{ value }} / {{ total }}

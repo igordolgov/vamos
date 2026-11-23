@@ -100,8 +100,9 @@ export default defineNuxtConfig({
   },
 
   // ============================================================
-  // HTML «шапка»: заголовок, иконки, мгновенное применение темы
-  // (скрипт ставит data-theme до первой отрисовки, чтобы не мигало)
+  // HTML «шапка»: заголовок, иконки.
+  // Тема одна — светлая (vamos-light, default: true в main.css),
+  // применяется к :root без data-theme и без ранних скриптов.
   // ============================================================
   app: {
     head: {
@@ -116,12 +117,6 @@ export default defineNuxtConfig({
       link: [
         { rel: 'icon', type: 'image/png', href: '/favicon.png' },
         { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
-      ],
-      script: [
-        {
-          // Раннее применение сохранённой темы (до гидратации)
-          innerHTML: `(function(){try{var t=localStorage.getItem('vamos.theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'vamos-dark':'vamos-light';}document.documentElement.dataset.theme=t;}catch(e){}})();`,
-        },
       ],
     },
   },

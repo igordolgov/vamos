@@ -6,8 +6,8 @@
 import { onMounted } from 'vue'
 import AppHeader from '~/components/AppHeader.vue'
 import AppToasts from '~/components/AppToasts.vue'
+import { useT } from '~/composables/useI18n'
 import { ensureLoaded } from '~/composables/useProgress'
-import { readTheme } from '~/composables/useTheme'
 import { warmUpVoices } from '~/composables/useSpeech'
 import { initInstallPrompt } from '~/composables/useInstall'
 import { WORD_COUNT } from '#shared/data/words'
@@ -21,20 +21,20 @@ const templateCount = allTemplates().length
 const totalMln = (totalPhrases() / 1e6).toFixed(1).replace('.', ',')
 
 onMounted(() => {
-  // Загружаем прогресс, тему, голоса синтеза и хук установки PWA
+  // Загружаем прогресс, голоса синтеза и хук установки PWA
   void ensureLoaded()
-  readTheme()
   warmUpVoices()
   initInstallPrompt()
 })
 
-// Пункты мобильной нижней навигации
+// Пункты мобильной нижней навигации (labels — ключи i18n)
+const t = useT()
 const mobileNav = [
-  { to: '/', label: 'Главная', icon: '🏠' },
-  { to: '/lessons', label: 'Уроки', icon: '📘' },
-  { to: '/practice', label: 'Практика', icon: '🎯' },
-  { to: '/words', label: 'Слова', icon: '🔤' },
-  { to: '/settings', label: 'Ещё', icon: '⚙️' },
+  { to: '/', key: 'nav.dashboard', icon: '🏠' },
+  { to: '/lessons', key: 'nav.lessons', icon: '📘' },
+  { to: '/practice', key: 'nav.practice', icon: '🎯' },
+  { to: '/words', key: 'nav.words', icon: '🔤' },
+  { to: '/settings', key: 'nav.settings', icon: '⚙️' },
 ]
 </script>
 
@@ -52,8 +52,8 @@ const mobileNav = [
       span ¡Vamos! — латиноамериканский испанский · Nuxt 4 + PWA
       span {{ wordCount }} слов · {{ templateCount }} шаблонов · {{ totalMln }} млн фраз
 
-  // Мобильная нижняя навигация
-  nav.btn-nav.fixed.bottom-0.inset-x-0.bg-base-100.border-t.border-base-300.z-40(class="lg:hidden")
+  // Мобильная нижняя навигация (крупные иконки + safe-area для iPhone)
+  nav.fixed.bottom-0.inset-x-0.bg-base-100.border-t.border-base-300.z-40(class="lg:hidden pb-[env(safe-area-inset-bottom)]")
     .grid.grid-cols-5
       NuxtLink.flex.flex-col.items-center.py-2.text-xs(
         v-for="item in mobileNav"
@@ -63,8 +63,8 @@ const mobileNav = [
         exact-active-class="text-primary font-semibold"
         :class="'text-base-content/60'"
       )
-        span.text-lg {{ item.icon }}
-        span {{ item.label }}
+        span.text-2xl {{ item.icon }}
+        span {{ t(item.key) }}
 
   AppToasts
 </template>

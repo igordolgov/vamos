@@ -4,7 +4,7 @@
 // прогресса, топ-возможности и кнопка продолжения учёбы.
 // ============================================================
 import { computed, onMounted } from 'vue'
-import { useT } from '~/composables/useI18n'
+import { useT, useLocale } from '~/composables/useI18n'
 import { useProgress } from '~/composables/useProgress'
 import { useInstall } from '~/composables/useInstall'
 import {
@@ -23,6 +23,7 @@ import OpportunityCard from '~/components/OpportunityCard.vue'
 import BadgeCard from '~/components/BadgeCard.vue'
 
 const t = useT()
+const locale = useLocale()
 const {progress, ensureLoaded} = useProgress()
 const {canInstall, install} = useInstall()
 onMounted(() => {
@@ -72,7 +73,7 @@ section.card.bg-base-100.shadow-sm.border.border-base-300.mb-4
         :key="p.pos"
         :value="p.known"
         :total="p.total"
-        :label="t('dash.stats.words')"
+        :label="locale === 'es' ? p.label.es : p.label.ru"
         :emoji="p.label.emoji"
         size="size-20"
       )

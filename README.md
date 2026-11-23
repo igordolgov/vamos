@@ -11,7 +11,7 @@ PWA-приложение для изучения испанского языка
 |---|---|
 | Фреймворк | **Nuxt 4** (SSR +Nitro) |
 | PWA | `@vite-pwa/nuxt` — service worker, веб-манифест, установка на устройство |
-| Стили | **Tailwind CSS 4 + DaisyUI 5** (кастомные темы `vamos-light` / `vamos-dark`, oklch) |
+| Стили | **Tailwind CSS 4 + DaisyUI 5** (кастомная светлая тема `vamos-light`, oklch) |
 | Шаблоны | **Pug** (`<template lang="pug">` в SFC — поддерживается `@vitejs/plugin-vue` из коробки) |
 | Язык | **TypeScript** (strict, `bun run typecheck` через `nuxt typecheck`) |
 | БД | **SQLite через `node:sqlite`** — без нативных зависимостей (Node ≥ 22) |
@@ -117,7 +117,7 @@ app/
                       # opportunities, achievements, settings
   components/         # 17 Pug-компонентов (WordCard, QuizBuild, StatRing...)
   composables/        # useProgress (синк 800 мс), useAuth, useI18n,
-                      # useTheme, useSpeech, useInstall
+                      # useSpeech, useInstall
 test/
   unit/               # данные, грамматика, движок, статистика, API, merge
   components/         # рендер компонентов (happy-dom)

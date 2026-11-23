@@ -118,9 +118,6 @@ export const RU = {
   // Настройки
   'set.title': 'Настройки',
   'set.interface': 'Язык интерфейса',
-  'set.theme': 'Тема оформления',
-  'set.theme.light': 'Светлая',
-  'set.theme.dark': 'Тёмная',
   'set.profile': 'Профиль и синхронизация',
   'set.profileHint': 'Создайте профиль — прогресс синхронизируется между устройствами через сервер',
   'set.auth.register': 'Регистрация',
