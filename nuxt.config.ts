@@ -4,6 +4,7 @@
 // ============================================================
 
 import tailwindcss from '@tailwindcss/vite'
+import { defineNuxtConfig } from 'nuxt/config'
 
 export default defineNuxtConfig({
   // Дата совместимости API-поведения Nuxt (см. документацию Nuxt 4)
