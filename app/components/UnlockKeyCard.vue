@@ -17,7 +17,7 @@ function fmt(n: number): string {
 
 <template lang="pug">
 .card.bg-base-100.shadow-sm.border(class="hover:border-secondary transition-colors border-secondary/30")
-  .card-body.p-4.gap-1
+  .card-body.p-3.gap-1
     .flex.flex-wrap.items-center.gap-1
       span.badge.badge-primary.badge-sm(v-for="w in unlock.words" :key="w.id")
         | {{ w.es }} · {{ t('opps.lesson', { n: w.lesson }) }}

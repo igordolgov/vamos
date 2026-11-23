@@ -1,16 +1,18 @@
 <script setup lang="ts">
 // ============================================================
-// AppHeader.vue — компактная шапка: логотип, навигация, язык.
+// AppHeader.vue — компактная шапка: логотип, навигация, тема, язык.
 // ============================================================
 import { useT } from '~/composables/useI18n'
+import ThemeSwitch from './ThemeSwitch.vue'
 import LocaleSwitch from './LocaleSwitch.vue'
 
 const t = useT()
 </script>
 
 <template lang="pug">
-// Компактная шапка: переопределяем высоту .navbar (по умолчанию 4rem)
-header.navbar.bg-base-200.shadow-sm.sticky.top-0.z-40(class="px-2 min-h-12! sm:px-4 sm:min-h-14!")
+// Компактная шапка: переопределяем высоту .navbar (по умолчанию 4rem);
+// полупрозрачный фон + блюр при прокрутке
+header.navbar.shadow-sm.sticky.top-0.z-40(class="px-2 min-h-12! sm:px-4 sm:min-h-14! bg-base-200/90 backdrop-blur-md")
   // Логотип
   .navbar-start
     NuxtLink.btn.btn-ghost.btn-sm.px-2.text-base.font-bold.text-primary(class="sm:text-lg sm:px-3" to="/")
@@ -37,7 +39,8 @@ header.navbar.bg-base-200.shadow-sm.sticky.top-0.z-40(class="px-2 min-h-12! sm:p
         NuxtLink(to="/achievements") {{ t('nav.achievements') }}
 
   // Переключатели (правая часть)
-  .navbar-end.gap-1
+  .navbar-end(class="gap-0.5")
+    ThemeSwitch
     LocaleSwitch
 
   // Нижняя навигация (мобильная) — рисуется отдельно в layout

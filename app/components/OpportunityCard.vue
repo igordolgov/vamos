@@ -18,7 +18,7 @@ const locale = useLocale()
 
 <template lang="pug">
 .card.bg-base-100.shadow-sm.border(class="hover:border-secondary transition-colors border-secondary/30")
-  .card-body.p-4.gap-1
+  .card-body.p-3.gap-1
     .flex.items-center.gap-2
       span.text-xl {{ POS_LABELS[word.pos].emoji }}
       span.font-bold.text-primary.text-lg {{ word.es }}

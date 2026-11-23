@@ -43,7 +43,7 @@ const groupOps = computed(() => {
 
 <template lang="pug">
 h1.text-2xl.font-bold.text-primary {{ t('opps.title') }}
-p(class="text-base-content/60 mb-4")
+p(class="text-base-content/60 mb-3")
   | {{ t('opps.subtitle') }} ·
   | {{ fmt(stats.known) }} / {{ fmt(stats.total) }}
 

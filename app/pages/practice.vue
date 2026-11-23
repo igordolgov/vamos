@@ -89,11 +89,11 @@ function speakAudio() {
 
 <template lang="pug">
 h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
-p(class="text-base-content/60 mb-4") {{ t('practice.subtitle') }}
+p(class="text-base-content/60 mb-3") {{ t('practice.subtitle') }}
 
 // Меню выбора типа упражнения
-.card.bg-base-100.shadow-sm.border.border-base-300.mb-4(v-if="mode === 'menu'")
-  .card-body.p-5.gap-3
+.card.bg-base-100.shadow-sm.border.border-base-300.mb-3(v-if="mode === 'menu'")
+  .card-body.p-4.gap-3
     h2.card-title.text-lg {{ t('practice.source') }}
     .grid.grid-cols-2(class="sm:grid-cols-4 gap-2")
       button.btn.btn-outline(:class="kind === 'choice' ? 'btn-primary' : ''" @click="kind = 'choice'")
@@ -137,7 +137,7 @@ p(class="text-base-content/60 mb-4") {{ t('practice.subtitle') }}
     // Аудио: озвучка + выбор перевода
     template(v-else-if="current.kind === 'audio'")
       .card.bg-base-100.shadow-lg.border.border-base-300.w-full.mb-3
-        .card-body.p-5.items-center
+        .card-body.p-4.items-center
           p(class="text-sm text-base-content/60") {{ t('practice.listen') }}
           button.btn.btn-circle.btn-lg.btn-primary(@click="speakAudio()") 🔊
 

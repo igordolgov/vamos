@@ -112,6 +112,9 @@ export const ES: Dict = {
 
   'set.title': 'Ajustes',
   'set.interface': 'Idioma de la interfaz',
+  'set.theme': 'Tema',
+  'set.theme.light': 'Claro',
+  'set.theme.dark': 'Oscuro',
   'set.profile': 'Perfil y sincronización',
   'set.profileHint': 'Crea un perfil — el progreso se sincroniza entre dispositivos',
   'set.auth.register': 'Registro',

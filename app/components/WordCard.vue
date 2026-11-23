@@ -67,7 +67,7 @@ const nounInfo = computed(() => {
 
 <template lang="pug">
 .card.bg-base-100.shadow-sm.border.border-base-300(class="hover:shadow-md transition-shadow")
-  .card-body.p-4.gap-2
+  .card-body.p-3.gap-2
     // Заголовок: слово + статус
     .flex.items-start.justify-between.gap-2
       .flex.items-center.gap-2.min-w-0

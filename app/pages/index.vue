@@ -51,35 +51,34 @@ const recentBadges = computed(() => {
 
 <template lang="pug">
 // Приветствие и кнопка продолжения
-section.hero.bg-base-100.rounded-2xl.shadow-sm.border.border-base-300.mb-4
-  .hero-content.p-6.w-full.text-left.justify-between.flex-col(class="lg:flex-row lg:gap-8")
+section.hero.bg-base-100.rounded-2xl.shadow-sm.border.border-base-300.mb-3
+  .hero-content.p-4.w-full.text-left.justify-between.flex-col(class="sm:p-5 lg:flex-row lg:gap-6")
     .flex-1
-      h1.text-3xl.font-bold.text-primary {{ t('dash.greeting') }}
+      h1.font-bold.text-primary(class="text-2xl sm:text-3xl") {{ t('dash.greeting') }}
       p.mt-1(class="text-base-content/60")
         | {{ t('dash.stats.wordsTotal', { n: WORD_COUNT }) }} ·
         | {{ t('dash.stats.phrasesTotal', { n: phrases.total.toLocaleString('ru-RU') }) }}
       NuxtLink.btn.btn-primary.mt-3(:to="`/lessons/${nextLesson.number}`") {{ t('dash.continue') }}
 
-    .flex.gap-4.mt-4(class="lg:mt-0")
+    .flex.gap-3.mt-3(class="lg:mt-0")
       StreakWidget(:streak="streak")
 
 // Статистика: кольца
-section.card.bg-base-100.shadow-sm.border.border-base-300.mb-4
+section.card.bg-base-100.shadow-sm.border.border-base-300.mb-3
   .card-body.p-4
     h2.card-title.text-lg {{ t('dash.progressByPos') }}
-    .grid.grid-cols-3(class="sm:grid-cols-6 gap-2 mt-2")
+    .grid.grid-cols-3(class="sm:grid-cols-6 gap-x-2 gap-y-3 mt-2")
       StatRing(
         v-for="p in posProgress.slice(0, 12)"
         :key="p.pos"
         :value="p.known"
         :total="p.total"
         :label="locale === 'es' ? p.label.es : p.label.ru"
-        :emoji="p.label.emoji"
         size="size-20"
       )
 
 // Возможности «выучишь — будешь знать»
-section.mb-4
+section.mb-3
   .flex.items-center.justify-between.mb-2
     h2.text-lg.font-semibold {{ t('dash.opportunities') }}
     NuxtLink.btn.btn-ghost.btn-sm(to="/opportunities") {{ t('dash.opportunitiesMore') }}

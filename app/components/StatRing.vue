@@ -8,7 +8,6 @@ const props = defineProps<{
   value: number
   total: number
   label: string
-  emoji?: string
   size?: string
 }>()
 
@@ -30,7 +29,6 @@ const sizeClass = computed(() => props.size ?? 'size-24')
   )
     span.text-sm {{ percent }}%
   .text-xs.text-center.font-medium(class="text-base-content/80")
-    span(v-if="emoji" class="mr-1") {{ emoji }}
     span {{ label }}
   .text-xs(class="text-base-content/50") {{ value }} / {{ total }}
 </template>

@@ -167,7 +167,7 @@ export function applyAnswer(ex: Exercise, correct: boolean): Word[] {
 }
 
 /** Сохранить настройки в прогресс (и синхронизировать) */
-export function setProgressSetting(key: 'locale', value: string): void {
+export function setProgressSetting(key: 'locale' | 'theme', value: string): void {
   const next: Progress = {
     ...progressState.value,
     settings: { ...progressState.value.settings, [key]: value as never },

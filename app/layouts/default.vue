@@ -43,17 +43,17 @@ const mobileNav = [
   AppHeader
 
   // Контент страницы
-  main.flex-1.w-full.max-w-5xl.mx-auto.px-3(class="sm:px-6 py-4 pb-24 lg:pb-8")
+  main.flex-1.w-full.max-w-5xl.mx-auto(class="px-2.5 sm:px-4 pt-3 pb-24 lg:pb-6")
     NuxtPage
 
   // Липкий футер (прижат к низу на коротких страницах)
-  footer.mt-auto.border-t.border-base-300.bg-base-100.py-3.hidden(class="lg:block")
-    .max-w-5xl.mx-auto.px-6.flex.justify-between.text-xs(class="text-base-content/50")
+  footer.mt-auto.border-t.border-base-300.bg-base-100.hidden(class="lg:block py-2")
+    .max-w-5xl.mx-auto.px-4.flex.justify-between.text-xs(class="text-base-content/50")
       span ¡Vamos! — латиноамериканский испанский · Nuxt 4 + PWA
       span {{ wordCount }} слов · {{ templateCount }} шаблонов · {{ totalMln }} млн фраз
 
   // Мобильная нижняя навигация (крупные иконки + safe-area для iPhone)
-  nav.fixed.bottom-0.inset-x-0.bg-base-100.border-t.border-base-300.z-40(class="lg:hidden pb-[env(safe-area-inset-bottom)]")
+  nav.fixed.bottom-0.inset-x-0.border-t.border-base-300.z-40(class="lg:hidden bg-base-100/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]")
     .grid.grid-cols-5
       NuxtLink.flex.flex-col.items-center.py-2.text-xs(
         v-for="item in mobileNav"
