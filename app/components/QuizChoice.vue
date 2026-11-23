@@ -36,15 +36,15 @@ function btnClass(index: number): string {
 
 <template lang="pug">
 .card.bg-base-100.shadow-lg.border.border-base-300.w-full
-  .card-body(class="p-3 sm:p-4 gap-3 sm:gap-4")
+  .card-body(class="gap-3 sm:gap-4 p-3 sm:p-4")
     // Вопрос
     .text-center
-      p.text-sm.mb-2(class="text-base-content/60" v-if="questionRu") {{ questionRu }}
+      p.text-3xl.font-bold.mb-2(class="text-base-content/60" v-if="questionRu") {{ questionRu }}
       .flex.items-center.justify-center.gap-2(v-if="questionEs")
         h2.text-3xl.font-bold.text-primary {{ questionEs }}
         SpeakButton(:text="questionEs")
 
-    // Варианты — 2 колонки и на мобильных (как на десктопе)
+    // Варианты — 2 колонки
     .grid.grid-cols-2(class="gap-1.5 sm:gap-2")
       button.btn.justify-start.text-left.h-auto.py-3.normal-case(
         v-for="(option, i) in options"
@@ -53,7 +53,7 @@ function btnClass(index: number): string {
         :disabled="revealed && i !== answerIndex && i !== selected"
         @click="choose(i)"
       )
-        span {{ option }}
+        span.text-lg {{ option }}
         span.ml-auto(v-if="revealed && i === answerIndex") ✓
         span.ml-auto(v-if="revealed && i === selected && i !== answerIndex") ✗
 </template>

@@ -98,13 +98,13 @@ const nounInfo = computed(() => {
 
     // Глагол: спряжение
     div(class="mt-0.5" v-if="conjugationRows.length")
-      p(class="text-xs text-base-content/60 mb-1") {{ t('words.conjugation') }}
-      .grid.grid-cols-2(class="sm:grid-cols-3 gap-x-3 gap-y-0.5")
+      p(class="mb-1 text-xs text-base-content/60") {{ t('words.conjugation') }}
+      .grid.grid-cols-2(class="gap-x-3 gap-y-0.5 sm:grid-cols-3")
         p.text-xs(v-for="row in conjugationRows" :key="row.person")
           span(class="text-base-content/50") {{ row.person }}:
           span.font-medium.ml-1 {{ row.form }}
 
     // Проекция «выучишь — узнаешь»
-    p(class="text-xs text-secondary mt-0.5" v-if="unlock && unlock > 0")
+    p(class="mt-0.5 text-secondary text-xs" v-if="unlock && unlock > 0")
       | ⚡ {{ t('words.youLearn', { n: unlock.toLocaleString('ru-RU'), w: phrasesWord(unlock, locale) }) }}
 </template>

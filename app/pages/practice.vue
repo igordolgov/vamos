@@ -106,18 +106,18 @@ function speakAudio() {
 
 <template lang="pug">
 h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
-p(class="text-base-content/60 mb-2") {{ t('practice.subtitle') }}
+p.text-sm(class="mb-2 text-base-content/60") {{ t('practice.subtitle') }}
 
 // Баннер режима закрепления урока
-.alert.mb-2(v-if="lessonFilter" class="bg-primary/10 border border-primary/40 py-2")
+.alert.mb-2(v-if="lessonFilter" class="bg-primary/10 py-2 border border-primary/40")
   span.text-sm.font-medium {{ t('practice.lessonMode', { n: lessonFilter }) }}
   NuxtLink.btn.btn-ghost.btn-xs(to="/practice") {{ t('practice.lessonAll') }}
 
 // Меню выбора типа упражнения
 .card.bg-base-100.shadow-sm.border.border-base-300.mb-2(v-if="mode === 'menu'")
-  .card-body(class="p-3 sm:p-4 gap-2.5")
+  .card-body(class="gap-2.5 p-3 sm:p-4")
     h2.card-title.text-lg {{ t('practice.source') }}
-    .grid.grid-cols-2(class="sm:grid-cols-4 gap-2")
+    .grid.grid-cols-2(class="gap-2 sm:grid-cols-4")
       button.btn.btn-outline(:class="kind === 'choice' ? 'btn-primary' : ''" @click="kind = 'choice'")
         | ✅ {{ t('practice.choice') }}
       button.btn.btn-outline(:class="kind === 'build' ? 'btn-primary' : ''" @click="kind = 'build'")
@@ -133,8 +133,8 @@ p(class="text-base-content/60 mb-2") {{ t('practice.subtitle') }}
   .flex.items-center.justify-between.mb-2
     p(class="text-sm text-base-content/60") {{ t('practice.progress', { n: index + 1, total: SESSION_LENGTH }) }}
     p.text-sm
-      span(class="text-success font-bold") {{ correctCount }} ✓
-      span(class="text-error font-bold ml-2") {{ wrongCount }} ✗
+      span(class="font-bold text-success") {{ correctCount }} ✓
+      span(class="ml-2 font-bold text-error") {{ wrongCount }} ✗
 
   template(v-if="current")
     QuizChoice(
@@ -172,15 +172,15 @@ p(class="text-base-content/60 mb-2") {{ t('practice.subtitle') }}
 
     // Обратная связь и переход
     .card.bg-base-200.mt-2.border(v-if="showExplanation" :class="lastCorrect ? 'border-success' : 'border-error'")
-      .card-body(class="p-3 sm:p-4 gap-1")
-        p.font-bold(:class="lastCorrect ? 'text-success' : 'text-error'")
+      .card-body(class="gap-1 p-3 sm:p-4")
+        //- p.font-bold(:class="lastCorrect ? 'text-success' : 'text-error'")
           | {{ lastCorrect ? t('practice.correct') : t('practice.wrong') }}
-        p.text-sm(v-if="!lastCorrect && current.kind !== 'build'")
-          | {{ t('practice.answerWas') }} {{ current.options[current.answerIndex] }}
-        p.text-sm(v-if="!lastCorrect && current.kind === 'build'")
-          | {{ t('practice.answerWas') }} {{ current.answerTiles?.join(' ') }}
-        p(class="text-xs text-base-content/50") {{ current.explanation }}
-        button.btn.btn-primary.mt-2(@click="goNext") {{ t('practice.next') }}
+        //- p.text-lg(v-if="!lastCorrect && current.kind !== 'build'")
+        //-   | {{ t('practice.answerWas') }} {{ current.options[current.answerIndex] }}
+        //- p.text-lg(v-if="!lastCorrect && current.kind === 'build'")
+        //-   | {{ t('practice.answerWas') }} {{ current.answerTiles?.join(' ') }}
+        //- p(class="text-base-content/50 text-lg") {{ current.explanation }}
+        button.btn.btn-primary.mt-2.text-lg(@click="goNext") {{ t('practice.next') }}
 
 // Итоги
 SessionResult(

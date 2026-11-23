@@ -53,7 +53,7 @@ function check() {
 
 <template lang="pug">
 .card.bg-base-100.shadow-lg.border.border-base-300.w-full
-  .card-body(class="p-3 sm:p-4 gap-3 sm:gap-4")
+  .card-body(class="gap-3 sm:gap-4 p-3 sm:p-4")
     // Подсказка-перевод
     .text-center
       p(class="text-sm text-base-content/60") {{ t('practice.buildHint') }}
@@ -64,13 +64,13 @@ function check() {
       class="bg-base-200/50"
       aria-label="Собранная фраза"
     )
-      button.btn.btn-primary.btn-sm(v-for="i in selected" :key="i" @click="undo(i)")
+      button.btn.btn-primary.btn-md.text-lg(v-for="i in selected" :key="i" @click="undo(i)")
         | {{ tiles[i] }}
       span(class="text-sm text-base-content/30" v-if="selected.length === 0") …
 
     // Плитки
     .flex.flex-wrap.gap-1.justify-center
-      button.btn.btn-outline.btn-sm.normal-case(
+      button.btn.btn-outline.btn-lg.normal-case(
         v-for="r in remaining"
         :key="r.i"
         :disabled="revealed"
@@ -79,10 +79,10 @@ function check() {
         | {{ r.tile }}
 
     // Кнопка проверки
-    button.btn.btn-primary(:disabled="selected.length === 0 || revealed" @click="check()") {{ t('practice.check') }}
+    button.btn.bg-green-800.text-lg(:disabled="selected.length === 0 || revealed" @click="check()") {{ t('practice.check') }}
 
     // Результат
     p.text-center.mt-1(v-if="revealed")
-      span.font-bold(:class="isCorrect ? 'text-success' : 'text-error'")
+      span.text-lg.font-bold(:class="isCorrect ? 'text-success' : 'text-error'")
         | {{ isCorrect ? '✓ ¡Correcto!' : '✗ ' + answerTiles.join(' ') }}
 </template>
