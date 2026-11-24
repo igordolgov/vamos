@@ -3,8 +3,8 @@
 // Гарантия: при наличии es-* голосов всегда берётся испанский,
 // латиноамериканские варианты приоритетнее es-ES.
 // ============================================================
-import { describe, expect, it } from 'vitest'
-import { pickSpanishVoice } from '../../app/composables/useSpeech'
+import { afterEach, describe, expect, it } from 'vitest'
+import { pickSpanishVoice, unlockSpeech } from '../../app/composables/useSpeech'
 
 const voice = (lang: string, name = `Voice ${lang}`) => ({ lang, name, default: false })
 
@@ -46,5 +46,66 @@ describe('pickSpanishVoice — выбор испанского голоса', ()
   it('регистр языка не важен', () => {
     const voices = [voice('ES-MX'), voice('RU-ru')]
     expect(pickSpanishVoice(voices)?.lang).toBe('ES-MX')
+  })
+})
+
+// ------------------------------------------------------------
+// unlockSpeech — разблокировка TTS внутри пользовательского жеста
+// (iOS/Safari игнорирует programmatic speak без первого жеста).
+// ------------------------------------------------------------
+describe('unlockSpeech — разблокировка синтеза', () => {
+  const g = globalThis as unknown as Record<string, unknown>
+  let spoken: Array<{ text: string; volume: number; lang: string }> = []
+
+  afterEach(() => {
+    delete g.window
+    delete g.SpeechSynthesisUtterance
+    spoken = []
+  })
+
+  it('проговаривает беззвучный пробел (volume 0) — движок инициализируется', () => {
+    g.SpeechSynthesisUtterance = class Utterance {
+      text = ''
+      volume = 1
+      lang = ''
+      constructor(text?: string) {
+        if (text) this.text = text
+      }
+    }
+    g.window = {
+      speechSynthesis: {
+        speak: (u: { text: string; volume: number; lang: string }) => {
+          spoken.push({ text: u.text, volume: u.volume, lang: u.lang })
+        },
+      },
+    }
+    unlockSpeech()
+    expect(spoken).toHaveLength(1)
+    expect(spoken[0]!.text).toBe(' ')
+    expect(spoken[0]!.volume).toBe(0)
+    expect(spoken[0]!.lang).toBe('es-MX')
+  })
+
+  it('без speechSynthesis молча не делает ничего (не падает)', () => {
+    g.window = {}
+    expect(() => unlockSpeech()).not.toThrow()
+    expect(spoken).toHaveLength(0)
+  })
+
+  it('конструктор utterance упал (старая среда) — исключение проглочено', () => {
+    g.SpeechSynthesisUtterance = class {
+      constructor() {
+        throw new Error('unsupported')
+      }
+    }
+    g.window = {
+      speechSynthesis: {
+        speak: () => {
+          spoken.push({ text: 'x', volume: 1, lang: '' })
+        },
+      },
+    }
+    expect(() => unlockSpeech()).not.toThrow()
+    expect(spoken).toHaveLength(0)
   })
 })

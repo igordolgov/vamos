@@ -96,6 +96,25 @@ const NO_VOICE_WARN: Record<'ru' | 'es', string> = {
 /** Предупреждение показываем один раз за сессию */
 let warnedNoVoice = false
 
+/**
+ * «Разблокировка» синтеза речи внутри пользовательского жеста.
+ * iOS/Safari: первый speak() обязан случиться в обработчике клика —
+ * иначе движок молча игнорирует все последующие вызовы (в том числе
+ * авто-озвучку по таймеру). Проговариваем беззвучный пробел:
+ * движок инициализируется, дальше можно говорить из любого кода.
+ */
+export function unlockSpeech(): void {
+  if (!speechAvailable()) return
+  try {
+    const u = new SpeechSynthesisUtterance(' ')
+    u.volume = 0
+    u.lang = 'es-MX'
+    window.speechSynthesis.speak(u)
+  } catch {
+    // синтеза нет — кнопка 🔊 просто останется как fallback
+  }
+}
+
 /** Озвучить текст на испанском */
 export async function speakEs(text: string): Promise<void> {
   if (!speechAvailable()) return

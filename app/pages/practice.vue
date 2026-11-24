@@ -5,9 +5,9 @@
 // Режим закрепления урока: /practice?lesson=N — пул только из
 // слов этого урока (кнопка «Практика» на странице урока).
 // ============================================================
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useT } from '~/composables/useI18n'
-import { speakEs } from '~/composables/useSpeech'
+import { speakEs, unlockSpeech } from '~/composables/useSpeech'
 import { useProgress, applyAnswer, markAlreadyKnown } from '~/composables/useProgress'
 import { makeExercise, type Exercise, type ExerciseKind } from '#shared/practice'
 import { knownWordsCount } from '#shared/stats'
@@ -58,6 +58,10 @@ function startWith(k: ExerciseKind | 'mixed') {
 }
 
 function startSession() {
+  // iOS/Safari: первый speak() обязан случиться внутри жеста —
+  // разблокируем синтез в контексте клика, дальше авто-озвучка
+  // (по таймеру) работает без ограничений
+  unlockSpeech()
   index.value = 0
   correctCount.value = 0
   wrongCount.value = 0
@@ -125,6 +129,20 @@ function goNext() {
 function speakAudio() {
   if (current.value?.speak) speakEs(current.value.speak)
 }
+
+// ============================================================
+// Автоозвучка: аудио-упражнение произносится сразу, как только
+// показалось (кнопка остаётся для повторного прослушивания).
+// Небольшая задержка — дать карточке отрисоваться.
+// ============================================================
+watch(current, (ex) => {
+  if (mode.value !== 'session' || ex?.kind !== 'audio' || !ex.speak) return
+  const text = ex.speak
+  window.setTimeout(() => {
+    // пока таймер ждал, упражнение могло смениться («Уже выучил» и т.п.)
+    if (mode.value === 'session' && current.value === ex) void speakEs(text)
+  }, 300)
+})
 
 /** «Уже выучил»: пометить слово/фразу — будут попадаться реже,
  *  и сразу показать следующее упражнение (без подсчёта в сессию) */
@@ -238,7 +256,22 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
       .card.bg-base-100.shadow-lg.border.border-base-300.w-full.mb-2
         .card-body.p-4.items-center
           p(class="text-sm text-base-content/60") {{ t('practice.listen') }}
-          button.btn.btn-circle.btn-lg.btn-primary(@click="speakAudio()") 🔊
+          // Белая иконка на зелёном: рупор + две звуковые волны
+          button.btn.btn-circle.btn-lg.btn-success(@click="speakAudio()" :aria-label="t('practice.listen')")
+            svg(
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="w-10 h-10 text-white"
+              aria-hidden="true"
+            )
+              path(d="M11 5 6 9H2v6h4l5 4V5Z")
+              path(d="M15.54 8.46a5 5 0 0 1 0 7.07")
+              path(d="M19.07 4.93a10 10 0 0 1 0 14.14")
 
       QuizChoice(
         :key="'audio-' + index"
