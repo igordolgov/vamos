@@ -119,7 +119,12 @@ function onTouchEnd(e: TouchEvent) {
   const dy = t.clientY - touchStart.y
   touchStart = null
   // только явный горизонтальный свайп ≥ 60px — не путаем с прокруткой страницы
-  if (Math.abs(dx) >= 60 && Math.abs(dx) > Math.abs(dy) * 1.5) goNext()
+  if (Math.abs(dx) >= 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+    // лёгкая отдача (виброотклик): Android/Chrome — короткая вибрация,
+    // iOS Safari не поддерживает Vibration API и молча игнорирует вызов
+    try { navigator.vibrate?.(10) } catch { /* нет поддержки — без отдачи */ }
+    goNext()
+  }
 }
 </script>
 

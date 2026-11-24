@@ -2,8 +2,9 @@
 // ============================================================
 // QuizChoice.vue — упражнение «выбор из 4 вариантов».
 // Показывает вопрос (ES или RU текст) и озвучку, если есть.
-// После ответа под вариантами появляются результат и «Дальше» —
-// кнопка в карточке, а не внизу экрана.
+// После ответа результат и «Дальше» появляются в заранее
+// зарезервированной зоне постоянной высоты — карточка не
+// меняет размер, кнопка не сдвигается.
 // ============================================================
 import { computed, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
@@ -60,16 +61,25 @@ function btnClass(index: number): string {
         @click="choose(i)"
       )
         span.text-lg {{ option }}
+        // Значок всегда в DOM (невидимым плейсхолдером): ширина правой
+        // части кнопки постоянна → перенос строк не меняется при ответе
         span.ml-auto(v-if="revealed && i === answerIndex") ✓
-        span.ml-auto(v-if="revealed && i === selected && i !== answerIndex") ✗
+        span.ml-auto(v-else-if="revealed && i === selected") ✗
+        span.ml-auto.invisible(v-else) ✓
 
-    // Результат и «Дальше» — в самой карточке, под вариантами:
-    // кнопка не уезжает за нижний край экрана на телефоне
-    template(v-if="revealed")
+    // Результат и «Дальше» — зарезервированная зона постоянной высоты:
+    // существует до ответа (пустая), поэтому карточка не растёт и кнопка
+    // не сдвигается ни на пиксель при появлении результата
+    .min-h-16.flex.items-center.justify-center
       p.text-center.text-2xl.font-bold.animate-feedback(
+        v-if="revealed"
         :class="isCorrect ? 'text-success' : 'text-error'"
       )
         template(v-if="isCorrect") ✓ {{ t('practice.correct') }}
         template(v-else) ✗ {{ t('practice.answerWas') }} {{ options[answerIndex] }}
-      button.btn.btn-primary.text-lg(@click="emit('next')") {{ t('practice.next') }}
+    button.btn.btn-primary.text-lg(
+      :class="revealed ? 'visible' : 'invisible'"
+      :tabindex="revealed ? 0 : -1"
+      @click="emit('next')"
+    ) {{ t('practice.next') }}
 </template>

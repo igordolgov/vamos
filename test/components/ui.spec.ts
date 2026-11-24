@@ -140,6 +140,21 @@ describe('QuizChoice', () => {
     await next.trigger('click')
     expect(wrapper.emitted('next')).toBeTruthy()
   })
+
+  it('зона результата зарезервирована до ответа — карточка не меняет размер', () => {
+    const wrapper = mount(QuizChoice, {
+      props: { questionEs: 'casa', options: ['дом', 'еда', 'книга', 'ночь'], answerIndex: 0 },
+    })
+    // зона фидбека существует и до ответа (пустая, постоянной высоты)
+    expect(wrapper.find('.min-h-16').exists()).toBe(true)
+    expect(wrapper.find('.animate-feedback').exists()).toBe(false)
+    // «Дальше» уже в DOM (держит своё место), но невидима до ответа
+    const next = wrapper.findAll('button').at(-1)!
+    expect(next.text()).toBe('Дальше')
+    expect(next.classes()).toContain('invisible')
+    // клик по невидимой кнопке до ответа всё равно ведёт дальше (безвредно),
+    // а после ответа кнопка становится видимой
+  })
 })
 
 describe('StreakWidget', () => {
