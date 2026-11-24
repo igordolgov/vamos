@@ -6,26 +6,48 @@
 // ============================================================
 
 import type { PartOfSpeech, Word } from '../../types'
+import { LESSON_WORDS } from '../curriculum'
 import { ADJECTIVES } from './adjectives'
 import { CONJUNCTIONS, CONSTRUCTIONS, NUMBERS, ADVERBS, PREPOSITIONS, QUESTIONS } from './preps-adverbs-etc'
 import { DETERMINERS, PRONOUNS } from './pronouns-determiners'
 import { NOUNS } from './nouns'
 import { VERBS } from './verbs'
 
-/** Все слова приложения (~310 штук, 32 урока) */
-export const ALL_WORDS: Word[] = [
-  ...PRONOUNS,
-  ...DETERMINERS,
-  ...VERBS,
-  ...NOUNS,
-  ...ADJECTIVES,
-  ...PREPOSITIONS,
-  ...ADVERBS,
-  ...QUESTIONS,
-  ...CONJUNCTIONS,
-  ...NUMBERS,
-  ...CONSTRUCTIONS,
-]
+/**
+ * Все слова приложения (313 штук, 32 урока).
+ * Порядок уроков задаёт curriculum.ts (частотность, не части речи):
+ * здесь назначаем словам номера уроков по учебному плану и проверяем,
+ * что план покрывает словарь целиком — без пропусков и дублей.
+ */
+function buildAllWords(): Word[] {
+  const lessonOf = new Map<string, number>()
+  LESSON_WORDS.forEach((ids, i) => {
+    for (const id of ids) {
+      if (lessonOf.has(id)) throw new Error(`curriculum.ts: слово ${id} в уроках ${lessonOf.get(id)} и ${i + 1}`)
+      lessonOf.set(id, i + 1)
+    }
+  })
+  const raw: Word[] = [
+    ...PRONOUNS,
+    ...DETERMINERS,
+    ...VERBS,
+    ...NOUNS,
+    ...ADJECTIVES,
+    ...PREPOSITIONS,
+    ...ADVERBS,
+    ...QUESTIONS,
+    ...CONJUNCTIONS,
+    ...NUMBERS,
+    ...CONSTRUCTIONS,
+  ]
+  return raw.map((w) => {
+    const lesson = lessonOf.get(w.id)
+    if (!lesson) throw new Error(`curriculum.ts: слово ${w.id} не входит ни в один урок`)
+    return lesson !== w.lesson ? { ...w, lesson } : w
+  })
+}
+
+export const ALL_WORDS: Word[] = buildAllWords()
 
 /** Количество слов в словаре (для статистики и дашборда) */
 export const WORD_COUNT = ALL_WORDS.length

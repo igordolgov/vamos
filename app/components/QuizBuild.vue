@@ -12,6 +12,8 @@ const props = defineProps<{
   tiles: string[]
   answerTiles: string[]
   hint: string
+  /** Допустимые варианты без подлежащего-местоимения («Eres alto») */
+  altAnswers?: string[]
 }>()
 
 const emit = defineEmits<{ answered: [correct: boolean]; next: [] }>()
@@ -44,13 +46,14 @@ function undo(index: number) {
 /** Собранная фраза */
 const built = computed(() => selected.value.map((i) => props.tiles[i]).join(' '))
 
-/** Верно, если собран полный ответ без учёта регистра.
+/** Верно, если собран полный ответ без учёта регистра — точный или
+ *  без подлежащего-местоимения, когда форма глагола однозначна.
  *  ВАЖНО: toLowerCase() со скобками — сравнение функции со строкой
  *  всегда false (баг «съеденных скобок» ломал проверку сборки). */
-const isCorrect = computed(() =>
-  selected.value.length === props.answerTiles.length &&
-  built.value.toLowerCase() === props.answerTiles.join(' ').toLowerCase(),
-)
+const isCorrect = computed(() => {
+  const candidates = [props.answerTiles.join(' '), ...(props.altAnswers ?? [])]
+  return candidates.some((c) => built.value.toLowerCase() === c.toLowerCase())
+})
 
 function check() {
   if (revealed.value || selected.value.length === 0) return

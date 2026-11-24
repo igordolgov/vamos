@@ -220,6 +220,22 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     expect(pool.every((b) => b.classes().includes('invisible'))).toBe(true)
   })
 
+  it('принимает ответ без подлежащего-местоимения («Eres alto»)', async () => {
+    // Ответ «Tú eres alto»: форма eres однозначна — местоимение опускается
+    const wrapper = mount(QuizBuild, {
+      props: {
+        tiles: ['tú', 'eres', 'alto', 'en'],
+        answerTiles: ['Tú', 'eres', 'alto'],
+        altAnswers: ['eres alto'],
+        hint: 'Ты высокий',
+      },
+    })
+    await tileBtn(wrapper, 'eres').trigger('click')
+    await tileBtn(wrapper, 'alto').trigger('click')
+    await checkBtn(wrapper).trigger('click')
+    expect(wrapper.emitted('answered')![0]).toEqual([true])
+  })
+
   it('после проверки кнопка становится «Дальше» и emits next', async () => {
     const wrapper = mount(QuizBuild, {
       props: { tiles: TILES, answerTiles: ANSWER, hint: 'x' },

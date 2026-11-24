@@ -3,27 +3,26 @@
 // и распределяет их по частям речи: часть выучена, часть в процессе.
 import { writeFileSync, readFileSync } from 'node:fs'
 
-const files = [
-  'shared/data/words/nouns.ts',
-  'shared/data/words/verbs.ts',
-  'shared/data/words/adjectives.ts',
-  'shared/data/words/pronouns-determiners.ts',
-  'shared/data/words/preps-adverbs-etc.ts',
-]
-
+// Порядок слов — из учебного плана (curriculum.ts): первые ~11 уроков
+// считаем изученными (частично), дальше — в процессе/не тронуты.
+const src = readFileSync('shared/data/curriculum.ts', 'utf8')
 const ids = []
-for (const f of files) {
-  const src = readFileSync(f, 'utf8')
-  const re = /^\s*\w+\('([a-z0-9-]+)'/gm
-  let m
-  while ((m = re.exec(src))) ids.push(m[1])
+const re = /'([a-z0-9-]+)'/g
+let m
+while ((m = re.exec(src))) {
+  if (m[1].startsWith('p-') || m[1].startsWith('v-') || m[1].startsWith('n-') ||
+      m[1].startsWith('a-') || m[1].startsWith('d-') || m[1].startsWith('qw-') ||
+      m[1].startsWith('c-') || m[1].startsWith('num-') || m[1].startsWith('cstr-') ||
+      m[1].startsWith('prep-') || m[1].startsWith('adv-')) {
+    ids.push(m[1])
+  }
 }
 
 const words = {}
 ids.forEach((id, i) => {
-  if (i % 3 === 0) words[id] = { correct: 5, wrong: 0, knownAt: 1 } // выучено
-  else if (i % 3 === 1) words[id] = { correct: 1, wrong: 1 } // в процессе
-  // i % 3 === 2 — не трогали вовсе
+  if (i < 100) words[id] = { correct: 5, wrong: 0, knownAt: 1 } // уроки 1–9 — выучено
+  else if (i < 130) words[id] = { correct: 1, wrong: 1 } // уроки 10–11 — в процессе
+  // дальше — не трогали вовсе
 })
 
 const progress = {

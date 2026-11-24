@@ -168,3 +168,24 @@ describe('«Уже выучил» — реже, но не исчезает', () 
     expect(phraseStarKey({ kind: 'choice', questionEs: 'casa' } as Exercise)).toBeNull()
   })
 })
+
+describe('«Eres alto» — опущенное подлежащее-местоимение', () => {
+  it('buildExercise даёт вариант без местоимения, когда форма глагола однозначна', () => {
+    // Tú eres alto → «Eres alto» (форма eres только у tú)
+    const fill = { s: getWord('p-tu'), adj: getWord('a-alto') }
+    const ex = buildExercise(fill, 't-pron-ser-adj', 'aff')
+    expect(ex.answerTiles!.join(' ').toLowerCase()).toBe('tú eres alto')
+    expect(ex.altAnswers).toContain('eres alto')
+    // Nosotros somos altos → «Somos altos» (somos только у nosotros)
+    const fill2 = { s: getWord('p-nosotros'), adj: getWord('a-alto') }
+    const ex2 = buildExercise(fill2, 't-pron-ser-adj', 'aff')
+    expect(ex2.altAnswers![0]).toContain('somos')
+  })
+
+  it('для неоднозначных форм (usted/él/ella — «es») вариант не даётся', () => {
+    const fill = { s: getWord('p-usted'), adj: getWord('a-alto') }
+    const ex = buildExercise(fill, 't-pron-ser-adj', 'aff')
+    // «Es alto» непонятно: usted, él или ella — местоимение обязательно
+    expect(ex.altAnswers).toBeUndefined()
+  })
+})

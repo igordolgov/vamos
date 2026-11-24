@@ -224,6 +224,7 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
       :key="index"
       :tiles="current.tiles ?? []"
       :answer-tiles="current.answerTiles ?? []"
+      :alt-answers="current.altAnswers"
       :hint="current.hint ?? ''"
       @answered="onAnswered"
       @next="goNext"

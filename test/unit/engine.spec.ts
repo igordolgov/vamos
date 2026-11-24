@@ -62,10 +62,10 @@ describe('Подсчёт и перечисление', () => {
     }
   })
 
-  it('прогрессия: после 5 уроков фразы уже есть, после 13 — сотни тысяч', () => {
-    // Вопросительные шаблоны закрыты до изучения вопросительных слов
-    // (урок 21), поэтому самый ранний «нефразовый» порог стал 5
-    const after3 = TEMPLATES.reduce((acc, t) => acc + countTemplate(t, lessons(5)), 0)
+  it('прогрессия: после 3 уроков фразы уже есть, после 13 — сотни тысяч', () => {
+    // Вопросительные слова — урок 3 (curriculum.ts): «¿Qué es?»,
+    // «¿Cómo estás?» собираются сразу после первых уроков
+    const after3 = TEMPLATES.reduce((acc, t) => acc + countTemplate(t, lessons(3)), 0)
     const after13 = TEMPLATES.reduce((acc, t) => acc + countTemplate(t, lessons(13)), 0)
     expect(after3).toBeGreaterThan(0)
     expect(after13).toBeGreaterThan(100_000)

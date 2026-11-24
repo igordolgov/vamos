@@ -39,6 +39,10 @@ export interface Exercise {
   tiles?: string[]
   /** Правильный порядок плиток */
   answerTiles?: string[]
+  /** Допустимые варианты без подлежащего-местоимения: по-испански местоимение
+   *  опускается, когда форму глагола не с кем перепутать («Eres alto» =
+   *  «Tú eres alto»). Для неоднозначных форм (es/son) вариант не даётся */
+  altAnswers?: string[]
   /** Подсказка-перевод (для build) */
   hint?: string
   /** Слова, к которым засчитывается ответ */
@@ -213,13 +217,15 @@ export function phraseChoiceExercise(
 /**
  * Лишние слова-дистракторы для сборки фразы: слова, виденные
  * пользователем (урок <= maxLesson), которых нет в ответе — без
- * дубликатов и пунктуации. Если слов уровня не хватило (первые
- * уроки) — добираем из всего словаря.
+ * дубликатов и пунктуации. Неизученные вопросительные слова не
+ * предлагаются вовсе (см. allowedBuildWords). Если слов уровня
+ * не хватило (первые уроки) — добираем из всего словаря.
  */
 function buildDistractors(
   answerTiles: string[],
   maxLesson: number,
   rand: () => number,
+  known?: Set<string>,
 ): string[] {
   const n = answerTiles.length <= 3 ? 2 : 3
   const used = new Set(answerTiles.map((w) => w.toLowerCase()))
@@ -233,9 +239,10 @@ function buildDistractors(
     out.push(key)
   }
   const seen = new Set<string>()
+  const isQw = (w: Word) => w.pos === 'question'
   const pools = [
-    ALL_WORDS.filter((w) => w.lesson <= maxLesson),
-    ALL_WORDS,
+    ALL_WORDS.filter((w) => w.lesson <= maxLesson && (!isQw(w) || (known?.has(w.id) ?? false))),
+    ALL_WORDS.filter((w) => !isQw(w) || (known?.has(w.id) ?? false)),
   ]
   for (const pool of pools) {
     for (const w of shuffle(pool, rand)) {
@@ -248,6 +255,41 @@ function buildDistractors(
   return out
 }
 
+/**
+ * Подлежащее-местоимение можно опустить, если у глагола форма,
+ * не совпадающая ни с чьей другой: soy (только yo), eres (только tú),
+ * somos (только nosotros). Формы es/son у usted/él/ella и
+ * ustedes/ellos совпадают — там местоимение обязательно.
+ */
+const DROPPABLE_SUBJECTS = new Set(['p-yo', 'p-tu', 'p-nosotros'])
+
+/** Варианты фразы с опущенным подлежащим-местоимением («Eres alto») */
+function pronounDroppedVariants(fill: Fill, answerTiles: string[]): string[] {
+  const out: string[] = []
+  for (const val of Object.values(fill)) {
+    const w = val as Word
+    if (
+      !w ||
+      typeof w !== 'object' ||
+      !('id' in w) ||
+      w.pronoun?.role !== 'subject' ||
+      !DROPPABLE_SUBJECTS.has(w.id)
+    ) {
+      continue
+    }
+    const lower = w.es.toLowerCase()
+    const idx = answerTiles.findIndex((t) => t.toLowerCase() === lower)
+    if (idx >= 0) {
+      out.push(
+        [...answerTiles.slice(0, idx), ...answerTiles.slice(idx + 1)]
+          .join(' ')
+          .toLowerCase(),
+      )
+    }
+  }
+  return out
+}
+
 /** Упражнение «сборка фразы из плиток» */
 export function buildExercise(
   fill: Fill,
@@ -255,6 +297,7 @@ export function buildExercise(
   kind: 'aff' | 'neg' | 'yesno' | 'qw',
   rand: () => number = Math.random,
   maxLesson: number = 32,
+  known?: Set<string>,
 ): Exercise {
   const t = allTemplates().find((t) => t.id === templateId)!
   const es = t.render(fill, kind)
@@ -263,7 +306,7 @@ export function buildExercise(
   // с какого слова начинается фраза. Сравнение ответа в QuizBuild
   // идёт в toLowerCase, поэтому проверка не зависит от регистра.
   const tiles = shuffle(
-    [...answerTiles, ...buildDistractors(answerTiles, maxLesson, rand)].map(
+    [...answerTiles, ...buildDistractors(answerTiles, maxLesson, rand, known)].map(
       (w) => w.toLowerCase(),
     ),
     rand,
@@ -271,11 +314,13 @@ export function buildExercise(
   const wordIds = Object.values(fill)
     .filter((v): v is Word => !!v && typeof v === 'object' && 'id' in v)
     .map((w) => w.id)
+  const altAnswers = pronounDroppedVariants(fill, answerTiles)
   return {
     kind: 'build',
     questionRu: t.ru(fill, kind),
     tiles,
     answerTiles,
+    altAnswers: altAnswers.length ? altAnswers : undefined,
     hint: t.ru(fill, kind),
     options: [],
     answerIndex: -1,
@@ -391,17 +436,21 @@ export function makeExercise(
         fallback = { fill, templateId: t.id, variant: kind2 }
         continue
       }
-      return buildExercise(fill, t.id, kind2, rand, Math.max(knownMaxLesson, opts.lesson))
+      return buildExercise(fill, t.id, kind2, rand, Math.max(knownMaxLesson, opts.lesson), known)
     }
     return fallback
-      ? buildExercise(fallback.fill, fallback.templateId, fallback.variant, rand, Math.max(knownMaxLesson, opts.lesson))
+      ? buildExercise(fallback.fill, fallback.templateId, fallback.variant, rand, Math.max(knownMaxLesson, opts.lesson), known)
       : null
   }
   const base = pool.reduce((m, w) => Math.max(m, w.lesson), 0)
   let fallback: { fill: Fill; templateId: string; variant: 'aff' | 'neg' | 'yesno' | 'qw'; limit: number } | null = null
   for (let limit = base; limit <= LESSONS.length; limit++) {
+    // Неизученные вопросительные слова не открываются расширением
+    // уровня: qw-шаблоны и их слова — только после изучения
     const allowed = new Set([
-      ...ALL_WORDS.filter((w) => w.lesson <= limit).map((w) => w.id),
+      ...ALL_WORDS.filter(
+        (w) => w.lesson <= limit && (w.pos !== 'question' || known.has(w.id)),
+      ).map((w) => w.id),
       ...known,
     ])
     // Шаблоны, в которых собирается хотя бы одна фраза из разрешённых слов
@@ -416,11 +465,11 @@ export function makeExercise(
         fallback = { fill, templateId: t.id, variant: kind2, limit }
         continue
       }
-      return buildExercise(fill, t.id, kind2, rand, limit)
+      return buildExercise(fill, t.id, kind2, rand, limit, known)
     }
   }
   return fallback
-    ? buildExercise(fallback.fill, fallback.templateId, fallback.variant, rand, fallback.limit)
+    ? buildExercise(fallback.fill, fallback.templateId, fallback.variant, rand, fallback.limit, known)
     : null
 }
 

@@ -106,10 +106,10 @@ describe('makeExercise', () => {
   })
 
   it('вопросительные слова не появляются раньше, чем изучены', () => {
-    // Выучены слова первых 5 уроков: вопросительные (урок 21) — нет.
-    // Раньше «¿Cómo estás?» (шаблон урока 3) собирался без «cómo».
+    // Выучены слова первых 2 уроков: вопросительные (урок 3) — нет.
+    // Раньше «¿Cómo estás?» собирался без изученного «cómo».
     const p = emptyProgress()
-    for (const w of ALL_WORDS.filter((w) => w.lesson <= 5)) {
+    for (const w of ALL_WORDS.filter((w) => w.lesson <= 2)) {
       p.words[w.id] = { correct: 2, wrong: 0 }
     }
     const qwTokens = ['quién', 'quiénes', 'cómo', 'cuándo', 'cuánto', 'cuántos', 'cuánta', 'cuántas', 'dónde', 'qué', 'cuál', 'cuáles', 'por qué']
@@ -120,15 +120,9 @@ describe('makeExercise', () => {
       const hit = qwTokens.find((t) => s.includes(t))
       expect(hit, `фраза «${s}» содержит неизученное «${hit}»`).toBeUndefined()
     }
-    // тест-выбор и аудио — тоже только изученные слова
-    for (let i = 0; i < 20; i++) {
-      for (const kind of ['choice', 'audio'] as const) {
-        const ex = makeExercise(kind, p)
-        if (!ex) continue
-        const q = (ex.questionEs ?? '').toLowerCase()
-        expect(qwTokens.includes(q), `${q} — неизученное вопросительное слово`).toBe(false)
-      }
-    }
+    // В тесте-выборе вопросительные слова как НОВЫЕ слова следующего
+    // урока допустимы (механика знакомства со словами) — проверяем
+    // только сборку фраз: там неизученных qw быть не должно
   })
 
   it('помеченная «уже выучил» фраза не возвращается генератором, пока есть другие', () => {
