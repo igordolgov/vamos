@@ -262,3 +262,49 @@ describe('«Eres alto» — опущенное подлежащее-местои
     expect(ex.altAnswers).toBeUndefined()
   })
 })
+
+describe('Объяснения при неверном ответе', () => {
+  it('тест-выбор ES→RU: у каждого дистрактора пояснение «это …»', () => {
+    const ex = wordChoiceExercise(getWord('qw-que'), ALL_WORDS, 'es-ru')
+    for (const [i, opt] of ex.options.entries()) {
+      if (i === ex.answerIndex) continue
+      expect(ex.optionNotes?.[opt], opt).toMatch(/^это «.+»$/)
+    }
+    // вопросительные слова — в словаре подсказок: почему путают + лайфхак
+    expect(ex.tip?.why).toBeTruthy()
+    expect(ex.tip?.hack).toBeTruthy()
+  })
+
+  it('тест-выбор RU→ES: пояснение дистрактора — его русский перевод', () => {
+    const ex = wordChoiceExercise(getWord('n-casa'), ALL_WORDS, 'ru-es')
+    const wrong = ex.options.filter((o) => o !== 'casa')
+    expect(wrong.length).toBe(3)
+    for (const o of wrong) expect(ex.optionNotes?.[o], o).toMatch(/^это «.+»$/)
+    expect(ex.options[ex.answerIndex]).toBe('casa')
+  })
+
+  it('аудио: пояснения дистракторов и подсказка для ser/estar', () => {
+    const ex = audioExercise(getWord('v-ser'), ALL_WORDS)
+    expect(ex.speak).toBe('ser')
+    expect(Object.keys(ex.optionNotes ?? {}).length).toBe(3)
+    expect(ex.tip?.hack).toContain('паспорт')
+  })
+
+  it('сборка фразы: шаблон ser получает подсказку про «паспортные данные»', () => {
+    const fill = { s: getWord('p-tu'), adj: getWord('a-alto') }
+    const ex = buildExercise(fill, 't-pron-ser-adj', 'aff')
+    expect(ex.tip?.why).toBeTruthy()
+    expect(ex.tip?.hack).toBeTruthy()
+  })
+
+  it('у слова без записи в word-tips — пояснения дистракторов есть, tip не задан', () => {
+    // n-libro — обычное существительное без каверз: ошибки объясняются
+    // автопояснением (что означает выбранный вариант)
+    const ex = wordChoiceExercise(getWord('n-libro'), ALL_WORDS, 'es-ru')
+    expect(ex.tip).toBeUndefined()
+    for (const [i, opt] of ex.options.entries()) {
+      if (i === ex.answerIndex) continue
+      expect(ex.optionNotes?.[opt], opt).toBeTruthy()
+    }
+  })
+})

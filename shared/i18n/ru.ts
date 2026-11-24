@@ -86,6 +86,8 @@ export const RU = {
   'practice.next': 'Дальше',
   'practice.correct': '¡Correcto!',
   'practice.answerWas': 'Верный ответ:',
+  'practice.tipWhy': 'Почему',
+  'practice.tipHack': 'Лайфхак',
   'practice.progress': 'Вопрос {n} из {total}',
   'practice.finish': 'Завершить',
   'practice.result': 'Сессия завершена!',

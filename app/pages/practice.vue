@@ -215,6 +215,8 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
       :question-ru="current.questionRu"
       :options="current.options"
       :answer-index="current.answerIndex"
+      :tip="current.tip"
+      :option-notes="current.optionNotes"
       @answered="onAnswered"
       @next="goNext"
     )
@@ -226,6 +228,7 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
       :answer-tiles="current.answerTiles ?? []"
       :alt-answers="current.altAnswers"
       :hint="current.hint ?? ''"
+      :tip="current.tip"
       @answered="onAnswered"
       @next="goNext"
     )
@@ -241,6 +244,8 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
         :key="'audio-' + index"
         :options="current.options"
         :answer-index="current.answerIndex"
+        :tip="current.tip"
+        :option-notes="current.optionNotes"
         @answered="onAnswered"
         @next="goNext"
       )

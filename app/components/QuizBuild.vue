@@ -7,6 +7,7 @@
 // ============================================================
 import { computed, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
+import type { WordTip } from '#shared/data/word-tips'
 
 const props = defineProps<{
   tiles: string[]
@@ -14,6 +15,8 @@ const props = defineProps<{
   hint: string
   /** Допустимые варианты без подлежащего-местоимения («Eres alto») */
   altAnswers?: string[]
+  /** Объяснение ошибки: почему путают и как запомнить — при неверном ответе */
+  tip?: WordTip
 }>()
 
 const emit = defineEmits<{ answered: [correct: boolean]; next: [] }>()
@@ -106,6 +109,15 @@ function check() {
           template(v-else)
             p.text-base.font-semibold.text-error(class="sm:text-lg") ✗ {{ t('practice.answerWas') }}
             p.text-xl.font-bold.text-base-content(class="sm:text-2xl") {{ answerTiles.join(' ') }}
+
+    // Объяснение ошибки: почему легко путать и лайфхак запоминания.
+    // Появляется только при неверном ответе
+    .w-full(v-if="revealed && !isCorrect && tip")
+      .rounded-xl.text-left(class="p-2.5 bg-warning/10 border border-warning/30")
+        p.text-sm(class="leading-snug")
+          | 💡 <b>{{ t('practice.tipWhy') }}:</b> {{ tip.why }}
+        p.text-sm.mt-1(class="leading-snug")
+          | 🧠 <b>{{ t('practice.tipHack') }}:</b> {{ tip.hack }}
 
     // Кнопка: до проверки — «Проверить», после — «Дальше» (на том же месте)
     button.btn.text-lg(

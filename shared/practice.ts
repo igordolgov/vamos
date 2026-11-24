@@ -19,6 +19,8 @@ import { sampleFill, countTemplate } from './phrases/engine'
 import { knownSet } from './stats'
 import { phraseKey } from './phrases/schema'
 import type { Fill } from './phrases/schema'
+import { WORD_TIPS, PHRASE_TIPS } from './data/word-tips'
+import type { WordTip } from './data/word-tips'
 
 export type ExerciseKind = 'choice' | 'build' | 'audio'
 
@@ -51,6 +53,12 @@ export interface Exercise {
   phraseKey?: string
   /** Краткое пояснение (показывается после ответа) */
   explanation?: string
+  /** Почему ошибиться легко и лайфхак запоминания — показывается при НЕверном ответе */
+  tip?: WordTip
+  /** Что означает каждый отвлекающий вариант: текст варианта → «это …».
+   *  Позволяет объяснить, почему выбранный вариант неверен
+   *  («где» — это «dónde») */
+  optionNotes?: Record<string, string>
 }
 
 /** Перемешать массив (Fisher–Yates) */
@@ -178,15 +186,19 @@ export function wordChoiceExercise(
 ): Exercise {
   const esRu = dir === 'es-ru'
   // Отвлекающие — той же части речи, БЕЗ дубликатов перевода:
-  // два одинаковых варианта делают вопрос неразрешимым
+  // два одинаковых варианта делают вопрос неразрешимым.
+  // Для каждого варианта запоминаем, что он на самом деле означает —
+  // после неверного ответа объясняем: «где» — это «dónde»
   const answer = esRu ? word.ru[0]! : word.es
   const seen = new Set([answer])
   const distractors: string[] = []
+  const notes: Record<string, string> = {}
   for (const w of shuffle(distractorCandidates(word, all, maxLesson, known), rand)) {
     const opt = esRu ? w.ru[0]! : w.es
     if (seen.has(opt)) continue
     seen.add(opt)
     distractors.push(opt)
+    notes[opt] = esRu ? `это «${w.es}»` : `это «${w.ru.join(', ')}»`
     if (distractors.length === 3) break
   }
   const options = shuffle([answer, ...distractors], rand)
@@ -203,6 +215,8 @@ export function wordChoiceExercise(
     answerIndex,
     wordIds: [word.id],
     explanation: `${word.es} — ${word.ru.join(', ')}`,
+    tip: WORD_TIPS[word.id],
+    optionNotes: notes,
   }
 }
 
@@ -238,6 +252,7 @@ export function phraseChoiceExercise(
     wordIds,
     phraseKey: phraseKey(t.id, [0], kind),
     explanation: `${es} — ${ru}`,
+    tip: PHRASE_TIPS[templateId],
   }
 }
 
@@ -354,6 +369,7 @@ export function buildExercise(
     wordIds,
     phraseKey: phraseKey(t.id, [0], kind),
     explanation: es,
+    tip: PHRASE_TIPS[templateId],
   }
 }
 
@@ -369,11 +385,13 @@ export function audioExercise(
   const answer = word.ru[0]!
   const seen = new Set([answer])
   const distractors: string[] = []
+  const notes: Record<string, string> = {}
   for (const w of shuffle(distractorCandidates(word, all, maxLesson, known), rand)) {
     const opt = w.ru[0]!
     if (seen.has(opt)) continue
     seen.add(opt)
     distractors.push(opt)
+    notes[opt] = `это «${w.es}»`
     if (distractors.length === 3) break
   }
   const options = shuffle([answer, ...distractors], rand)
@@ -386,6 +404,8 @@ export function audioExercise(
     answerIndex,
     wordIds: [word.id],
     explanation: `${word.es} — ${word.ru.join(', ')}`,
+    tip: WORD_TIPS[word.id],
+    optionNotes: notes,
   }
 }
 

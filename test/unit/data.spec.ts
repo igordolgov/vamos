@@ -6,6 +6,8 @@
 import { describe, it, expect } from 'vitest'
 import { ALL_WORDS, WORD_COUNT, WORDS_BY_ID, POS_LABELS } from '../../shared/data/words'
 import { LESSONS } from '../../shared/data/lessons'
+import { WORD_TIPS, PHRASE_TIPS } from '../../shared/data/word-tips'
+import { allTemplates } from '../../shared/phrases/templates'
 import type { PartOfSpeech } from '../../shared/types'
 
 describe('Словарь', () => {
@@ -96,6 +98,28 @@ describe('Словарь', () => {
     const posList = ALL_WORDS.map((w) => w.pos)
     for (const pos of new Set(posList) as Set<PartOfSpeech>) {
       expect(POS_LABELS[pos], pos).toBeTruthy()
+    }
+  })
+})
+
+describe('Подсказки ошибок (word-tips)', () => {
+  it('ключи WORD_TIPS существуют в словаре', () => {
+    for (const id of Object.keys(WORD_TIPS)) {
+      expect(WORDS_BY_ID[id], id).toBeTruthy()
+    }
+  })
+
+  it('ключи PHRASE_TIPS существуют среди шаблонов фраз', () => {
+    const templateIds = new Set(allTemplates().map((t) => t.id))
+    for (const id of Object.keys(PHRASE_TIPS)) {
+      expect(templateIds.has(id), id).toBe(true)
+    }
+  })
+
+  it('у каждой подсказки есть «почему» и «лайфхак»', () => {
+    for (const [id, tip] of [...Object.entries(WORD_TIPS), ...Object.entries(PHRASE_TIPS)]) {
+      expect(tip.why.length, id).toBeGreaterThanOrEqual(10)
+      expect(tip.hack.length, id).toBeGreaterThanOrEqual(5)
     }
   })
 })

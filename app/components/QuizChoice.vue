@@ -8,6 +8,7 @@
 // ============================================================
 import { computed, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
+import type { WordTip } from '#shared/data/word-tips'
 import SpeakButton from './SpeakButton.vue'
 
 const props = defineProps<{
@@ -15,6 +16,10 @@ const props = defineProps<{
   questionRu?: string
   options: string[]
   answerIndex: number
+  /** Объяснение ошибки: почему путают и как запомнить — при неверном ответе */
+  tip?: WordTip
+  /** Что означает каждый отвлекающий вариант: текст варианта → «это …» */
+  optionNotes?: Record<string, string>
 }>()
 
 const emit = defineEmits<{ answered: [correct: boolean]; next: [] }>()
@@ -31,6 +36,14 @@ function choose(index: number) {
 }
 
 const isCorrect = computed(() => selected.value === props.answerIndex)
+
+/** Пояснение выбранного неверного варианта: «где» — это «dónde» */
+const pickedNote = computed(() => {
+  if (selected.value === null || selected.value === props.answerIndex) return null
+  const opt = props.options[selected.value]
+  const note = props.optionNotes?.[opt]
+  return note ? `«${opt}» — ${note}` : null
+})
 
 /** Класс кнопки-варианта: обычный / верный / ошибочный */
 function btnClass(index: number): string {
@@ -79,6 +92,19 @@ function btnClass(index: number): string {
         template(v-else)
           p.text-base.font-semibold.text-error(class="sm:text-lg") ✗ {{ t('practice.answerWas') }}
           p.text-xl.font-bold.text-base-content(class="sm:text-2xl") {{ options[answerIndex] }}
+          // Почему выбранный вариант неверен: что он на самом деле означает
+          p.text-sm(class="mt-0.5 text-error/70" v-if="pickedNote") {{ pickedNote }}
+
+    // Объяснение ошибки: почему легко путать и лайфхак запоминания.
+    // Появляется только при неверном ответе — карточка вырастает один раз,
+    // всё объяснение читается до нажатия «Дальше»
+    .w-full(v-if="revealed && !isCorrect && tip")
+      .rounded-xl.text-left(class="p-2.5 bg-warning/10 border border-warning/30")
+        p.text-sm(class="leading-snug")
+          | 💡 <b>{{ t('practice.tipWhy') }}:</b> {{ tip.why }}
+        p.text-sm.mt-1(class="leading-snug")
+          | 🧠 <b>{{ t('practice.tipHack') }}:</b> {{ tip.hack }}
+
     button.btn.btn-primary.text-lg(
       :class="revealed ? 'visible' : 'invisible'"
       :tabindex="revealed ? 0 : -1"
