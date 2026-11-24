@@ -13,7 +13,7 @@
 import { computed, ref } from 'vue'
 import { emptyProgress, type Progress, type Word } from '#shared/types'
 import { evaluateAchievements, type Achievement } from '#shared/achievements'
-import { recordAnswer } from '#shared/practice'
+import { recordAnswer, starExercise } from '#shared/practice'
 import type { Exercise } from '#shared/practice'
 import { touchStreak } from '#shared/streak'
 import { authHeaders } from './useAuth'
@@ -55,6 +55,7 @@ export function mergeProgress(local: Progress, remote: Progress): Progress {
     version: 1,
     words: { ...local.words },
     phrases: { ...local.phrases },
+    starredPhrases: { ...local.starredPhrases },
     answers: { ...local.answers },
     streakDates: [...new Set([...local.streakDates, ...remote.streakDates])].sort().slice(-400),
     achievements: { ...local.achievements },
@@ -76,6 +77,11 @@ export function mergeProgress(local: Progress, remote: Progress): Progress {
           l.knownAt !== undefined && wp.knownAt !== undefined
             ? Math.min(l.knownAt, wp.knownAt)
             : (l.knownAt ?? wp.knownAt),
+        // «Уже выучил» — как knownAt: остаётся после синхронизации
+        star:
+          l.star !== undefined && wp.star !== undefined
+            ? Math.min(l.star, wp.star)
+            : (l.star ?? wp.star),
       }
     }
   }
@@ -83,6 +89,12 @@ export function mergeProgress(local: Progress, remote: Progress): Progress {
   for (const [key, pp] of Object.entries(remote.phrases)) {
     const l = merged.phrases[key]
     if (!l || l.practiced < pp.practiced) merged.phrases[key] = pp
+  }
+  // Отмеченные «уже выучил» фразы: объединяем, оставляя раннюю дату
+  for (const [key, at] of Object.entries(remote.starredPhrases ?? {})) {
+    if (!merged.starredPhrases) merged.starredPhrases = {}
+    const l = merged.starredPhrases[key]
+    if (l === undefined || at < l) merged.starredPhrases[key] = at
   }
   // Счётчики ответов: берём максимум (консервативно, без двойного счёта)
   merged.answers.correct = Math.max(local.answers.correct, remote.answers.correct)
@@ -164,6 +176,21 @@ export function applyAnswer(ex: Exercise, correct: boolean): Word[] {
   if (achieved.length) pendingToasts.value = [...pendingToasts.value, ...achieved]
   scheduleSync()
   return newly
+}
+
+/**
+ * «Уже выучил»: пометить слово/фразу упражнения — они будут
+ * попадаться реже. Не меняет счётчики ответов и «выученность».
+ */
+export function markAlreadyKnown(ex: Exercise): void {
+  const now = Date.now()
+  const next: Progress = JSON.parse(JSON.stringify(progressState.value))
+  starExercise(next, ex, now)
+  next.streakDates = touchStreak(next, new Date(now))
+  next.updatedAt = now
+  progressState.value = next
+  lsSet(next)
+  scheduleSync()
 }
 
 /** Сохранить настройки в прогресс (и синхронизировать) */

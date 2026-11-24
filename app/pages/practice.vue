@@ -8,7 +8,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
 import { speakEs } from '~/composables/useSpeech'
-import { useProgress, applyAnswer } from '~/composables/useProgress'
+import { useProgress, applyAnswer, markAlreadyKnown } from '~/composables/useProgress'
 import { makeExercise, type Exercise, type ExerciseKind } from '#shared/practice'
 import { knownWordsCount } from '#shared/stats'
 import QuizChoice from '~/components/QuizChoice.vue'
@@ -52,6 +52,11 @@ const lessonFilter = computed(() => {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0
 })
 
+function startWith(k: ExerciseKind | 'mixed') {
+  kind.value = k
+  startSession()
+}
+
 function startSession() {
   index.value = 0
   correctCount.value = 0
@@ -61,16 +66,37 @@ function startSession() {
   nextExercise()
 }
 
+// ============================================================
+// Без повторов: два одинаковых предложения (или слова) подряд —
+// скучно. Сигнатура — само предложение; повторяем генерацию,
+// пока не получим другое (при маленьком пуле — смиряемся с повтором)
+// ============================================================
+let lastSignature: string | null = null
+
+function exerciseSignature(ex: Exercise): string {
+  if (ex.kind === 'build') return 'b:' + (ex.answerTiles ?? []).join(' ').toLowerCase()
+  return 'q:' + (ex.questionEs ?? '') + '|' + (ex.questionRu ?? '')
+}
+
+function generateUnique(chosen: ExerciseKind): Exercise | null {
+  const opts = { lesson: lessonFilter.value || undefined }
+  let ex = makeExercise(chosen, progress.value, Math.random, opts)
+  for (let i = 0; i < 8 && ex && lastSignature && exerciseSignature(ex) === lastSignature; i++) {
+    ex = makeExercise(chosen, progress.value, Math.random, opts)
+  }
+  if (ex) lastSignature = exerciseSignature(ex)
+  return ex
+}
+
 function nextExercise() {
   lastCorrect.value = null
-  const opts = { lesson: lessonFilter.value || undefined }
   const chosen = pickKind()
-  current.value = makeExercise(chosen, progress.value, Math.random, opts)
+  current.value = generateUnique(chosen)
   // Страховка: если выбранный тип не собрался (например, в миксе попалась
   // сборка без подходящих шаблонов) — пробуем тест-выбор, и только потом
   // завершаем сессию
   if (!current.value && chosen !== 'choice') {
-    current.value = makeExercise('choice', progress.value, Math.random, opts)
+    current.value = generateUnique('choice')
   }
   if (!current.value) {
     mode.value = 'result'
@@ -98,6 +124,16 @@ function goNext() {
 
 function speakAudio() {
   if (current.value?.speak) speakEs(current.value.speak)
+}
+
+/** «Уже выучил»: пометить слово/фразу — будут попадаться реже,
+ *  и сразу показать следующее упражнение (без подсчёта в сессию) */
+function markKnown() {
+  if (!current.value) return
+  markAlreadyKnown(current.value)
+  const w = window as unknown as { __vamosToast?: (text: string, icon?: string) => void }
+  w.__vamosToast?.(t('practice.starToast'), '✨')
+  nextExercise()
 }
 
 // ============================================================
@@ -136,20 +172,19 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
   span.text-sm.font-medium {{ t('practice.lessonMode', { n: lessonFilter }) }}
   NuxtLink.btn.btn-ghost.btn-xs(to="/practice") {{ t('practice.lessonAll') }}
 
-// Меню выбора типа упражнения
+// Меню выбора типа упражнения: клик по кнопке сразу запускает сессию
 .card.bg-base-100.shadow-sm.border.border-base-300.mb-2(v-if="mode === 'menu'")
   .card-body(class="gap-2.5 p-3 sm:p-4")
     h2.card-title.text-lg {{ t('practice.source') }}
     .grid.grid-cols-2(class="gap-2 sm:grid-cols-4")
-      button.btn.btn-outline(:class="kind === 'choice' ? 'btn-primary' : ''" @click="kind = 'choice'")
+      button.btn.btn-outline(@click="startWith('choice')")
         | ✅ {{ t('practice.choice') }}
-      button.btn.btn-outline(:class="kind === 'build' ? 'btn-primary' : ''" @click="kind = 'build'")
+      button.btn.btn-outline(@click="startWith('build')")
         | 🧩 {{ t('practice.build') }}
-      button.btn.btn-outline(:class="kind === 'audio' ? 'btn-primary' : ''" @click="kind = 'audio'")
+      button.btn.btn-outline(@click="startWith('audio')")
         | 🔊 {{ t('practice.audio') }}
-      button.btn.btn-outline(:class="kind === 'mixed' ? 'btn-primary' : ''" @click="kind = 'mixed'")
+      button.btn.btn-outline(@click="startWith('mixed')")
         | 🎲 {{ t('practice.mixed') }}
-    button.btn.btn-primary(class="w-full sm:w-64" @click="startSession") {{ t('practice.start') }}
 
 // Сессия: свайп после ответа листает к следующему упражнению
 .max-w-xl.mx-auto(
@@ -164,6 +199,15 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
       span(class="ml-2 font-bold text-error") {{ wrongCount }} ✗
 
   template(v-if="current")
+    // «Уже выучил»: слово/фраза надоела — пометить, чтобы попадалась реже.
+    // Живёт на своём месте над карточкой, ничего не сдвигает
+    button.btn.btn-ghost.btn-xs.mb-1(
+      class="text-base-content/45 -ml-1 sm:btn-sm"
+      @click="markKnown()"
+    )
+      span.text-sm ✨
+      | {{ t('practice.alreadyKnown') }}
+
     QuizChoice(
       v-if="current.kind === 'choice'"
       :key="index"

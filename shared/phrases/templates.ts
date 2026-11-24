@@ -1228,7 +1228,8 @@ export const TEMPLATES: Template[] = [
     id: 't-qw-quien',
     lesson: 21,
     group: 'вопросы',
-    requires: [],
+    // «Quién» — тоже слово: появляется только после изучения
+    requires: ['qw-quien'],
     questionWord: getWord('qw-quien'),
     units: [{ kind: 'free', role: 'v', words: CONJUGATED_VERBS }],
     variants: ['qw'],
@@ -1239,7 +1240,9 @@ export const TEMPLATES: Template[] = [
     id: 't-qw-como-estar',
     lesson: 3,
     group: 'вопросы',
-    requires: ['v-estar'],
+    // без изученного «cómo» фраза не собирается (раньше «¿Cómo estás?»
+    // выдавалось до изучения вопросительного слова)
+    requires: ['v-estar', 'qw-como'],
     questionWord: getWord('qw-como'),
     units: [{ kind: 'free', role: 's', words: ['p-tu', 'p-usted'].map(getWord) }],
     variants: ['qw'],
@@ -1250,7 +1253,7 @@ export const TEMPLATES: Template[] = [
     id: 't-qw-cuantos-anos',
     lesson: 30,
     group: 'вопросы',
-    requires: ['v-tener', 'n-ano'],
+    requires: ['v-tener', 'n-ano', 'qw-cuanto'],
     questionWord: getWord('qw-cuanto'),
     units: [{ kind: 'free', role: 's', words: ['p-tu', 'p-usted'].map(getWord) }],
     variants: ['qw'],

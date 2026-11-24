@@ -220,6 +220,9 @@ export interface WordProgress {
   wrong: number
   /** Когда слово стало «выученным» (timestamp) */
   knownAt?: number
+  /** Пользователь отметил «уже выучил» (timestamp) — слово попадается реже,
+   *  но не исключается совсем и не влияет на счётчик выученных */
+  star?: number
 }
 
 /** Статистика по конкретной фразе (ключ = templateId + индексы заполнения) */
@@ -236,6 +239,9 @@ export interface Progress {
   words: Record<string, WordProgress>
   /** Фразы: ключ → статистика практики */
   phrases: Record<string, PhraseProgress>
+  /** Фразы, отмеченные «уже выучил»: нормализованное испанское предложение
+   *  (нижний регистр, без пунктуации) → когда отмечено. Попадаются реже */
+  starredPhrases?: Record<string, number>
   /** Суммарные счётчики ответов */
   answers: { correct: number; wrong: number }
   /** Дни активности (ISO «2026-11-23») — для серии дней, храним последние ~400 */

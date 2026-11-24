@@ -67,26 +67,72 @@ function stripPunct(s: string): string[] {
     .filter(Boolean)
 }
 
+// ============================================================
+// «Уже выучил»: слово или фраза попадаются реже (не исчезают)
+// ============================================================
+
+/** Нормализованное предложение: ключ для пометки фраз */
+export function normalizePhraseKey(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[¿?¡!.,]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/** Ключ пометки для упражнения: фраза (если это фраза) или null */
+export function phraseStarKey(ex: Exercise): string | null {
+  if (ex.kind === 'build') {
+    return ex.answerTiles ? normalizePhraseKey(ex.answerTiles.join(' ')) : null
+  }
+  if (ex.phraseKey && ex.questionEs) return normalizePhraseKey(ex.questionEs)
+  return null
+}
+
+/**
+ * Пометить упражнение «уже выучил»: фраза — по нормализованному
+ * предложению, отдельное слово — по его id. Пометка не влияет на
+ * счётчики ответов и «выученность» — только на частоту выпадания.
+ */
+export function starExercise(progress: Progress, ex: Exercise, now: number = Date.now()): void {
+  const pkey = phraseStarKey(ex)
+  if (pkey) {
+    progress.starredPhrases = { ...progress.starredPhrases, [pkey]: now }
+    return
+  }
+  for (const id of ex.wordIds) {
+    const wp = progress.words[id] ?? { correct: 0, wrong: 0 }
+    progress.words[id] = { ...wp, star: now }
+  }
+}
+
 /**
  * Пул слов для практики: сначала слова «в процессе» (correct > 0, но
  * ещё не выученные), затем новые слова по возрастанию урока, затем
- * уже известные — для повторения.
+ * уже известные — для повторения. Слова, отмеченные «уже выучил»
+ * (star), из основных групп убраны — их немного в конце пула:
+ * попадаются, но заметно реже (полностью не исчезают).
  */
 export function practicePool(progress: Progress, maxLesson = 32): Word[] {
   const known = knownSet(progress)
+  const isStarred = (w: Word) => !!progress.words[w.id]?.star
   const inProgress = ALL_WORDS.filter(
-    (w) => !known.has(w.id) && w.lesson <= maxLesson && progress.words[w.id]?.correct,
+    (w) => !known.has(w.id) && w.lesson <= maxLesson && progress.words[w.id]?.correct && !isStarred(w),
   )
-  const fresh = ALL_WORDS.filter((w) => !known.has(w.id) && w.lesson <= maxLesson && !progress.words[w.id]?.correct)
-    .sort((a, b) => a.lesson - b.lesson)
-  const review = ALL_WORDS.filter((w) => known.has(w.id))
+  const fresh = ALL_WORDS.filter(
+    (w) => !known.has(w.id) && w.lesson <= maxLesson && !progress.words[w.id]?.correct && !isStarred(w),
+  ).sort((a, b) => a.lesson - b.lesson)
+  const review = ALL_WORDS.filter((w) => known.has(w.id) && !isStarred(w))
+  const starred = ALL_WORDS.filter((w) => isStarred(w))
   // Приоритет: закрепление (40%), новые (40%), повторение (20%)
   const pool: Word[] = [
     ...inProgress.slice(0, 15),
     ...fresh.slice(0, 15),
     ...shuffle(review).slice(0, 10),
   ]
-  return pool.length ? pool : fresh.slice(0, 10)
+  if (pool.length) return [...pool, ...shuffle(starred).slice(0, 2)]
+  // Всё остальное отмечено «уже выучил» — другого материала нет
+  return starred.length ? shuffle(starred).slice(0, 10) : fresh.slice(0, 10)
 }
 
 /** Направление теста-выбора для слова */
@@ -114,10 +160,14 @@ export function wordChoiceExercise(
   }
   const options = shuffle([answer, ...distractors], rand)
   const answerIndex = options.findIndex((o) => o === answer)
+  // Вопрос RU→ES: у артиклей перевод-маркер («(ж.р.)») сам по себе
+  // двусмысленен (la и una обе «ж.р.») — берём понятный ruHint
+  const ruQuestion =
+    word.pos === 'determiner' ? (word.ruHint ?? word.ru[0]!) : word.ru[0]!
   return {
     kind: 'choice',
     questionEs: esRu ? word.es : undefined,
-    questionRu: esRu ? undefined : word.ru[0]!,
+    questionRu: esRu ? undefined : ruQuestion,
     options,
     answerIndex,
     wordIds: [word.id],
@@ -314,12 +364,16 @@ export function makeExercise(
   // местоимения и артикли), расширяем материал вверх по урокам, пока не
   // появится хотя бы один собираемый шаблон.
   //
+  // Фразы, отмеченные «уже выучил», пропускаем: пробуем другие заполнения
+  // шаблона, а отмеченную держим как запасную (если другого материала нет).
+  //
   // ПРАКТИКА ПО УРОКУ — другой принцип: во фразах только слова, которые
   // пользователь УЖЕ ИЗУЧИЛ (knownSet). Иначе в закрепление урока 1
   // попадают неизученные слова из других уроков. Если изученных слов
   // мало (первые уроки) — сборки нет совсем: practice.vue откатывается
   // на тест-выбор по словам этого урока.
   const known = knownSet(progress)
+  const starredPhrases = progress.starredPhrases ?? {}
   if (opts.lesson && opts.lesson > 0) {
     if (known.size === 0) return null
     const templates = allTemplates().filter((t) => countTemplate(t, known) > 0)
@@ -327,16 +381,24 @@ export function makeExercise(
     const knownMaxLesson = ALL_WORDS.filter((w) => known.has(w.id)).reduce(
       (m, w) => Math.max(m, w.lesson), 0,
     )
+    let fallback: { fill: Fill; templateId: string; variant: 'aff' | 'neg' | 'yesno' | 'qw' } | null = null
     for (let i = 0; i < 10; i++) {
       const t = templates[Math.floor(rand() * templates.length)]
       const fill = sampleFill(t, known, rand)
       if (!fill) continue
       const kind2 = t.variants[Math.floor(rand() * t.variants.length)]
+      if (!fallback && starredPhrases[normalizePhraseKey(t.render(fill, kind2))]) {
+        fallback = { fill, templateId: t.id, variant: kind2 }
+        continue
+      }
       return buildExercise(fill, t.id, kind2, rand, Math.max(knownMaxLesson, opts.lesson))
     }
-    return null
+    return fallback
+      ? buildExercise(fallback.fill, fallback.templateId, fallback.variant, rand, Math.max(knownMaxLesson, opts.lesson))
+      : null
   }
   const base = pool.reduce((m, w) => Math.max(m, w.lesson), 0)
+  let fallback: { fill: Fill; templateId: string; variant: 'aff' | 'neg' | 'yesno' | 'qw'; limit: number } | null = null
   for (let limit = base; limit <= LESSONS.length; limit++) {
     const allowed = new Set([
       ...ALL_WORDS.filter((w) => w.lesson <= limit).map((w) => w.id),
@@ -350,10 +412,16 @@ export function makeExercise(
       const fill = sampleFill(t, allowed, rand)
       if (!fill) continue
       const kind2 = t.variants[Math.floor(rand() * t.variants.length)]
+      if (!fallback && starredPhrases[normalizePhraseKey(t.render(fill, kind2))]) {
+        fallback = { fill, templateId: t.id, variant: kind2, limit }
+        continue
+      }
       return buildExercise(fill, t.id, kind2, rand, limit)
     }
   }
-  return null
+  return fallback
+    ? buildExercise(fallback.fill, fallback.templateId, fallback.variant, rand, fallback.limit)
+    : null
 }
 
 /** Записать ответ в прогресс: возвращает слова, которые стали выученными */

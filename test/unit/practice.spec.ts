@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { emptyProgress, KNOWN_THRESHOLD } from '../../shared/types'
-import { practicePool, wordChoiceExercise, buildExercise, audioExercise, makeExercise, recordAnswer, shuffle } from '../../shared/practice'
+import { practicePool, wordChoiceExercise, buildExercise, audioExercise, makeExercise, recordAnswer, shuffle, starExercise, phraseStarKey, type Exercise } from '../../shared/practice'
 import { getWord, ALL_WORDS } from '../../shared/data/words'
 
 /** Прогресс: слова с N верными ответами */
@@ -125,3 +125,46 @@ describe('Запись ответов', () => {
 function isKnown(p: { words: Record<string, { correct: number }> }, id: string): boolean {
   return (p.words[id]?.correct ?? 0) >= KNOWN_THRESHOLD
 }
+
+describe('«Уже выучил» — реже, но не исчезает', () => {
+  it('starExercise помечает слово упражнения, не трогая счётчики ответов', () => {
+    const p = emptyProgress()
+    const ex = wordChoiceExercise(getWord('n-casa'), ALL_WORDS, 'es-ru')
+    starExercise(p, ex, 1000)
+    expect(p.words['n-casa']?.star).toBe(1000)
+    expect(p.words['n-casa']?.correct).toBe(0)
+    expect(p.answers.correct).toBe(0)
+  })
+
+  it('starExercise помечает фразу по нормализованному предложению', () => {
+    const p = emptyProgress()
+    const ex: Exercise = {
+      kind: 'build',
+      options: [],
+      answerIndex: -1,
+      wordIds: ['n-casa'],
+      answerTiles: ['El', 'padre', 'no', 'busca', 'a', 'un', 'maestro'],
+    }
+    starExercise(p, ex, 1000)
+    expect(p.starredPhrases?.['el padre no busca a un maestro']).toBe(1000)
+    // слова фразы при этом не помечаются — редчe только сама фраза
+    expect(p.words['n-casa']?.star).toBeUndefined()
+  })
+
+  it('помеченные слова не в основных группах пула, а в маленьком хвосте (≤2)', () => {
+    const p = withProgress({ 'v-ser': 1, 'n-casa': 2, 'v-hablar': 2 })
+    p.words['v-ser']!.star = 1000
+    p.words['n-casa']!.star = 1000
+    const pool = practicePool(p)
+    const starredIds = pool.filter((w) => p.words[w.id]?.star).map((w) => w.id)
+    expect(starredIds.length).toBeLessThanOrEqual(2)
+    // немаркированные слова остаются доступны
+    expect(pool.some((w) => w.id === 'v-hablar')).toBe(true)
+  })
+
+  it('phraseStarKey: build — по плиткам, фраза-choice — по вопросу, слово — null', () => {
+    expect(phraseStarKey({ kind: 'build', answerTiles: ['¿Quién', 'busca?'] } as Exercise)).toBe('quién busca')
+    expect(phraseStarKey({ kind: 'choice', phraseKey: 't-x/0/qw', questionEs: '¿Cómo estás?' } as Exercise)).toBe('cómo estás')
+    expect(phraseStarKey({ kind: 'choice', questionEs: 'casa' } as Exercise)).toBeNull()
+  })
+})

@@ -15,6 +15,21 @@ function withWord(id: string, correct: number, wrong: number, knownAt?: number):
 }
 
 describe('mergeProgress — монотонность знаний', () => {
+  it('«уже выучил» у слова и фразы переживает синхронизацию', () => {
+    const local = emptyProgress()
+    local.words['n-casa'] = { correct: 1, wrong: 0, star: 5000 }
+    local.starredPhrases = { 'el padre no busca': 5000 }
+    const remote = emptyProgress()
+    remote.words['n-casa'] = { correct: 2, wrong: 0 }
+    remote.starredPhrases = { 'el padre no busca': 3000, 'quien busca': 4000 }
+    const m = mergeProgress(local, remote)
+    // пометка слова осталась (сервер её не затирал)
+    expect(m.words['n-casa']?.star).toBe(5000)
+    // фраза: объединение, ранняя дата + чужая пометка подтянулась
+    expect(m.starredPhrases?.['el padre no busca']).toBe(3000)
+    expect(m.starredPhrases?.['quien busca']).toBe(4000)
+  })
+
   it('слово, выученное локально, не разучивается при синке с «сырыми» попытками сервера', () => {
     // Локально: 2 верных подряд (выучено). Сервер: много попыток с ошибками.
     const local = withWord('v-hablar', 2, 0, 1000)

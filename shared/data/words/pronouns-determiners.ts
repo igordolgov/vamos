@@ -62,13 +62,13 @@ export const PRONOUNS: Word[] = [
 /** Артикли и определители количества (урок 2) */
 export const DETERMINERS: Word[] = [
   d('d-el', 'el', ['(м.р.)'], 2, { gender: 'm', number: 'sg', definite: true }, { ruHint: 'определённый артикль мужского рода' }),
-  d('d-la', 'la', ['(ж.р.)'], 2, { gender: 'f', number: 'sg', definite: true }),
-  d('d-los', 'los', ['(м.р. мн.)'], 2, { gender: 'm', number: 'pl', definite: true }),
-  d('d-las', 'las', ['(ж.р. мн.)'], 2, { gender: 'f', number: 'pl', definite: true }),
-  d('d-un', 'un', ['один', 'какой-то (м.р.)'], 2, { gender: 'm', number: 'sg', indefinite: true }),
-  d('d-una', 'una', ['одна', 'какая-то (ж.р.)'], 2, { gender: 'f', number: 'sg', indefinite: true }),
-  d('d-unos', 'unos', ['несколько (м.р.)'], 2, { gender: 'm', number: 'pl', indefinite: true }),
-  d('d-unas', 'unas', ['несколько (ж.р.)'], 2, { gender: 'f', number: 'pl', indefinite: true }),
+  d('d-la', 'la', ['(ж.р.)'], 2, { gender: 'f', number: 'sg', definite: true }, { ruHint: 'определённый артикль женского рода' }),
+  d('d-los', 'los', ['(м.р. мн.)'], 2, { gender: 'm', number: 'pl', definite: true }, { ruHint: 'определённый артикль мужского рода, мн. ч.' }),
+  d('d-las', 'las', ['(ж.р. мн.)'], 2, { gender: 'f', number: 'pl', definite: true }, { ruHint: 'определённый артикль женского рода, мн. ч.' }),
+  d('d-un', 'un', ['один', 'какой-то (м.р.)'], 2, { gender: 'm', number: 'sg', indefinite: true }, { ruHint: 'неопределённый артикль мужского рода' }),
+  d('d-una', 'una', ['одна', 'какая-то (ж.р.)'], 2, { gender: 'f', number: 'sg', indefinite: true }, { ruHint: 'неопределённый артикль женского рода' }),
+  d('d-unos', 'unos', ['несколько (м.р.)'], 2, { gender: 'm', number: 'pl', indefinite: true }, { ruHint: 'неопределённый артикль мужского рода, мн. ч.' }),
+  d('d-unas', 'unas', ['несколько (ж.р.)'], 2, { gender: 'f', number: 'pl', indefinite: true }, { ruHint: 'неопределённый артикль женского рода, мн. ч.' }),
 
   // Количество: согласуются как прилагательные
   d('d-mucho', 'mucho', ['много'], 2, { quantity: true }, {

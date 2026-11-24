@@ -104,4 +104,51 @@ describe('makeExercise', () => {
       for (const id of ex!.wordIds) expect(known.has(id), id).toBe(true)
     }
   })
+
+  it('вопросительные слова не появляются раньше, чем изучены', () => {
+    // Выучены слова первых 5 уроков: вопросительные (урок 21) — нет.
+    // Раньше «¿Cómo estás?» (шаблон урока 3) собирался без «cómo».
+    const p = emptyProgress()
+    for (const w of ALL_WORDS.filter((w) => w.lesson <= 5)) {
+      p.words[w.id] = { correct: 2, wrong: 0 }
+    }
+    const qwTokens = ['quién', 'quiénes', 'cómo', 'cuándo', 'cuánto', 'cuántos', 'cuánta', 'cuántas', 'dónde', 'qué', 'cuál', 'cuáles', 'por qué']
+    for (let i = 0; i < 30; i++) {
+      const ex = makeExercise('build', p)
+      if (!ex) continue
+      const s = (ex.answerTiles ?? []).join(' ').toLowerCase()
+      const hit = qwTokens.find((t) => s.includes(t))
+      expect(hit, `фраза «${s}» содержит неизученное «${hit}»`).toBeUndefined()
+    }
+    // тест-выбор и аудио — тоже только изученные слова
+    for (let i = 0; i < 20; i++) {
+      for (const kind of ['choice', 'audio'] as const) {
+        const ex = makeExercise(kind, p)
+        if (!ex) continue
+        const q = (ex.questionEs ?? '').toLowerCase()
+        expect(qwTokens.includes(q), `${q} — неизученное вопросительное слово`).toBe(false)
+      }
+    }
+  })
+
+  it('помеченная «уже выучил» фраза не возвращается генератором, пока есть другие', () => {
+    const p = richProgress()
+    // Помечаем все фразы одного шаблона через конкретное предложение
+    let seen: string[] = []
+    for (let i = 0; i < 40; i++) {
+      const ex = makeExercise('build', p)
+      if (ex) seen.push((ex.answerTiles ?? []).join(' ').toLowerCase())
+    }
+    expect(seen.length).toBeGreaterThan(0)
+    const target = seen[0]!
+    p.starredPhrases = { [target]: 1000 }
+    // 30 генераций: помеченная фраза может появиться только если
+    // всё остальное тоже помечено — здесь этого нет
+    for (let i = 0; i < 30; i++) {
+      const ex = makeExercise('build', p)
+      if (!ex) continue
+      const s = (ex.answerTiles ?? []).join(' ').toLowerCase()
+      expect(s, `${s} — помеченная фраза вернулась`).not.toBe(target)
+    }
+  })
 })
