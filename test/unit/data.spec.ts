@@ -143,6 +143,26 @@ describe('Русские формы глаголов — регрессия по
   })
 })
 
+describe('Артикли — понятные переводы (урок 2)', () => {
+  it('маркер «(м.р.)» заменён самопоясняющим текстом со словом «артикль»', () => {
+    // Пользователь не понимает голый маркер «(м.р.)» — в переводе
+    // должно быть видно, что перед ним артикль
+    for (const id of ['d-el', 'd-la', 'd-los', 'd-las', 'd-un', 'd-una', 'd-unos', 'd-unas']) {
+      expect(WORDS_BY_ID[id]!.ru.some((r) => r.includes('артикль')), id).toBe(true)
+    }
+    expect(WORDS_BY_ID['d-el']!.ru[0]).toBe('артикль м.р.')
+    expect(WORDS_BY_ID['d-las']!.ru[0]).toBe('артикль ж.р., мн.ч.')
+    expect(WORDS_BY_ID['d-un']!.ru[0]).toBe('один (артикль м.р.)')
+    expect(WORDS_BY_ID['d-unas']!.ru[0]).toBe('несколько (артикль ж.р.)')
+  })
+
+  it('переводы всех восьми артиклей различны (варианты ответов не схлопываются)', () => {
+    const answers = ['d-el', 'd-la', 'd-los', 'd-las', 'd-un', 'd-una', 'd-unos', 'd-unas']
+      .map((id) => WORDS_BY_ID[id]!.ru[0]!)
+    expect(new Set(answers).size).toBe(8)
+  })
+})
+
 describe('Фразы после ранних уроков (1 и 4)', () => {
   // «Изучены» урок 1 (местоимения, ser/estar, no) и урок 4 (базовые глаголы)
   const known = new Set<string>([...LESSON_WORDS[0]!, ...LESSON_WORDS[3]!])

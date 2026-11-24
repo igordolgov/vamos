@@ -14,6 +14,7 @@ import { knownWordsCount } from '#shared/stats'
 import QuizChoice from '~/components/QuizChoice.vue'
 import QuizBuild from '~/components/QuizBuild.vue'
 import SessionResult from '~/components/SessionResult.vue'
+import SpeakButton from '~/components/SpeakButton.vue'
 
 const route = useRoute()
 const t = useT()
@@ -265,6 +266,13 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
               path(d="M11 5 6 9H2v6h4l5 4V5Z")
               path(d="M15.54 8.46a5 5 0 0 1 0 7.07")
               path(d="M19.07 4.93a10 10 0 0 1 0 14.14")
+
+          // Написание услышанного — после ответа: звук и буквы вместе.
+          // Зона зарезервирована (min-h-10), чтобы карточка не прыгала
+          .min-h-10.flex.items-center.justify-center.gap-2
+            .animate-feedback.flex.items-center.gap-2(v-if="lastCorrect !== null && current.speak")
+              span.text-2xl.font-bold.text-primary {{ current.speak }}
+              SpeakButton(:text="current.speak")
 
       QuizChoice(
         :key="'audio-' + index"
