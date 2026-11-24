@@ -153,17 +153,64 @@ export function phraseChoiceExercise(
   }
 }
 
+/**
+ * Лишние слова-дистракторы для сборки фразы: слова, виденные
+ * пользователем (урок <= maxLesson), которых нет в ответе — без
+ * дубликатов и пунктуации. Если слов уровня не хватило (первые
+ * уроки) — добираем из всего словаря.
+ */
+function buildDistractors(
+  answerTiles: string[],
+  maxLesson: number,
+  rand: () => number,
+): string[] {
+  const n = answerTiles.length <= 3 ? 2 : 3
+  const used = new Set(answerTiles.map((w) => w.toLowerCase()))
+  const taken = new Set<string>()
+  const out: string[] = []
+  const tryPush = (es: string) => {
+    if (/\s/.test(es)) return // только отдельные слова
+    const key = es.toLowerCase()
+    if (used.has(key) || taken.has(key) || /[¿?¡!.]/.test(key)) return
+    taken.add(key)
+    out.push(key)
+  }
+  const seen = new Set<string>()
+  const pools = [
+    ALL_WORDS.filter((w) => w.lesson <= maxLesson),
+    ALL_WORDS,
+  ]
+  for (const pool of pools) {
+    for (const w of shuffle(pool, rand)) {
+      if (out.length >= n) return out
+      if (seen.has(w.id)) continue
+      seen.add(w.id)
+      tryPush(w.es)
+    }
+  }
+  return out
+}
+
 /** Упражнение «сборка фразы из плиток» */
 export function buildExercise(
   fill: Fill,
   templateId: string,
   kind: 'aff' | 'neg' | 'yesno' | 'qw',
   rand: () => number = Math.random,
+  maxLesson: number = 32,
 ): Exercise {
   const t = allTemplates().find((t) => t.id === templateId)!
   const es = t.render(fill, kind)
   const answerTiles = stripPunct(es)
-  const tiles = shuffle(answerTiles, rand)
+  // Плитки в нижнем регистре: заглавная первая буква выдавала бы,
+  // с какого слова начинается фраза. Сравнение ответа в QuizBuild
+  // идёт в toLowerCase, поэтому проверка не зависит от регистра.
+  const tiles = shuffle(
+    [...answerTiles, ...buildDistractors(answerTiles, maxLesson, rand)].map(
+      (w) => w.toLowerCase(),
+    ),
+    rand,
+  )
   const wordIds = Object.values(fill)
     .filter((v): v is Word => !!v && typeof v === 'object' && 'id' in v)
     .map((w) => w.id)
@@ -268,7 +315,7 @@ export function makeExercise(
       const fill = sampleFill(t, allowed, rand)
       if (!fill) continue
       const kind2 = t.variants[Math.floor(rand() * t.variants.length)]
-      return buildExercise(fill, t.id, kind2, rand)
+      return buildExercise(fill, t.id, kind2, rand, limit)
     }
   }
   return null

@@ -117,7 +117,7 @@ p.text-sm(class="mb-2 text-base-content/60") {{ t('practice.subtitle') }}
 .card.bg-base-100.shadow-sm.border.border-base-300.mb-2(v-if="mode === 'menu'")
   .card-body(class="gap-2.5 p-3 sm:p-4")
     h2.card-title.text-lg {{ t('practice.source') }}
-    .grid(class="gap-2 grid-cols-4")
+    .grid.grid-cols-2(class="gap-2 sm:grid-cols-4")
       button.btn.btn-outline(:class="kind === 'choice' ? 'btn-primary' : ''" @click="kind = 'choice'")
         | ✅ {{ t('practice.choice') }}
       button.btn.btn-outline(:class="kind === 'build' ? 'btn-primary' : ''" @click="kind = 'build'")
@@ -126,7 +126,7 @@ p.text-sm(class="mb-2 text-base-content/60") {{ t('practice.subtitle') }}
         | 🔊 {{ t('practice.audio') }}
       button.btn.btn-outline(:class="kind === 'mixed' ? 'btn-primary' : ''" @click="kind = 'mixed'")
         | 🎲 {{ t('practice.mixed') }}
-    button.btn.btn-primary.btn-wide(@click="startSession") {{ t('practice.start') }}
+    button.btn.btn-primary(class="w-full sm:w-64" @click="startSession") {{ t('practice.start') }}
 
 // Сессия
 .max-w-xl.mx-auto(v-else-if="mode === 'session'")

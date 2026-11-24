@@ -27,12 +27,14 @@ describe('makeExercise', () => {
     expect(ex!.options[ex!.answerIndex]).toBeTruthy()
   })
 
-  it('build — плитки соответствуют правильному ответу', () => {
+  it('build — плитки содержат ответ и лишние слова', () => {
     let ex = makeExercise('build', richProgress())
     for (let i = 0; i < 20 && !ex; i++) ex = makeExercise('build', richProgress())
     expect(ex).not.toBeNull()
     expect(ex!.kind).toBe('build')
-    expect([...ex!.tiles!].sort()).toEqual([...ex!.answerTiles!].sort())
+    const answer = ex!.answerTiles!
+    for (const w of answer) expect(ex!.tiles).toContain(w.toLowerCase())
+    expect(ex!.tiles!.length).toBeGreaterThan(answer.length)
     expect(ex!.hint.length).toBeGreaterThan(0)
   })
 

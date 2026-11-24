@@ -52,18 +52,27 @@ describe('Упражнения', () => {
     expect(ex.options).toContain('casa')
   })
 
-  it('сборка фразы: плитки без пунктуации и в правильном наборе', () => {
+  it('сборка фразы: плитки без пунктуации, все слова ответа + лишние, нижний регистр', () => {
     const p = withProgress({})
     // Словарь первых 13 уроков — чтобы выбор случайного шаблона был надёжным
     for (const w of ALL_WORDS.filter((w) => w.lesson <= 13)) p.words[w.id] = { correct: 2, wrong: 0 }
     let ex = makeExercise('build', p)
     for (let i = 0; i < 5 && !ex; i++) ex = makeExercise('build', p)
     expect(ex?.kind).toBe('build')
-    expect(ex!.tiles!.length).toBe(ex!.answerTiles!.length)
-    for (const tile of ex!.tiles!) {
+    const tiles = ex!.tiles!
+    const answer = ex!.answerTiles!
+    for (const tile of tiles) {
       expect(/[¿?¡!.]/.test(tile), tile).toBe(false)
     }
-    expect([...ex!.tiles!].sort()).toEqual([...ex!.answerTiles!].sort())
+    // заглавная буква не выдаёт начало фразы
+    for (const tile of tiles) expect(tile, tile).toBe(tile.toLowerCase())
+    // все слова ответа присутствуют, а плиток больше (есть дистракторы)
+    for (const w of answer) expect(tiles).toContain(w.toLowerCase())
+    expect(tiles.length).toBeGreaterThan(answer.length)
+    // дистракторы не пересекаются с ответом и не дублируются
+    const extra = tiles.filter((t) => !answer.map((a) => a.toLowerCase()).includes(t))
+    expect(extra.length).toBeGreaterThanOrEqual(2)
+    expect(new Set(extra).size).toBe(extra.length)
   })
 
   it('аудио: вопрос для озвучки и варианты переводов', () => {
