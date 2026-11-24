@@ -99,6 +99,13 @@ function goNext() {
   nextExercise()
 }
 
+/** Правильный ответ текущего упражнения — для панели фидбека */
+const correctAnswer = computed(() => {
+  const c = current.value
+  if (!c) return ''
+  return c.kind === 'build' ? (c.answerTiles ?? []).join(' ') : c.options[c.answerIndex]
+})
+
 function speakAudio() {
   if (current.value?.speak) speakEs(current.value.speak)
 }
@@ -106,7 +113,6 @@ function speakAudio() {
 
 <template lang="pug">
 h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
-p.text-sm(class="mb-2 text-base-content/60") {{ t('practice.subtitle') }}
 
 // Баннер режима закрепления урока
 .alert.mb-2(v-if="lessonFilter" class="bg-primary/10 py-2 border border-primary/40")
@@ -128,8 +134,9 @@ p.text-sm(class="mb-2 text-base-content/60") {{ t('practice.subtitle') }}
         | 🎲 {{ t('practice.mixed') }}
     button.btn.btn-primary(class="w-full sm:w-64" @click="startSession") {{ t('practice.start') }}
 
-// Сессия
-.max-w-xl.mx-auto(v-else-if="mode === 'session'")
+// Сессия: дополнительный нижний отступ, когда видна панель фидбека —
+// контент не прячется под фиксированной панелью
+.max-w-xl.mx-auto(v-else-if="mode === 'session'" :class="showExplanation ? 'pb-20 lg:pb-0' : ''")
   .flex.items-center.justify-between.mb-2
     p(class="text-sm text-base-content/60") {{ t('practice.progress', { n: index + 1, total: SESSION_LENGTH }) }}
     p.text-sm
@@ -170,17 +177,22 @@ p.text-sm(class="mb-2 text-base-content/60") {{ t('practice.subtitle') }}
         @answered="onAnswered"
       )
 
-    // Обратная связь и переход
-    .card.bg-base-200.mt-2.border(v-if="showExplanation" :class="lastCorrect ? 'border-success' : 'border-error'")
-      .card-body(class="gap-1 p-3 sm:p-4")
-        //- p.font-bold(:class="lastCorrect ? 'text-success' : 'text-error'")
-          | {{ lastCorrect ? t('practice.correct') : t('practice.wrong') }}
-        //- p.text-lg(v-if="!lastCorrect && current.kind !== 'build'")
-        //-   | {{ t('practice.answerWas') }} {{ current.options[current.answerIndex] }}
-        //- p.text-lg(v-if="!lastCorrect && current.kind === 'build'")
-        //-   | {{ t('practice.answerWas') }} {{ current.answerTiles?.join(' ') }}
-        //- p(class="text-base-content/50 text-lg") {{ current.explanation }}
-        button.btn.btn-primary.mt-2.text-lg(@click="goNext") {{ t('practice.next') }}
+    // Фидбек и «Дальше»: на мобильных — фиксированная панель внизу экрана
+    // (перекрывает нижнюю навигацию, как в Duolingo) — «Дальше» видна всегда,
+    // даже когда упражнение не влезает по высоте; на десктопе — карточка в потоке
+    div(
+      v-if="showExplanation && mode === 'session'"
+      class="fixed inset-x-0 bottom-0 z-50 rounded-none border-x-0 border-b-0 border-t-2 bg-base-100 shadow-[0_-6px_16px_rgba(0,0,0,0.10)] pb-[env(safe-area-inset-bottom)] lg:static lg:mt-2 lg:rounded-lg lg:border-2 lg:pb-0 lg:shadow-none"
+      :class="lastCorrect ? 'border-success' : 'border-error'"
+    )
+      .mx-auto.max-w-xl.flex.items-center.gap-3(class="p-3")
+        p.flex-1.font-bold(
+          class="leading-snug"
+          :class="lastCorrect ? 'text-success' : 'text-error'"
+        )
+          template(v-if="lastCorrect") ✓ {{ t('practice.correct') }}
+          template(v-else) ✗ {{ t('practice.answerWas') }} {{ correctAnswer }}
+        button.btn.btn-primary.text-lg(class="shrink-0" @click="goNext") {{ t('practice.next') }}
 
 // Итоги
 SessionResult(

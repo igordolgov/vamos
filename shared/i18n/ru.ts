@@ -68,7 +68,6 @@ export const RU = {
 
   // Практика
   'practice.title': 'Практика',
-  'practice.subtitle': 'Слово становится «выученным» после 2 верных ответов',
   'practice.choice': 'Тест-выбор',
   'practice.build': 'Сборка фразы',
   'practice.audio': 'Аудио',
@@ -82,7 +81,6 @@ export const RU = {
   'practice.question': 'Как переводится?',
   'practice.questionRuEs': 'Как это по-испански?',
   'practice.listen': 'Прослушайте и выберите перевод',
-  'practice.buildHint': 'Соберите фразу по переводу',
   'practice.check': 'Проверить',
   'practice.next': 'Дальше',
   'practice.correct': '¡Correcto!',

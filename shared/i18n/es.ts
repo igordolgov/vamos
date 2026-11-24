@@ -65,7 +65,6 @@ export const ES: Dict = {
   'phrases.keysIntro': 'Una frase se forma cuando todas sus palabras obligatorias están aprendidas (2 respuestas correctas). Aprende primero:',
 
   'practice.title': 'Práctica',
-  'practice.subtitle': 'Una palabra se considera aprendida tras 2 respuestas correctas',
   'practice.choice': 'Test de opciones',
   'practice.build': 'Construir frases',
   'practice.audio': 'Audio',
@@ -79,7 +78,6 @@ export const ES: Dict = {
   'practice.question': '¿Cómo se traduce?',
   'practice.questionRuEs': '¿Cómo se dice en español?',
   'practice.listen': 'Escucha y elige la traducción',
-  'practice.buildHint': 'Construye la frase según la traducción',
   'practice.check': 'Comprobar',
   'practice.next': 'Siguiente',
   'practice.correct': '¡Correcto!',

@@ -56,10 +56,10 @@ function check() {
 <template lang="pug">
 .card.bg-base-100.shadow-lg.border.border-base-300.w-full
   .card-body(class="gap-3 sm:gap-4 p-3 sm:p-4")
-    // Подсказка-перевод
+    // Подсказка-перевод (задание): подпись «Соберите фразу…» убрана —
+    // перевод с плитками говорит сам за себя, экран на мобильных тесный
     .text-center
-      p(class="text-sm text-base-content/60") {{ t('practice.buildHint') }}
-      h2.text-2xl.font-bold.text-base-content {{ hint }}
+      h2.text-xl.font-bold.text-base-content(class="sm:text-2xl") {{ hint }}
 
     // Собранная фраза
     .min-h-14.border.border-dashed.border-base-300.rounded-lg.p-2.flex.flex-wrap.gap-1.items-center(
@@ -84,9 +84,7 @@ function check() {
 
     // Кнопка проверки
     button.btn.bg-green-800.text-lg(:disabled="selected.length === 0 || revealed" @click="check()") {{ t('practice.check') }}
-
-    // Результат
-    p.text-center.mt-1(v-if="revealed")
-      span.text-lg.font-bold(:class="isCorrect ? 'text-success' : 'text-error'")
-        | {{ isCorrect ? '✓ ¡Correcto!' : '✗ ' + answerTiles.join(' ') }}
+    // Результат («✓ ¡Correcto!» / «✗ верный ответ») показывает фиксированная
+    // панель фидбека на странице practice — здесь он не нужен: на мобильных
+    // панель с кнопкой «Дальше» должна быть видна без прокрутки
 </template>

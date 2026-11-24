@@ -169,7 +169,7 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     expect(wrapper.emitted('answered')![0]).toEqual([true])
   })
 
-  it('неправильный порядок → answered(false) с показом верного ответа', async () => {
+  it('неправильный порядок → answered(false); верный ответ показывает панель на странице practice', async () => {
     const wrapper = mount(QuizBuild, {
       props: { tiles: TILES, answerTiles: ANSWER, hint: 'Я хочу говорить' },
     })
@@ -178,8 +178,6 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     await tileBtn(wrapper, 'quiero').trigger('click')
     await checkBtn(wrapper).trigger('click')
     expect(wrapper.emitted('answered')![0]).toEqual([false])
-    // верный порядок показан в результате
-    expect(wrapper.text()).toContain('Yo quiero hablar')
   })
 
   it('клик по собранному слову возвращает его в плитки', async () => {
