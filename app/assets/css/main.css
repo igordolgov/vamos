@@ -150,3 +150,224 @@ body {
     animation: none;
   }
 }
+
+/* ============================================================
+   Практика — стеклянные карточки «источника слов».
+   Мобильный: 2 колонки, каждая карточка — квадрат (1:1).
+   Стекло: полупрозрачная подложка с backdrop-blur, диагональный
+   блик (::before — «отражение света на стекле») и световая
+   нижняя кромка (::after — «отражение от поверхности»).
+   Нажатие — лёгкое сжатие; на десктопе при наведении карточка
+   приподнимается, блик смещается.
+   ============================================================ */
+.glass-card {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.6rem 0.5rem;
+  border-radius: 1.15rem;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+
+  /* само «стекло»: два слоя — белое стекло сверху, цветная
+     подложка снизу (--glass-tint даёт цвет каждой карточке);
+     именно контраст подложки с белым бликом делает стекло
+     видимым на светлой теме */
+  background:
+    linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.6) 0%,
+      rgba(255, 255, 255, 0.22) 48%,
+      rgba(255, 255, 255, 0.42) 100%
+    ),
+    linear-gradient(
+      155deg,
+      color-mix(in srgb, var(--glass-tint) 30%, transparent) 0%,
+      color-mix(in srgb, var(--glass-tint) 12%, transparent) 55%,
+      color-mix(in srgb, var(--glass-tint) 22%, transparent) 100%
+    );
+  backdrop-filter: blur(12px) saturate(1.45);
+  -webkit-backdrop-filter: blur(12px) saturate(1.45);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow:
+    0 10px 28px rgba(112, 66, 36, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -10px 18px rgba(255, 255, 255, 0.22);
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+/* Цвет подложки каждой карточки — из палитры темы.
+   Успех — зелёный (тест-выбор), акцент — янтарный (сборка),
+   инфо — бирюзовый (аудио), primary — терракотовый (микс) */
+.glass-card {
+  --glass-tint: var(--color-secondary);
+}
+.glass-card--success {
+  --glass-tint: var(--color-success);
+}
+.glass-card--accent {
+  --glass-tint: var(--color-accent);
+}
+.glass-card--info {
+  --glass-tint: var(--color-info);
+}
+.glass-card--primary {
+  --glass-tint: var(--color-primary);
+}
+
+/* Иконка и подпись — поверх слоя блика */
+.glass-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.glass-card-icon {
+  font-size: 2rem;
+  line-height: 1;
+  filter: drop-shadow(0 3px 5px rgba(70, 40, 20, 0.22));
+}
+
+.glass-card-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  color: color-mix(in srgb, var(--color-base-content) 88%, transparent);
+}
+
+/* Блик — «отражение света на стекле»: широкая диагональная
+   волна плюс узкая яркая полоса рядом. Смещается при наведении */
+.glass-card::before {
+  content: '';
+  position: absolute;
+  inset: -30% -55% -30% -30%;
+  background:
+    linear-gradient(
+      115deg,
+      rgba(255, 255, 255, 0.55) 0%,
+      rgba(255, 255, 255, 0.16) 30%,
+      transparent 52%
+    ),
+    linear-gradient(
+      115deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.4) 26%,
+      transparent 33%
+    );
+  pointer-events: none;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Нижняя световая кромка — «отражение» стекла на поверхности */
+.glass-card::after {
+  content: '';
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: 7%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.75),
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* Десктоп: приподнимаем карточку и сдвигаем блик */
+@media (hover: hover) {
+  .glass-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 255, 255, 0.9);
+    box-shadow:
+      0 16px 36px rgba(112, 66, 36, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      inset 0 -10px 18px rgba(255, 255, 255, 0.25);
+  }
+  .glass-card:hover::before {
+    transform: translateX(10%);
+  }
+}
+
+/* Нажатие: лёгкое сжатие — приятный отклик на тап */
+.glass-card:active {
+  transform: scale(0.96);
+  transition-duration: 0.08s;
+}
+
+/* Клавиатурная навигация */
+.glass-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Тёмная тема: стекло тоньше и темнее, цветная подложка ярче
+   (тёмный фон «съедает» цвет), блики слабее */
+[data-theme='vamos-dark'] .glass-card {
+  background:
+    linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.04) 48%,
+      rgba(255, 255, 255, 0.08) 100%
+    ),
+    linear-gradient(
+      155deg,
+      color-mix(in srgb, var(--glass-tint) 34%, transparent) 0%,
+      color-mix(in srgb, var(--glass-tint) 14%, transparent) 55%,
+      color-mix(in srgb, var(--glass-tint) 26%, transparent) 100%
+    );
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -10px 18px rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='vamos-dark'] .glass-card::before {
+  background:
+    linear-gradient(
+      115deg,
+      rgba(255, 255, 255, 0.2) 0%,
+      rgba(255, 255, 255, 0.05) 30%,
+      transparent 52%
+    ),
+    linear-gradient(
+      115deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.14) 26%,
+      transparent 33%
+    );
+}
+
+[data-theme='vamos-dark'] .glass-card::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.35),
+    transparent
+  );
+}
+
+@media (hover: hover) {
+  [data-theme='vamos-dark'] .glass-card:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow:
+      0 16px 36px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
+      inset 0 -10px 18px rgba(255, 255, 255, 0.06);
+  }
+}

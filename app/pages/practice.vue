@@ -184,19 +184,26 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
   span.text-sm.font-medium {{ t('practice.lessonMode', { n: lessonFilter }) }}
   NuxtLink.btn.btn-ghost.btn-xs(to="/practice") {{ t('practice.lessonAll') }}
 
-// Меню выбора типа упражнения: клик по кнопке сразу запускает сессию
-.card.bg-base-100.shadow-sm.border.border-base-300.mb-2(v-if="mode === 'menu'")
-  .card-body(class="gap-2.5 p-3 sm:p-4")
-    h2.card-title.text-lg {{ t('practice.source') }}
-    .grid.grid-cols-2(class="gap-2 sm:grid-cols-4")
-      button.btn.btn-outline(@click="startWith('choice')")
-        | ✅ {{ t('practice.choice') }}
-      button.btn.btn-outline(@click="startWith('build')")
-        | 🧩 {{ t('practice.build') }}
-      button.btn.btn-outline(@click="startWith('audio')")
-        | 🔊 {{ t('practice.audio') }}
-      button.btn.btn-outline(@click="startWith('mixed')")
-        | 🎲 {{ t('practice.mixed') }}
+// Меню выбора типа упражнения: клик по карточке сразу запускает
+// сессию. Стеклянные квадратные карточки (.glass-card в main.css):
+// на мобильном 2 колонки с квадратом 1:1, от sm — ряд из 4,
+// ширина ограничена (max-w-2xl), чтобы карточки оставались
+// соразмерными на широких экранах
+div.mb-2(v-if="mode === 'menu'")
+  h2.card-title.text-lg.mb-2(class="sm:text-xl") {{ t('practice.source') }}
+  .grid.grid-cols-2.w-full.max-w-2xl(class="mx-auto gap-2.5 sm:grid-cols-4 sm:gap-3")
+    button.glass-card.glass-card--success(type="button" @click="startWith('choice')")
+      span.glass-card-icon(aria-hidden="true") ✅
+      span.glass-card-label {{ t('practice.choice') }}
+    button.glass-card.glass-card--accent(type="button" @click="startWith('build')")
+      span.glass-card-icon(aria-hidden="true") 🧩
+      span.glass-card-label {{ t('practice.build') }}
+    button.glass-card.glass-card--info(type="button" @click="startWith('audio')")
+      span.glass-card-icon(aria-hidden="true") 🔊
+      span.glass-card-label {{ t('practice.audio') }}
+    button.glass-card.glass-card--primary(type="button" @click="startWith('mixed')")
+      span.glass-card-icon(aria-hidden="true") 🎲
+      span.glass-card-label {{ t('practice.mixed') }}
 
 // Сессия: свайп после ответа листает к следующему упражнению
 .max-w-xl.mx-auto(
