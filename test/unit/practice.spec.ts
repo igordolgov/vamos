@@ -4,8 +4,9 @@
 
 import { describe, it, expect } from 'vitest'
 import { emptyProgress, KNOWN_THRESHOLD } from '../../shared/types'
-import { practicePool, wordChoiceExercise, buildExercise, audioExercise, makeExercise, recordAnswer, shuffle, starExercise, phraseStarKey, type Exercise } from '../../shared/practice'
+import { practicePool, wordChoiceExercise, buildExercise, audioExercise, makeExercise, recordAnswer, shuffle, starExercise, phraseStarKey, autoWordTip, type Exercise } from '../../shared/practice'
 import { getWord, ALL_WORDS } from '../../shared/data/words'
+import { glossSentence, glossLine } from '../../shared/gloss'
 
 /** Прогресс: слова с N верными ответами */
 function withProgress(map: Record<string, number>) {
@@ -297,14 +298,76 @@ describe('Объяснения при неверном ответе', () => {
     expect(ex.tip?.hack).toBeTruthy()
   })
 
-  it('у слова без записи в word-tips — пояснения дистракторов есть, tip не задан', () => {
-    // n-libro — обычное существительное без каверз: ошибки объясняются
-    // автопояснением (что означает выбранный вариант)
+  it('у слова без записи в word-tips — пояснения дистракторов есть, tip — авто-подсказка', () => {
+    // n-libro — обычное существительное: tip теперь генерируется
+    // автоматически (род + артикль), чтобы объяснение было при ЛЮБОЙ ошибке
     const ex = wordChoiceExercise(getWord('n-libro'), ALL_WORDS, 'es-ru')
-    expect(ex.tip).toBeUndefined()
+    expect(ex.tip?.why).toContain('libro')
+    expect(ex.tip?.hack).toBeTruthy()
     for (const [i, opt] of ex.options.entries()) {
       if (i === ex.answerIndex) continue
       expect(ex.optionNotes?.[opt], opt).toBeTruthy()
     }
+  })
+})
+
+describe('Авто-подсказка (autoWordTip)', () => {
+  it('существительное: род и артикль', () => {
+    const tip = autoWordTip(getWord('n-libro'))
+    expect(tip.why).toContain('мужского')
+    expect(tip.why).toContain('el libro')
+  })
+
+  it('существительное-ловушка: артикль-исключение отмечен (agua)', () => {
+    const tip = autoWordTip(getWord('n-agua'))
+    expect(tip.why).toContain('el')
+    expect(tip.why).toContain('исключение')
+  })
+
+  it('глагол: спряжение по всем лицам', () => {
+    const tip = autoWordTip(getWord('v-trabajar'))
+    expect(tip.why).toContain('yo trabajo')
+    expect(tip.why).toContain('ustedes trabajan')
+  })
+
+  it('прилагательное: формы рода и числа', () => {
+    const tip = autoWordTip(getWord('a-lento'))
+    expect(tip.why).toContain('lenta')
+    expect(tip.why).toContain('lentos')
+  })
+
+  it('у любого слова есть объяснение и лайфхак', () => {
+    for (const w of ALL_WORDS) {
+      const tip = autoWordTip(w)
+      expect(tip.why.length, w.id).toBeGreaterThan(5)
+      expect(tip.hack.length, w.id).toBeGreaterThan(5)
+    }
+  })
+})
+
+describe('Пословный разбор (gloss)', () => {
+  it('каждое слово фразы получает перевод из словаря', () => {
+    const g = glossSentence('tengo dos hermanos')
+    expect(g.map((e) => e.es)).toEqual(['tengo', 'dos', 'hermanos'])
+    expect(g[0]!.ru).toBe('имею')
+    expect(g[0]!.base).toBe('tener')
+    expect(g[1]!.ru).toBe('два')
+    // словарь хранит базовый (ед.ч.) перевод: hermanos → «брат»
+    expect(g[2]!.ru).toBe('брат')
+  })
+
+  it('личная форма глагола распознаётся с лицом (habla → говорить)', () => {
+    const g = glossSentence('ella habla español')
+    expect(g[1]!.ru).toBe('говорит')
+    expect(g[1]!.base).toBe('hablar')
+  })
+
+  it('пунктуация не мешает разбору', () => {
+    expect(glossLine('¿Dónde vives?')).toBe('Dónde — где · vives — живёшь')
+  })
+
+  it('glossLine пропускает слова вне словаря', () => {
+    expect(glossLine('xyzabc tengo')).toBe('tengo — имею')
+    expect(glossLine('xyzabc')).toBeNull()
   })
 })

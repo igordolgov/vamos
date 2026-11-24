@@ -124,6 +124,16 @@ describe('Подсказки ошибок (word-tips)', () => {
       expect(tip.hack.length, id).toBeGreaterThanOrEqual(5)
     }
   })
+
+  it('у примера (ex) есть испанская фраза и перевод', () => {
+    for (const [id, tip] of Object.entries(WORD_TIPS)) {
+      if (!tip.ex) continue
+      expect(tip.ex.es.length, id).toBeGreaterThanOrEqual(4)
+      expect(tip.ex.ru.length, id).toBeGreaterThanOrEqual(3)
+      expect(tip.ex.es, id).not.toMatch(/[а-яё]/i)
+      expect(tip.ex.ru, id).toMatch(/[а-яё]/i)
+    }
+  })
 })
 
 // Глаголы с личным «a» — дополнение-лицо

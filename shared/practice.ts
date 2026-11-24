@@ -21,6 +21,77 @@ import { phraseKey } from './phrases/schema'
 import type { Fill } from './phrases/schema'
 import { WORD_TIPS, PHRASE_TIPS } from './data/word-tips'
 import type { WordTip } from './data/word-tips'
+import type { PartOfSpeech } from './types'
+
+// ============================================================
+// Авто-подсказка: объяснение для слов и шаблонов без ручной
+// записи в word-tips. Не так богато, как ручные подсказки, но
+// при ЛЮБОМ неверном ответе пользователь видит пояснение.
+// ============================================================
+
+/** Названия частей речи по-русски — для авто-подсказки */
+const POS_RU: Record<PartOfSpeech, string> = {
+  pronoun: 'местоимение',
+  determiner: 'артикль/определитель',
+  verb: 'глагол',
+  noun: 'существительное',
+  adjective: 'прилагательное',
+  preposition: 'предлог',
+  adverb: 'наречие',
+  question: 'вопросительное слово',
+  conjunction: 'союз',
+  number: 'числительное',
+  construction: 'конструкция',
+}
+
+/**
+ * Авто-подсказка по словарным данным: у существительных — род и
+ * артикль, у глаголов — спряжение по лицам, у прилагательных —
+ * формы рода и числа. Остальным — перевод и часть речи.
+ */
+export function autoWordTip(word: Word): WordTip {
+  if (word.pos === 'noun') {
+    const article = (word.articleGender ?? word.gender) === 'f' ? 'la' : 'el'
+    const genderRu = word.gender === 'f' ? 'женского' : 'мужского'
+    const trap = word.articleGender && word.gender && word.articleGender !== word.gender
+    return {
+      why: `«${word.es}» — существительное ${genderRu} рода${trap ? `: артикль «${article}» — исключение` : `: ${article} ${word.es}`}.`,
+      hack: `Запоминай существительное сразу с артиклем — «${article} ${word.es}»: род не забудется.`,
+    }
+  }
+  if (word.pos === 'verb' && word.verb) {
+    const f = word.verb.forms
+    const ending = word.es.endsWith('ar') ? '-ar' : word.es.endsWith('er') ? '-er' : '-ir'
+    return {
+      why: `«${word.es}» (${word.ru[0]}). Настоящее время: yo ${f['1s']}, tú ${f['2s']}, él/ella ${f['3s']}, nosotros ${f['1p']}, ustedes ${f['3p']}.`,
+      hack: `Глаголы на ${ending} меняют только окончание — проговори все лица вслух, форма закрепится.`,
+    }
+  }
+  if (word.pos === 'adjective' && word.adj) {
+    const a = word.adj
+    return {
+      why: `«${word.es}» (${word.ru[0]}) согласуется с предметом: ${a.m} (м.р.) → ${a.f} (ж.р.), во мн.ч. — ${a.mp}/${a.fp}.`,
+      hack: `Прилагательное «копирует» существительное в роде и числе: la casa ${a.f}.`,
+    }
+  }
+  return {
+    why: `«${word.es}» — это «${word.ru.join(', ')}» (${POS_RU[word.pos]}).`,
+    hack: `Запомни слово сразу внутри короткой фразы — оно начнёт всплывать само.`,
+  }
+}
+
+/** Авто-подсказка для шаблона фразы без ручной записи: порядок слов */
+function autoPhraseTip(): WordTip {
+  return {
+    why: `В испанском фраза собирается по порядку: кто? → что делает? → что/кому/где. Служебные слова (a, que, hay, артикль) пропускать нельзя.`,
+    hack: `Собирай структуру, а не слова по одному: подлежащее, глагол, дополнение — и фраза соберётся сама.`,
+  }
+}
+
+/** Подсказка шаблона: ручная запись, если есть, иначе авто */
+function phraseTip(templateId: string): WordTip {
+  return PHRASE_TIPS[templateId] ?? autoPhraseTip()
+}
 
 export type ExerciseKind = 'choice' | 'build' | 'audio'
 
@@ -215,7 +286,7 @@ export function wordChoiceExercise(
     answerIndex,
     wordIds: [word.id],
     explanation: `${word.es} — ${word.ru.join(', ')}`,
-    tip: WORD_TIPS[word.id],
+    tip: WORD_TIPS[word.id] ?? autoWordTip(word),
     optionNotes: notes,
   }
 }
@@ -252,7 +323,7 @@ export function phraseChoiceExercise(
     wordIds,
     phraseKey: phraseKey(t.id, [0], kind),
     explanation: `${es} — ${ru}`,
-    tip: PHRASE_TIPS[templateId],
+    tip: phraseTip(templateId),
   }
 }
 
@@ -369,7 +440,7 @@ export function buildExercise(
     wordIds,
     phraseKey: phraseKey(t.id, [0], kind),
     explanation: es,
-    tip: PHRASE_TIPS[templateId],
+    tip: phraseTip(templateId),
   }
 }
 
@@ -404,7 +475,7 @@ export function audioExercise(
     answerIndex,
     wordIds: [word.id],
     explanation: `${word.es} — ${word.ru.join(', ')}`,
-    tip: WORD_TIPS[word.id],
+    tip: WORD_TIPS[word.id] ?? autoWordTip(word),
     optionNotes: notes,
   }
 }

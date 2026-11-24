@@ -90,6 +90,8 @@ export const RU = {
   'practice.answerWas': 'Верный ответ:',
   'practice.tipWhy': 'Почему',
   'practice.tipHack': 'Лайфхак',
+  'practice.tipEx': 'Пример',
+  'practice.gloss': 'По словам',
   'practice.progress': 'Вопрос {n} из {total}',
   'practice.finish': 'Завершить',
   'practice.result': 'Сессия завершена!',
