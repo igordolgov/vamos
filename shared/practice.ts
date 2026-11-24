@@ -142,12 +142,39 @@ export function practicePool(progress: Progress, maxLesson = 32): Word[] {
 /** Направление теста-выбора для слова */
 type WordChoiceDir = 'es-ru' | 'ru-es'
 
+/**
+ * Отвлекающие не вводят неизученные слова: берём слова той же части
+ * речи не дальше фронтира пользователя (maxLesson), вопросительные —
+ * только уже изученные. Если таких меньше трёх — берём слова фронтира
+ * целиком (вопросительное слово всегда учим в пакете соседних: qué
+ * рядом с dónde и cómo), и лишь затем — весь словарь (вопрос должен
+ * остаться разрешимым).
+ */
+function distractorCandidates(
+  word: Word,
+  all: Word[],
+  maxLesson?: number,
+  known?: Set<string>,
+): Word[] {
+  const samePos = all.filter((w) => w.pos === word.pos && w.id !== word.id)
+  if (maxLesson === undefined) return samePos
+  const upTo = samePos.filter((w) => w.lesson <= maxLesson)
+  const allowed = upTo.filter(
+    (w) => w.pos !== 'question' || (known?.has(w.id) ?? false),
+  )
+  if (allowed.length >= 3) return allowed
+  if (upTo.length >= 3) return upTo
+  return samePos
+}
+
 /** Упражнение «выбор варианта» по слову */
 export function wordChoiceExercise(
   word: Word,
   all: Word[],
   dir: WordChoiceDir,
   rand: () => number = Math.random,
+  maxLesson?: number,
+  known?: Set<string>,
 ): Exercise {
   const esRu = dir === 'es-ru'
   // Отвлекающие — той же части речи, БЕЗ дубликатов перевода:
@@ -155,7 +182,7 @@ export function wordChoiceExercise(
   const answer = esRu ? word.ru[0]! : word.es
   const seen = new Set([answer])
   const distractors: string[] = []
-  for (const w of shuffle(all.filter((w) => w.pos === word.pos && w.id !== word.id), rand)) {
+  for (const w of shuffle(distractorCandidates(word, all, maxLesson, known), rand)) {
     const opt = esRu ? w.ru[0]! : w.es
     if (seen.has(opt)) continue
     seen.add(opt)
@@ -335,12 +362,14 @@ export function audioExercise(
   word: Word,
   all: Word[],
   rand: () => number = Math.random,
+  maxLesson?: number,
+  known?: Set<string>,
 ): Exercise {
   // Без дубликатов перевода — как в тест-выборе
   const answer = word.ru[0]!
   const seen = new Set([answer])
   const distractors: string[] = []
-  for (const w of shuffle(all.filter((w) => w.pos === word.pos && w.id !== word.id), rand)) {
+  for (const w of shuffle(distractorCandidates(word, all, maxLesson, known), rand)) {
     const opt = w.ru[0]!
     if (seen.has(opt)) continue
     seen.add(opt)
@@ -365,11 +394,25 @@ export function lessonPool(lesson: number): Word[] {
   return ALL_WORDS.filter((w) => w.lesson === lesson)
 }
 
-/** Пул практики: слова урока (если задан и не пуст) или общий пул */
+/**
+ * Пул практики: слова урока (если задан и не пуст) или общий пул.
+ * В режиме урока слова, которых не хватает до «выучено» (1 верный
+ * ответ) и совсем новые, дублируются в пуле — выпадают втрое чаще
+ * уже известных. Так закрепление урока добивает «хвосты», и процент
+ * урока быстро доходит до 100% (раньше все слова выпадали поровну
+ * и отстающие висели на 50–80% даже после нескольких сессий).
+ */
 function pickPool(progress: Progress, lesson?: number): Word[] {
   if (lesson && lesson > 0) {
     const words = lessonPool(lesson)
-    if (words.length) return words
+    if (words.length) {
+      const known = knownSet(progress)
+      const unknown = words.filter((w) => !known.has(w.id))
+      if (unknown.length === 0) return words // урок выучен — просто повторяем
+      const inProgress = unknown.filter((w) => progress.words[w.id]?.correct)
+      const fresh = unknown.filter((w) => !progress.words[w.id]?.correct)
+      return [...inProgress, ...inProgress, ...fresh, ...fresh, ...shuffle(words)]
+    }
   }
   return practicePool(progress)
 }
@@ -394,12 +437,16 @@ export function makeExercise(
   const pool = pickPool(progress, opts.lesson)
   if (pool.length === 0) return null
   const word = pool[Math.floor(rand() * pool.length)]
+  // Фронтир пользователя: варианты ответов не заходят в будущие уроки,
+  // вопросительные слова — только изученные (knownSet, с «Уже выучил»)
+  const known = knownSet(progress)
+  const frontier = pool.reduce((m, w) => Math.max(m, w.lesson), 0)
   if (kind === 'choice') {
     const dir: WordChoiceDir = rand() < 0.5 ? 'es-ru' : 'ru-es'
-    return wordChoiceExercise(word, ALL_WORDS, dir, rand)
+    return wordChoiceExercise(word, ALL_WORDS, dir, rand, frontier, known)
   }
   if (kind === 'audio') {
-    return audioExercise(word, ALL_WORDS, rand)
+    return audioExercise(word, ALL_WORDS, rand, frontier, known)
   }
   // build — только фразы. ОБЩАЯ ПРАКТИКА: разрешаем не только «выученные»
   // слова (knownSet, 2+ верных ответа), а весь материал до текущего уровня
@@ -417,7 +464,6 @@ export function makeExercise(
   // попадают неизученные слова из других уроков. Если изученных слов
   // мало (первые уроки) — сборки нет совсем: practice.vue откатывается
   // на тест-выбор по словам этого урока.
-  const known = knownSet(progress)
   const starredPhrases = progress.starredPhrases ?? {}
   if (opts.lesson && opts.lesson > 0) {
     if (known.size === 0) return null
@@ -442,9 +488,8 @@ export function makeExercise(
       ? buildExercise(fallback.fill, fallback.templateId, fallback.variant, rand, Math.max(knownMaxLesson, opts.lesson), known)
       : null
   }
-  const base = pool.reduce((m, w) => Math.max(m, w.lesson), 0)
   let fallback: { fill: Fill; templateId: string; variant: 'aff' | 'neg' | 'yesno' | 'qw'; limit: number } | null = null
-  for (let limit = base; limit <= LESSONS.length; limit++) {
+  for (let limit = frontier; limit <= LESSONS.length; limit++) {
     // Неизученные вопросительные слова не открываются расширением
     // уровня: qw-шаблоны и их слова — только после изучения
     const allowed = new Set([

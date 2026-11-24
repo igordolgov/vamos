@@ -26,6 +26,16 @@ describe('Статистика', () => {
     expect(knownSet(p).has('v-tener')).toBe(false)
   })
 
+  it('«Уже выучил» идёт в knownSet: процент урока учитывает отметку', () => {
+    // слово с 1 верным ответом, отмеченное «Уже выучил», — выучено
+    const p = emptyProgress()
+    p.words['v-ser'] = { correct: 1, wrong: 0, star: 1000 }
+    expect(knownSet(p).has('v-ser')).toBe(true)
+    expect(knownWordsCount(p)).toBe(1)
+    const byLessons = progressByLessons(p)
+    expect(byLessons[0]!.known).toBe(1)
+  })
+
   it('isWordKnown: порог 2 верных ответа', () => {
     expect(KNOWN_THRESHOLD).toBe(2)
     expect(isWordKnown(undefined)).toBe(false)

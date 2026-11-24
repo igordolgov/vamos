@@ -44,9 +44,11 @@ const filtered = computed(() =>
 
 const cards = computed(() =>
   filtered.value.slice(0, 60).map((w) => {
-    const status = isWordKnown(progress.value.words[w.id])
+    const wp = progress.value.words[w.id]
+    // «Уже выучил» — пользователь подтвердил знание: показываем как выученное
+    const status = wp && (isWordKnown(wp) || wp.star)
       ? ('known' as const)
-      : progress.value.words[w.id]?.correct
+      : wp?.correct
         ? ('progress' as const)
         : ('new' as const)
     const opp = opportunityFor(progress.value, w.id)

@@ -34,6 +34,79 @@ describe('Пул практики', () => {
   })
 })
 
+describe('Закрепление урока', () => {
+  /** Детерминированный ГПСЧ (LCG) — статистические тесты без «прыжков» */
+  function seededRand(seed = 42) {
+    let s = seed
+    return () => {
+      s = (s * 1103515245 + 12345) % 2147483648
+      return s / 2147483648
+    }
+  }
+
+  it('невыученные слова урока спрашиваются заметно чаще выученных', () => {
+    // урок 1 (12 слов): 2 выучены, 1 в процессе (1 верный ответ), 9 новых
+    const p = withProgress({ 'v-ser': 2, 'v-estar': 2, 'p-yo': 1 })
+    const rand = seededRand(42)
+    let knownAsked = 0
+    let unknownAsked = 0
+    for (let i = 0; i < 150; i++) {
+      const ex = makeExercise('choice', p, rand, { lesson: 1 })
+      if (!ex) continue
+      const wp = p.words[ex.wordIds[0]!]
+      if (wp && wp.correct >= KNOWN_THRESHOLD) knownAsked++
+      else unknownAsked++
+    }
+    // с утроенным весом невыученных ждём ~9% вопросов по выученным;
+    // без веса было бы ~17% (2 из 12). Порог — посередине
+    expect(knownAsked).toBeLessThan(150 * 0.13)
+    expect(unknownAsked).toBeGreaterThan(0)
+  })
+
+  it('когда урок выучен целиком — пул остаётся (повторение)', () => {
+    const p = withProgress({
+      'p-yo': 2, 'p-tu': 2, 'p-usted': 2, 'p-el': 2, 'p-ella': 2, 'p-nosotros': 2,
+      'p-ustedes': 2, 'p-ellos': 2, 'p-ellas': 2, 'v-ser': 2, 'v-estar': 2, 'adv-no': 2,
+    })
+    const rand = seededRand(7)
+    let asked = 0
+    for (let i = 0; i < 30; i++) {
+      const ex = makeExercise('choice', p, rand, { lesson: 1 })
+      if (ex) asked++
+    }
+    expect(asked).toBe(30)
+  })
+
+  it('варианты теста не заходят дальше фронтира пользователя', () => {
+    // изучены все слова уроков 1–5 кроме вопросительных (из них — только
+    // qué и dónde): варианты не должны показывать слова из дальних уроков
+    const p = emptyProgress()
+    for (const w of ALL_WORDS.filter((w) => w.lesson <= 5 && w.pos !== 'question')) {
+      p.words[w.id] = { correct: 2, wrong: 0 }
+    }
+    p.words['qw-que'] = { correct: 2, wrong: 0 }
+    p.words['qw-donde'] = { correct: 2, wrong: 0 }
+    const pool = practicePool(p)
+    const frontier = pool.reduce((m, w) => Math.max(m, w.lesson), 0)
+    // свежие слова: невыученные вопросительные урока 3, глаголы урока 6,
+    // конструкции урока 7 — фронтир в пределах первых уроков
+    expect(frontier).toBeLessThanOrEqual(7)
+    const rand = seededRand(11)
+    for (let i = 0; i < 40; i++) {
+      const ex = makeExercise('choice', p, rand)
+      if (!ex) continue
+      for (const opt of ex.options) {
+        // вариант мог прийти от любого слова с такой испанской формой —
+        // достаточно, что хотя бы одно из них не дальше фронтира
+        const matches = ALL_WORDS.filter((w) => w.es === opt || w.esAlt?.includes(opt))
+        if (matches.length) {
+          expect(Math.min(...matches.map((w) => w.lesson)), opt).toBeLessThanOrEqual(frontier)
+        }
+      }
+    }
+  })
+})
+
 describe('Упражнения', () => {
   it('тест-выбор: 4 варианта, ровно один верный', () => {
     const word = getWord('v-hablar')

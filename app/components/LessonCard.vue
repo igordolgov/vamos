@@ -2,6 +2,7 @@
 // ============================================================
 // LessonCard.vue — карточка урока с прогрессом.
 // ============================================================
+import { computed } from 'vue'
 import { useT, useLocale } from '~/composables/useI18n'
 
 const props = defineProps<{
@@ -15,8 +16,10 @@ const props = defineProps<{
 
 const t = useT()
 const locale = useLocale()
-const percent = Math.round((props.known / Math.max(props.total, 1)) * 100)
-const label = t('lessons.knownOf', { known: props.known, total: props.total })
+// computed — процент живёт вместе с props (иначе при обновлении
+// прогресса карточка показывает устаревшее число)
+const percent = computed(() => Math.round((props.known / Math.max(props.total, 1)) * 100))
+const label = computed(() => t('lessons.knownOf', { known: props.known, total: props.total }))
 </script>
 
 <template lang="pug">

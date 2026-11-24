@@ -85,9 +85,9 @@ function check() {
 
     // Пул плиток. После проверки кнопки остаются на местах, но невидимыми:
     // контейнер держит точную высоту пула, поэтому «Дальше» стоит ровно
-    // там же, где была «Проверить». min-h-20 страхует от длинного
-    // ответа «Верный ответ: …» — он не наезжает на кнопку
-    .relative.min-h-20.flex.flex-wrap.gap-1.justify-center
+    // там же, где была «Проверить». min-h-24 страхует фидбек с подписью
+    // «Верный ответ:» и ответом на отдельных строках (до 2 строк текста)
+    .relative.min-h-24.flex.flex-wrap.gap-1.justify-center
       button(
         v-for="(tile, i) in tiles"
         :key="i"
@@ -97,13 +97,15 @@ function check() {
       )
         | {{ tile }}
 
-      // Результат — поверх места плиток: крупный, с pop-анимацией
+      // Результат — поверх места плиток: подпись и сам ответ на
+      // отдельных строках, с pop-анимацией
       .absolute.inset-0.flex.items-center.justify-center(v-if="revealed")
-        p.text-center.text-2xl.font-bold.animate-feedback(
-          :class="isCorrect ? 'text-success' : 'text-error'"
-        )
-          template(v-if="isCorrect") ✓ {{ t('practice.correct') }}
-          template(v-else) ✗ {{ t('practice.answerWas') }} {{ answerTiles.join(' ') }}
+        div.text-center.animate-feedback
+          template(v-if="isCorrect")
+            p.text-2xl.font-bold.text-success ✓ {{ t('practice.correct') }}
+          template(v-else)
+            p.text-base.font-semibold.text-error(class="sm:text-lg") ✗ {{ t('practice.answerWas') }}
+            p.text-xl.font-bold.text-base-content(class="sm:text-2xl") {{ answerTiles.join(' ') }}
 
     // Кнопка: до проверки — «Проверить», после — «Дальше» (на том же месте)
     button.btn.text-lg(

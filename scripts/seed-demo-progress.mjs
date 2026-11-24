@@ -30,7 +30,14 @@ const progress = {
   words,
   lessons: {},
   phrases: {},
-  achievements: {},
+  // Все достижения уже получены — иначе при первом ответе тосты
+  // лавиной накрывают экран и мешают QA интерфейса практики
+  achievements: Object.fromEntries([
+    'first-word', 'words-10', 'words-50', 'words-100', 'words-200', 'words-all',
+    'phrases-100', 'phrases-1000', 'phrases-10000', 'phrases-100000',
+    'streak-3', 'streak-7', 'streak-30', 'answers-50', 'answers-200',
+    'first-lesson', 'lessons-10', 'all-pronouns', 'all-prepositions', 'verbs-25',
+  ].map((id) => [id, 1_700_000_000_000])),
   streakDates: ['2026-11-22', '2026-11-23', '2026-11-24'],
   answers: { correct: 120, wrong: 18 },
   settings: {},

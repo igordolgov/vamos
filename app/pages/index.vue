@@ -11,6 +11,7 @@ import {
   knownWordsCount,
   phraseStats,
   progressByPos,
+  progressByLessons,
   opportunities,
 } from '#shared/stats'
 import { currentStreak } from '#shared/streak'
@@ -38,8 +39,13 @@ const answers = computed(() => progress.value.answers.correct)
 const posProgress = computed(() => progressByPos(progress.value))
 const opps = computed(() => opportunities(progress.value, 3))
 
-// Первый непройденный урок (кнопка «Продолжить учёбу»)
-const nextLesson = computed(() => LESSONS[0])
+// Первый непройденный урок (кнопка «Продолжить учёбу»): первый урок,
+// где есть невыученные слова — а не всегда урок 1; если выучено всё,
+// ведём на последний (повторение)
+const nextLesson = computed(() => {
+  const lessons = progressByLessons(progress.value)
+  return lessons.find((l) => l.known < l.total) ?? lessons[lessons.length - 1] ?? LESSONS[0]
+})
 
 // Последние полученные достижения
 const recentBadges = computed(() => {

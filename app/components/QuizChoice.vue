@@ -69,14 +69,16 @@ function btnClass(index: number): string {
 
     // Результат и «Дальше» — зарезервированная зона постоянной высоты:
     // существует до ответа (пустая), поэтому карточка не растёт и кнопка
-    // не сдвигается ни на пиксель при появлении результата
-    .min-h-16.flex.items-center.justify-center
-      p.text-center.text-2xl.font-bold.animate-feedback(
-        v-if="revealed"
-        :class="isCorrect ? 'text-success' : 'text-error'"
-      )
-        template(v-if="isCorrect") ✓ {{ t('practice.correct') }}
-        template(v-else) ✗ {{ t('practice.answerWas') }} {{ options[answerIndex] }}
+    // не сдвигается при появлении результата. Подпись «Верный ответ:»
+    // и сам ответ — на отдельных строках; min-h-24 (6rem) держит
+    // подпись + две строки длинного ответа (максимум 43 символа)
+    .min-h-24.flex.items-center.justify-center
+      div.text-center.animate-feedback(v-if="revealed")
+        template(v-if="isCorrect")
+          p.text-2xl.font-bold.text-success ✓ {{ t('practice.correct') }}
+        template(v-else)
+          p.text-base.font-semibold.text-error(class="sm:text-lg") ✗ {{ t('practice.answerWas') }}
+          p.text-xl.font-bold.text-base-content(class="sm:text-2xl") {{ options[answerIndex] }}
     button.btn.btn-primary.text-lg(
       :class="revealed ? 'visible' : 'invisible'"
       :tabindex="revealed ? 0 : -1"

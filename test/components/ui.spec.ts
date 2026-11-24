@@ -106,13 +106,20 @@ describe('QuizChoice', () => {
     expect(wrapper.emitted('answered')![0]).toEqual([true])
   })
 
-  it('клик по неверному варианту → answered(false), верный подсвечен', async () => {
+  it('неверный ответ: «Верный ответ:» и сам ответ — на отдельных строках', async () => {
     const wrapper = mount(QuizChoice, {
       props: { questionEs: 'casa', options: ['дом', 'еда', 'книга', 'ночь'], answerIndex: 0 },
     })
     const buttons = wrapper.findAll('button')
     await buttons[1].trigger('click')
     expect(wrapper.emitted('answered')![0]).toEqual([false])
+    // подпись и ответ — два отдельных абзаца в зоне фидбека
+    const fb = wrapper.find('.animate-feedback')
+    const lines = fb.findAll('p')
+    expect(lines).toHaveLength(2)
+    expect(lines[0]!.text()).toContain('Верный ответ:')
+    expect(lines[0]!.classes()).toContain('text-error')
+    expect(lines[1]!.text()).toBe('дом')
     // повторный клик игнорируется после раскрытия
     await buttons[2].trigger('click')
     expect(wrapper.emitted('answered')!.length).toBe(1)
@@ -146,7 +153,7 @@ describe('QuizChoice', () => {
       props: { questionEs: 'casa', options: ['дом', 'еда', 'книга', 'ночь'], answerIndex: 0 },
     })
     // зона фидбека существует и до ответа (пустая, постоянной высоты)
-    expect(wrapper.find('.min-h-16').exists()).toBe(true)
+    expect(wrapper.find('.min-h-24').exists()).toBe(true)
     expect(wrapper.find('.animate-feedback').exists()).toBe(false)
     // «Дальше» уже в DOM (держит своё место), но невидима до ответа
     const next = wrapper.findAll('button').at(-1)!
@@ -213,7 +220,10 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     expect(wrapper.text()).toContain('Yo quiero hablar')
     const fb = wrapper.find('.animate-feedback')
     expect(fb.exists()).toBe(true)
-    expect(fb.classes()).toContain('text-error')
+    // подпись «Верный ответ:» — отдельная строка, красная
+    const label = fb.findAll('p')[0]!
+    expect(label.classes()).toContain('text-error')
+    expect(label.text()).toContain('Верный ответ:')
     // пул плиток остаётся в DOM (держит высоту для «Дальше»), но невидим
     const pool = wrapper.findAll('button.btn-outline')
     expect(pool.length).toBe(3)
@@ -264,7 +274,7 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     await tileBtn(wrapper, 'hablar').trigger('click')
     await checkBtn(wrapper).trigger('click')
     const fb = wrapper.find('.animate-feedback')
-    expect(fb.classes()).toContain('text-success')
+    expect(fb.find('p').classes()).toContain('text-success')
     expect(fb.text()).toContain('¡Correcto!')
     // фидбек лежит в absolute-контейнере поверх невидимого пула
     expect(fb.element.parentElement!.className).toContain('absolute')
