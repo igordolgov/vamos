@@ -139,10 +139,13 @@ describe('QuizBuild — сборка фразы из плиток', () => {
   const TILES = ['quiero', 'Yo', 'hablar']
   const ANSWER = ['Yo', 'quiero', 'hablar']
 
-  /** Кнопка-плитка с данным текстом (в зоне неиспользованных плиток) */
+  /** Кнопка-плитка с данным текстом в зоне неиспользованных плиток.
+   *  Невидимые плейсхолдеры (уже выбранные слова) пропускаются */
   function tileBtn(wrapper: ReturnType<typeof mount>, txt: string) {
-    const btn = wrapper.findAll('.justify-center button').find((b) => b.text() === txt)
-    expect(btn, `плитка «${txt}» должна существовать`).toBeTruthy()
+    const btn = wrapper
+      .findAll('.justify-center button')
+      .find((b) => b.text() === txt && !b.classes().includes('invisible'))
+    expect(btn, `видимая плитка «${txt}» должна существовать`).toBeTruthy()
     return btn!
   }
 
@@ -189,6 +192,24 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     await wrapper.find('.min-h-14 button').trigger('click')
     expect(wrapper.findAll('.min-h-14 button')).toHaveLength(0)
     expect(wrapper.findAll('.justify-center button')).toHaveLength(3)
+  })
+
+  it('выбранная плитка оставляет пустое место — остальные не сдвигаются', async () => {
+    const wrapper = mount(QuizBuild, {
+      props: { tiles: TILES, answerTiles: ANSWER, hint: 'x' },
+    })
+    await tileBtn(wrapper, 'quiero').trigger('click')
+    // все кнопки на месте: выбранная стала невидимым плейсхолдером
+    expect(wrapper.findAll('.justify-center button')).toHaveLength(3)
+    const ph = wrapper
+      .findAll('.justify-center button')
+      .find((b) => b.classes().includes('invisible'))
+    expect(ph, 'плейсхолдер выбранной плитки').toBeTruthy()
+    expect(ph!.text()).toBe('quiero')
+    expect((ph!.element as HTMLButtonElement).disabled).toBe(true)
+    // undo возвращает плитку в её исходное место (плейсхолдер исчезает)
+    await wrapper.find('.min-h-14 button').trigger('click')
+    expect(wrapper.findAll('.justify-center button.invisible')).toHaveLength(0)
   })
 
   it('проверка недоступна, пока ничего не собрано', async () => {

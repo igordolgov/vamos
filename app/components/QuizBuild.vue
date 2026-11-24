@@ -18,10 +18,12 @@ const t = useT()
 const selected = ref<number[]>([])
 const revealed = ref(false)
 
-/** Плитки, которые ещё не выбраны */
-const remaining = computed(() =>
-  props.tiles.map((tile, i) => ({ tile, i })).filter(({ i }) => !selected.value.includes(i)),
-)
+/** Класс плитки: выбранная остаётся пустым местом своего размера,
+ *  чтобы остальные слова не перепрыгивали и не мелькали при переносе */
+function tileClass(i: number): string {
+  const base = 'btn btn-outline btn-lg normal-case'
+  return selected.value.includes(i) ? `${base} invisible pointer-events-none` : base
+}
 
 function pick(index: number) {
   if (revealed.value) return
@@ -68,15 +70,17 @@ function check() {
         | {{ tiles[i] }}
       span(class="text-sm text-base-content/30" v-if="selected.length === 0") …
 
-    // Плитки
+    // Плитки: место выбранной слова остаётся пустым (невидимая кнопка
+    // того же размера) — остальные не сдвигаются с места
     .flex.flex-wrap.gap-1.justify-center
-      button.btn.btn-outline.btn-lg.normal-case(
-        v-for="r in remaining"
-        :key="r.i"
-        :disabled="revealed"
-        @click="pick(r.i)"
+      button(
+        v-for="(tile, i) in tiles"
+        :key="i"
+        :class="tileClass(i)"
+        :disabled="revealed || selected.includes(i)"
+        @click="pick(i)"
       )
-        | {{ r.tile }}
+        | {{ tile }}
 
     // Кнопка проверки
     button.btn.bg-green-800.text-lg(:disabled="selected.length === 0 || revealed" @click="check()") {{ t('practice.check') }}
