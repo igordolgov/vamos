@@ -21,11 +21,14 @@ const t = useT()
 const selected = ref<number[]>([])
 const revealed = ref(false)
 
-/** Класс плитки: выбранная остаётся пустым местом своего размера,
- *  чтобы остальные слова не перепрыгивали и не мелькали при переносе */
+/** Класс плитки: выбранная (и после проверки — вся пул) остаётся пустым
+ *  местом своего размера — слова не перепрыгивают, а после проверки
+ *  пул держит точную высоту, поэтому «Дальше» не сдвигается */
 function tileClass(i: number): string {
   const base = 'btn btn-outline btn-lg normal-case'
-  return selected.value.includes(i) ? `${base} invisible pointer-events-none` : base
+  return revealed.value || selected.value.includes(i)
+    ? `${base} invisible pointer-events-none`
+    : base
 }
 
 function pick(index: number) {
@@ -77,26 +80,26 @@ function check() {
         | {{ tiles[i] }}
       span(class="text-sm text-base-content/30" v-if="selected.length === 0") …
 
-    // До проверки — пул плиток (выбранная остаётся пустым местом
-    // своего размера, остальные не сдвигаются)
-    .flex.flex-wrap.gap-1.justify-center(v-if="!revealed")
+    // Пул плиток. После проверки кнопки остаются на местах, но невидимыми:
+    // контейнер держит точную высоту пула, поэтому «Дальше» стоит ровно
+    // там же, где была «Проверить»
+    .relative.flex.flex-wrap.gap-1.justify-center
       button(
         v-for="(tile, i) in tiles"
         :key="i"
         :class="tileClass(i)"
-        :disabled="selected.includes(i)"
+        :disabled="revealed || selected.includes(i)"
         @click="pick(i)"
       )
         | {{ tile }}
 
-    // После проверки — результат на месте пула: карточка не растёт,
-    // кнопка под ней остаётся ровно там же, где была «Проверить»
-    .min-h-14.flex.items-center.justify-center(v-else)
-      p.text-center.text-lg.font-bold(
-        :class="isCorrect ? 'text-success' : 'text-error'"
-      )
-        template(v-if="isCorrect") ✓ {{ t('practice.correct') }}
-        template(v-else) ✗ {{ t('practice.answerWas') }} {{ answerTiles.join(' ') }}
+      // Результат — поверх места плиток: крупный, с pop-анимацией
+      .absolute.inset-0.flex.items-center.justify-center(v-if="revealed")
+        p.text-center.text-2xl.font-bold.animate-feedback(
+          :class="isCorrect ? 'text-success' : 'text-error'"
+        )
+          template(v-if="isCorrect") ✓ {{ t('practice.correct') }}
+          template(v-else) ✗ {{ t('practice.answerWas') }} {{ answerTiles.join(' ') }}
 
     // Кнопка: до проверки — «Проверить», после — «Дальше» (на том же месте)
     button.btn.text-lg(

@@ -66,7 +66,9 @@ function btnClass(index: number): string {
     // Результат и «Дальше» — в самой карточке, под вариантами:
     // кнопка не уезжает за нижний край экрана на телефоне
     template(v-if="revealed")
-      p.text-center.text-lg.font-bold(:class="isCorrect ? 'text-success' : 'text-error'")
+      p.text-center.text-2xl.font-bold.animate-feedback(
+        :class="isCorrect ? 'text-success' : 'text-error'"
+      )
         template(v-if="isCorrect") ✓ {{ t('practice.correct') }}
         template(v-else) ✗ {{ t('practice.answerWas') }} {{ options[answerIndex] }}
       button.btn.btn-primary.text-lg(@click="emit('next')") {{ t('practice.next') }}

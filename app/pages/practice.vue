@@ -99,6 +99,28 @@ function goNext() {
 function speakAudio() {
   if (current.value?.speak) speakEs(current.value.speak)
 }
+
+// ============================================================
+// Свайп-жест: после ответа горизонтальный свайп по экрану = «Дальше»
+// (кнопка тоже работает — жест лишь ускоряет привычный путь)
+// ============================================================
+let touchStart: { x: number; y: number } | null = null
+
+function onTouchStart(e: TouchEvent) {
+  if (lastCorrect.value === null) return
+  const t = e.changedTouches[0]
+  touchStart = { x: t.clientX, y: t.clientY }
+}
+
+function onTouchEnd(e: TouchEvent) {
+  if (!touchStart || lastCorrect.value === null) return
+  const t = e.changedTouches[0]
+  const dx = t.clientX - touchStart.x
+  const dy = t.clientY - touchStart.y
+  touchStart = null
+  // только явный горизонтальный свайп ≥ 60px — не путаем с прокруткой страницы
+  if (Math.abs(dx) >= 60 && Math.abs(dx) > Math.abs(dy) * 1.5) goNext()
+}
 </script>
 
 <template lang="pug">
@@ -124,8 +146,12 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
         | 🎲 {{ t('practice.mixed') }}
     button.btn.btn-primary(class="w-full sm:w-64" @click="startSession") {{ t('practice.start') }}
 
-// Сессия
-.max-w-xl.mx-auto(v-else-if="mode === 'session'")
+// Сессия: свайп после ответа листает к следующему упражнению
+.max-w-xl.mx-auto(
+  v-else-if="mode === 'session'"
+  @touchstart.passive="onTouchStart"
+  @touchend.passive="onTouchEnd"
+)
   .flex.items-center.justify-between.mb-2
     p(class="text-sm text-base-content/60") {{ t('practice.progress', { n: index + 1, total: SESSION_LENGTH }) }}
     p.text-sm

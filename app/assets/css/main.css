@@ -121,3 +121,32 @@ body {
   color: var(--color-primary);
   font-weight: 600;
 }
+
+/* ============================================================
+   Результат упражнения практики: крупный, с pop-анимацией
+   ============================================================ */
+@keyframes feedback-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(10px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.05) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-feedback {
+  animation: feedback-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Уважаем системную настройку «меньше движения» */
+@media (prefers-reduced-motion: reduce) {
+  .animate-feedback {
+    animation: none;
+  }
+}

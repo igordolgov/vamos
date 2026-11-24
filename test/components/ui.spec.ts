@@ -134,6 +134,7 @@ describe('QuizChoice', () => {
     expect(wrapper.emitted('answered')![0]).toEqual([true])
     // результат + «Дальше» под вариантами
     expect(wrapper.text()).toContain('¡Correcto!')
+    expect(wrapper.find('.animate-feedback').exists()).toBe(true)
     const next = wrapper.findAll('button').at(-1)!
     expect(next.text()).toBe('Дальше')
     await next.trigger('click')
@@ -193,10 +194,15 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     await tileBtn(wrapper, 'quiero').trigger('click')
     await checkBtn(wrapper).trigger('click')
     expect(wrapper.emitted('answered')![0]).toEqual([false])
-    // верный порядок показан в зоне фидбека (на месте пула плиток)
+    // верный порядок показан в фидбеке (поверх невидимого пула плиток)
     expect(wrapper.text()).toContain('Yo quiero hablar')
-    // пул плиток заменён фидбеком: кнопок-плиток (btn-outline) больше нет
-    expect(wrapper.findAll('button.btn-outline')).toHaveLength(0)
+    const fb = wrapper.find('.animate-feedback')
+    expect(fb.exists()).toBe(true)
+    expect(fb.classes()).toContain('text-error')
+    // пул плиток остаётся в DOM (держит высоту для «Дальше»), но невидим
+    const pool = wrapper.findAll('button.btn-outline')
+    expect(pool.length).toBe(3)
+    expect(pool.every((b) => b.classes().includes('invisible'))).toBe(true)
   })
 
   it('после проверки кнопка становится «Дальше» и emits next', async () => {
@@ -216,6 +222,21 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     expect(next.classes()).toContain('btn-primary')
     await next.trigger('click')
     expect(wrapper.emitted('next')).toBeTruthy()
+  })
+
+  it('фидбек после проверки — крупный, поверх пула, с анимацией', async () => {
+    const wrapper = mount(QuizBuild, {
+      props: { tiles: TILES, answerTiles: ANSWER, hint: 'x' },
+    })
+    await tileBtn(wrapper, 'Yo').trigger('click')
+    await tileBtn(wrapper, 'quiero').trigger('click')
+    await tileBtn(wrapper, 'hablar').trigger('click')
+    await checkBtn(wrapper).trigger('click')
+    const fb = wrapper.find('.animate-feedback')
+    expect(fb.classes()).toContain('text-success')
+    expect(fb.text()).toContain('¡Correcto!')
+    // фидбек лежит в absolute-контейнере поверх невидимого пула
+    expect(fb.element.parentElement!.className).toContain('absolute')
   })
 
   it('клик по собранному слову возвращает его в плитки', async () => {
