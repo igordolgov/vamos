@@ -35,7 +35,6 @@ const correctCount = ref(0)
 const wrongCount = ref(0)
 const newWords = ref<Array<{ es: string; ru: string[] }>>([])
 const lastCorrect = ref<boolean | null>(null)
-const showExplanation = ref(false)
 
 // Пул практики всегда содержит новые слова — блокировать нечего
 const wordsKnown = computed(() => knownWordsCount(progress.value))
@@ -64,7 +63,6 @@ function startSession() {
 
 function nextExercise() {
   lastCorrect.value = null
-  showExplanation.value = false
   const opts = { lesson: lessonFilter.value || undefined }
   const chosen = pickKind()
   current.value = makeExercise(chosen, progress.value, Math.random, opts)
@@ -83,7 +81,6 @@ function nextExercise() {
 function onAnswered(correct: boolean) {
   if (!current.value || lastCorrect.value !== null) return
   lastCorrect.value = correct
-  showExplanation.value = true
   const newly = applyAnswer(current.value, correct)
   if (correct) correctCount.value++
   else wrongCount.value++
@@ -98,13 +95,6 @@ function goNext() {
   }
   nextExercise()
 }
-
-/** Правильный ответ текущего упражнения — для панели фидбека */
-const correctAnswer = computed(() => {
-  const c = current.value
-  if (!c) return ''
-  return c.kind === 'build' ? (c.answerTiles ?? []).join(' ') : c.options[c.answerIndex]
-})
 
 function speakAudio() {
   if (current.value?.speak) speakEs(current.value.speak)
@@ -134,9 +124,8 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
         | 🎲 {{ t('practice.mixed') }}
     button.btn.btn-primary(class="w-full sm:w-64" @click="startSession") {{ t('practice.start') }}
 
-// Сессия: дополнительный нижний отступ, когда видна панель фидбека —
-// контент не прячется под фиксированной панелью
-.max-w-xl.mx-auto(v-else-if="mode === 'session'" :class="showExplanation ? 'pb-20 lg:pb-0' : ''")
+// Сессия
+.max-w-xl.mx-auto(v-else-if="mode === 'session'")
   .flex.items-center.justify-between.mb-2
     p(class="text-sm text-base-content/60") {{ t('practice.progress', { n: index + 1, total: SESSION_LENGTH }) }}
     p.text-sm
@@ -152,6 +141,7 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
       :options="current.options"
       :answer-index="current.answerIndex"
       @answered="onAnswered"
+      @next="goNext"
     )
 
     QuizBuild(
@@ -161,6 +151,7 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
       :answer-tiles="current.answerTiles ?? []"
       :hint="current.hint ?? ''"
       @answered="onAnswered"
+      @next="goNext"
     )
 
     // Аудио: озвучка + выбор перевода
@@ -175,24 +166,8 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
         :options="current.options"
         :answer-index="current.answerIndex"
         @answered="onAnswered"
+        @next="goNext"
       )
-
-    // Фидбек и «Дальше»: на мобильных — фиксированная панель внизу экрана
-    // (перекрывает нижнюю навигацию, как в Duolingo) — «Дальше» видна всегда,
-    // даже когда упражнение не влезает по высоте; на десктопе — карточка в потоке
-    div(
-      v-if="showExplanation && mode === 'session'"
-      class="fixed inset-x-0 bottom-0 z-50 rounded-none border-x-0 border-b-0 border-t-2 bg-base-100 shadow-[0_-6px_16px_rgba(0,0,0,0.10)] pb-[env(safe-area-inset-bottom)] lg:static lg:mt-2 lg:rounded-lg lg:border-2 lg:pb-0 lg:shadow-none"
-      :class="lastCorrect ? 'border-success' : 'border-error'"
-    )
-      .mx-auto.max-w-xl.flex.items-center.gap-3(class="p-3")
-        p.flex-1.font-bold(
-          class="leading-snug"
-          :class="lastCorrect ? 'text-success' : 'text-error'"
-        )
-          template(v-if="lastCorrect") ✓ {{ t('practice.correct') }}
-          template(v-else) ✗ {{ t('practice.answerWas') }} {{ correctAnswer }}
-        button.btn.btn-primary.text-lg(class="shrink-0" @click="goNext") {{ t('practice.next') }}
 
 // Итоги
 SessionResult(

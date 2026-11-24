@@ -2,8 +2,11 @@
 // ============================================================
 // QuizChoice.vue — упражнение «выбор из 4 вариантов».
 // Показывает вопрос (ES или RU текст) и озвучку, если есть.
+// После ответа под вариантами появляются результат и «Дальше» —
+// кнопка в карточке, а не внизу экрана.
 // ============================================================
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useT } from '~/composables/useI18n'
 import SpeakButton from './SpeakButton.vue'
 
 const props = defineProps<{
@@ -13,8 +16,9 @@ const props = defineProps<{
   answerIndex: number
 }>()
 
-const emit = defineEmits<{ answered: [correct: boolean] }>()
+const emit = defineEmits<{ answered: [correct: boolean]; next: [] }>()
 
+const t = useT()
 const selected = ref<number | null>(null)
 const revealed = ref(false)
 
@@ -24,6 +28,8 @@ function choose(index: number) {
   revealed.value = true
   emit('answered', index === props.answerIndex)
 }
+
+const isCorrect = computed(() => selected.value === props.answerIndex)
 
 /** Класс кнопки-варианта: обычный / верный / ошибочный */
 function btnClass(index: number): string {
@@ -56,4 +62,12 @@ function btnClass(index: number): string {
         span.text-lg {{ option }}
         span.ml-auto(v-if="revealed && i === answerIndex") ✓
         span.ml-auto(v-if="revealed && i === selected && i !== answerIndex") ✗
+
+    // Результат и «Дальше» — в самой карточке, под вариантами:
+    // кнопка не уезжает за нижний край экрана на телефоне
+    template(v-if="revealed")
+      p.text-center.text-lg.font-bold(:class="isCorrect ? 'text-success' : 'text-error'")
+        template(v-if="isCorrect") ✓ {{ t('practice.correct') }}
+        template(v-else) ✗ {{ t('practice.answerWas') }} {{ options[answerIndex] }}
+      button.btn.btn-primary.text-lg(@click="emit('next')") {{ t('practice.next') }}
 </template>

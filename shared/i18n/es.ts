@@ -81,7 +81,6 @@ export const ES: Dict = {
   'practice.check': 'Comprobar',
   'practice.next': 'Siguiente',
   'practice.correct': '¡Correcto!',
-  'practice.wrong': 'Error',
   'practice.answerWas': 'Respuesta correcta:',
   'practice.progress': 'Pregunta {n} de {total}',
   'practice.finish': 'Terminar',

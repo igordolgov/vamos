@@ -124,6 +124,21 @@ describe('QuizChoice', () => {
     })
     expect(wrapper.text()).toContain('hola')
   })
+
+  it('после ответа в карточке появляются результат и «Дальше» (emits next)', async () => {
+    const wrapper = mount(QuizChoice, {
+      props: { questionEs: 'casa', options: ['дом', 'еда', 'книга', 'ночь'], answerIndex: 0 },
+    })
+    const buttons = wrapper.findAll('button')
+    await buttons[0].trigger('click')
+    expect(wrapper.emitted('answered')![0]).toEqual([true])
+    // результат + «Дальше» под вариантами
+    expect(wrapper.text()).toContain('¡Correcto!')
+    const next = wrapper.findAll('button').at(-1)!
+    expect(next.text()).toBe('Дальше')
+    await next.trigger('click')
+    expect(wrapper.emitted('next')).toBeTruthy()
+  })
 })
 
 describe('StreakWidget', () => {
@@ -169,7 +184,7 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     expect(wrapper.emitted('answered')![0]).toEqual([true])
   })
 
-  it('неправильный порядок → answered(false); верный ответ показывает панель на странице practice', async () => {
+  it('неправильный порядок → answered(false) и показ верного ответа на месте плиток', async () => {
     const wrapper = mount(QuizBuild, {
       props: { tiles: TILES, answerTiles: ANSWER, hint: 'Я хочу говорить' },
     })
@@ -178,6 +193,29 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     await tileBtn(wrapper, 'quiero').trigger('click')
     await checkBtn(wrapper).trigger('click')
     expect(wrapper.emitted('answered')![0]).toEqual([false])
+    // верный порядок показан в зоне фидбека (на месте пула плиток)
+    expect(wrapper.text()).toContain('Yo quiero hablar')
+    // пул плиток заменён фидбеком: кнопок-плиток (btn-outline) больше нет
+    expect(wrapper.findAll('button.btn-outline')).toHaveLength(0)
+  })
+
+  it('после проверки кнопка становится «Дальше» и emits next', async () => {
+    const wrapper = mount(QuizBuild, {
+      props: { tiles: TILES, answerTiles: ANSWER, hint: 'x' },
+    })
+    await tileBtn(wrapper, 'Yo').trigger('click')
+    await tileBtn(wrapper, 'quiero').trigger('click')
+    await tileBtn(wrapper, 'hablar').trigger('click')
+    const btn = checkBtn(wrapper)
+    expect(btn.text()).toBe('Проверить')
+    await btn.trigger('click')
+    expect(wrapper.emitted('answered')).toBeTruthy()
+    // кнопка на том же месте — теперь «Дальше»
+    const next = checkBtn(wrapper)
+    expect(next.text()).toBe('Дальше')
+    expect(next.classes()).toContain('btn-primary')
+    await next.trigger('click')
+    expect(wrapper.emitted('next')).toBeTruthy()
   })
 
   it('клик по собранному слову возвращает его в плитки', async () => {
