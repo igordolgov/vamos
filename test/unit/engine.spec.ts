@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'vitest'
 import { allTemplates } from '../../shared/phrases/templates'
 import { countTemplate, enumerateTemplate, sampleFill, gainsTemplate } from '../../shared/phrases/engine'
+import { ruGenitive, ruPlural } from '../../shared/phrases/ru-morph'
 import { ALL_WORDS, getWord } from '../../shared/data/words'
 import type { Fill, Template } from '../../shared/phrases/schema'
 
@@ -193,5 +194,59 @@ describe('Проекции «выучишь X → +Y»', () => {
       expect(base.has(wordId), wordId).toBe(false)
       expect(gain).toBeGreaterThan(0)
     }
+  })
+})
+
+describe('Согласование числа в ser-шаблоне', () => {
+  /** Ручное заполнение t-pron-ser-prof: местоимение + существительное */
+  function profFill(pronId: string, nounId: string): Fill {
+    return { s: getWord(pronId), n: getWord(nounId) } as Fill
+  }
+
+  it('мн.ч. подлежащего согласует сказуемое в ES и RU', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-pron-ser-prof')!
+    // Ellos son hermanas → «Они — сёстры» (раньше: «Ellos son hermana» / «Они — сестра»)
+    const el = profFill('p-ellos', 'n-hermana')
+    expect(t.render(el, 'aff')).toBe('Ellos son hermanas')
+    expect(t.ru(el, 'aff')).toBe('Они — сёстры')
+    // Nosotros somos amigos → «Мы — друзья»
+    const nos = profFill('p-nosotros', 'n-amigo')
+    expect(t.render(nos, 'aff')).toBe('Nosotros somos amigos')
+    expect(t.ru(nos, 'aff')).toBe('Мы — друзья')
+  })
+
+  it('ед.ч. остаётся в единственном числе', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-pron-ser-prof')!
+    const ella = profFill('p-ella', 'n-hermana')
+    expect(t.render(ella, 'aff')).toBe('Ella es hermana')
+    expect(t.ru(ella, 'aff')).toBe('Она — сестра')
+    // отрицание и вопрос тоже согласованы
+    expect(t.ru(profFill('p-ellos', 'n-hermano'), 'neg')).toBe('Они не братья')
+    expect(t.ru(profFill('p-ellos', 'n-hermano'), 'yesno')).toBe('Они — братья?')
+  })
+})
+
+describe('tener в глагольных шаблонах', () => {
+  it('после «есть» — именительный падеж (не винительный)', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-pron-v-do')!
+    const fill = {
+      s: getWord('p-el'),
+      v: getWord('v-tener'),
+      'o#noun': getWord('n-idea'),
+      'o#num': 'sg',
+      'o#det': getWord('d-la'),
+      'o#adj': null,
+    } as unknown as Fill
+    expect(t.ru(fill, 'aff')).toBe('У него есть идея')
+    expect(t.ru(fill, 'yesno')).toBe('У него есть идея?')
+  })
+
+  it('м.р. на -а/-я: родительный и мн.ч. («мужчины», «учителя»)', () => {
+    const hombre = getWord('n-hombre')
+    const maestro = getWord('n-maestro')
+    expect(ruGenitive(hombre)).toBe('мужчины')
+    expect(ruPlural(hombre)).toBe('мужчины')
+    expect(ruGenitive(maestro)).toBe('учителя')
+    expect(ruPlural(maestro)).toBe('учителя')
   })
 })

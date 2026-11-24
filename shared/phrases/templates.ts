@@ -11,7 +11,7 @@ import type { GramNumber, Word } from '../types'
 import { getWord } from '../data/words'
 import { ALL_WORDS, wordsByPos } from '../data/words'
 import { capitalize, conjugate, gerundOf, joinPrepNP } from './es'
-import { ruAdjForm, ruGustarForm, ruNounPhrase } from './ru'
+import { ruAdjForm, ruGustarForm, ruNounForm, ruNounPhrase } from './ru'
 import { ruAccusative, ruGenitive } from './ru-morph'
 import { initEngine, npEs, npNumber, npRu } from './engine'
 import type { Fill, PhraseKind, Template } from './schema'
@@ -229,17 +229,21 @@ export const TEMPLATES: Template[] = [
     render: (fill, kind) => {
       const p = fill.s as Word
       const n = fill.n as Word
-      const core = `${p.es} ${conjugate(getWord('v-ser'), pronPerson(p))} ${n.es}`
-      if (kind === 'neg') return capitalize(`${p.es} no ${conjugate(getWord('v-ser'), pronPerson(p))} ${n.es}`)
-      if (kind === 'yesno') return `¿${capitalize(`${p.es} ${conjugate(getWord('v-ser'), pronPerson(p))} ${n.es}`)}?`
+      // Мн.ч. подлежащего: Ellos son hermanas (не «son hermana»)
+      const noun = pronNumber(p) === 'pl' ? (n.nounPlural ?? n.es) : n.es
+      const core = `${p.es} ${conjugate(getWord('v-ser'), pronPerson(p))} ${noun}`
+      if (kind === 'neg') return capitalize(`${p.es} no ${conjugate(getWord('v-ser'), pronPerson(p))} ${noun}`)
+      if (kind === 'yesno') return `¿${capitalize(`${p.es} ${conjugate(getWord('v-ser'), pronPerson(p))} ${noun}`)}?`
       return capitalize(core)
     },
     ru: (fill, kind) => {
       const p = fill.s as Word
       const n = fill.n as Word
-      const core = `${capitalize(ruPron(p))} — ${n.ru[0]}`
-      if (kind === 'neg') return `${capitalize(ruPron(p))} не ${n.ru[0]}`
-      return kind === 'yesno' ? `${capitalize(ruPron(p))} — ${n.ru[0]}?` : core
+      // Согласование в числе: «Они — сёстры» (не «Они — сестра»)
+      const ruNoun = ruNounForm(n, pronNumber(p))
+      const core = `${capitalize(ruPron(p))} — ${ruNoun}`
+      if (kind === 'neg') return `${capitalize(ruPron(p))} не ${ruNoun}`
+      return kind === 'yesno' ? `${capitalize(ruPron(p))} — ${ruNoun}?` : core
     },
   },
   {
@@ -572,14 +576,15 @@ export const TEMPLATES: Template[] = [
     ru: (fill, kind) => {
       const p = fill.s as Word
       const v = fill.v as Word
-      const np = npRuAcc(fill, 'o')
-      // tener → «У меня есть…»
+      // tener → «У меня есть…»: после «есть» — именительный падеж
       if (v.id === 'v-tener') {
         const noun = fill['o#noun'] as Word
+        const npNom = npRu(fill, 'o')
         if (kind === 'neg') return `У ${p.pronoun?.ruGen} нет ${ruGenitive(noun)}`
-        if (kind === 'yesno') return `У ${p.pronoun?.ruGen} есть ${np}?`
-        return `У ${p.pronoun?.ruGen} есть ${np}`
+        if (kind === 'yesno') return `У ${p.pronoun?.ruGen} есть ${npNom}?`
+        return `У ${p.pronoun?.ruGen} есть ${npNom}`
       }
+      const np = npRuAcc(fill, 'o')
       const core = `${capitalize(ruPron(p))} ${ruVerbP(v, p)} ${np}`
       if (kind === 'neg') return `${capitalize(ruPron(p))} не ${ruVerbP(v, p)} ${np}`
       return kind === 'yesno' ? `${capitalize(ruPron(p))} ${ruVerbP(v, p)} ${np}?` : core
@@ -751,8 +756,10 @@ export const TEMPLATES: Template[] = [
       const npO = npRuAcc(fill, 'o')
       if (v.id === 'v-tener') {
         const noun = fill['o#noun'] as Word
+        // после «есть» — именительный падеж («У мужчины есть идея»)
+        const npNom = npRu(fill, 'o')
         if (kind === 'neg') return `У ${ruGenitive(subj)} нет ${ruGenitive(noun)}`
-        return kind === 'yesno' ? `У ${ruGenitive(subj)} есть ${npO}?` : `У ${ruGenitive(subj)} есть ${npO}`
+        return kind === 'yesno' ? `У ${ruGenitive(subj)} есть ${npNom}?` : `У ${ruGenitive(subj)} есть ${npNom}`
       }
       if (kind === 'neg') return `${capitalize(np)} не ${ruForm} ${npO}`
       if (kind === 'yesno') return `${capitalize(np)} ${ruForm} ${npO}?`

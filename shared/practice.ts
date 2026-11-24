@@ -99,22 +99,29 @@ export function wordChoiceExercise(
   dir: WordChoiceDir,
   rand: () => number = Math.random,
 ): Exercise {
-  // Отвлекающие варианты — той же части речи
-  const samePos = all.filter((w) => w.pos === word.pos && w.id !== word.id)
-  const distractors = shuffle(samePos, rand).slice(0, 3)
-  const options = shuffle([word, ...distractors], rand)
-  const answerIndex = options.findIndex((w) => w.id === word.id)
   const esRu = dir === 'es-ru'
+  // Отвлекающие — той же части речи, БЕЗ дубликатов перевода:
+  // два одинаковых варианта делают вопрос неразрешимым
+  const answer = esRu ? word.ru[0]! : word.es
+  const seen = new Set([answer])
+  const distractors: string[] = []
+  for (const w of shuffle(all.filter((w) => w.pos === word.pos && w.id !== word.id), rand)) {
+    const opt = esRu ? w.ru[0]! : w.es
+    if (seen.has(opt)) continue
+    seen.add(opt)
+    distractors.push(opt)
+    if (distractors.length === 3) break
+  }
+  const options = shuffle([answer, ...distractors], rand)
+  const answerIndex = options.findIndex((o) => o === answer)
   return {
     kind: 'choice',
     questionEs: esRu ? word.es : undefined,
     questionRu: esRu ? undefined : word.ru[0]!,
-    options: options.map((w) => (esRu ? w.ru[0]! : w.es)),
+    options,
     answerIndex,
     wordIds: [word.id],
-    explanation: esRu
-      ? `${word.es} — ${word.ru.join(', ')}`
-      : `${word.es} — ${word.ru.join(', ')}`,
+    explanation: `${word.es} — ${word.ru.join(', ')}`,
   }
 }
 
@@ -234,15 +241,24 @@ export function audioExercise(
   all: Word[],
   rand: () => number = Math.random,
 ): Exercise {
-  const samePos = all.filter((w) => w.pos === word.pos && w.id !== word.id)
-  const distractors = shuffle(samePos, rand).slice(0, 3)
-  const options = shuffle([word, ...distractors], rand)
-  const answerIndex = options.findIndex((w) => w.id === word.id)
+  // Без дубликатов перевода — как в тест-выборе
+  const answer = word.ru[0]!
+  const seen = new Set([answer])
+  const distractors: string[] = []
+  for (const w of shuffle(all.filter((w) => w.pos === word.pos && w.id !== word.id), rand)) {
+    const opt = w.ru[0]!
+    if (seen.has(opt)) continue
+    seen.add(opt)
+    distractors.push(opt)
+    if (distractors.length === 3) break
+  }
+  const options = shuffle([answer, ...distractors], rand)
+  const answerIndex = options.findIndex((o) => o === answer)
   return {
     kind: 'audio',
     questionEs: word.es,
     speak: word.es,
-    options: options.map((w) => w.ru[0]),
+    options,
     answerIndex,
     wordIds: [word.id],
     explanation: `${word.es} — ${word.ru.join(', ')}`,
@@ -290,18 +306,37 @@ export function makeExercise(
   if (kind === 'audio') {
     return audioExercise(word, ALL_WORDS, rand)
   }
-  // build — только фразы. ВАЖНО: разрешаем не только «выученные» слова
-  // (knownSet, 2+ верных ответа), а весь материал до текущего уровня —
-  // урока практики или максимального урока пула: у новичка выученных слов
-  // нет, и «Сборка фразы» мгновенно завершала сессию (выглядело как
-  // «не работает»). Если на этом уровне фразы ещё не собираются (первые
-  // уроки — только местоимения и артикли), расширяем материал вверх
-  // по урокам, пока не появится хотя бы один собираемый шаблон.
-  // Новые слова в упражнении — тоже закрепление: ответ записывается в прогресс.
+  // build — только фразы. ОБЩАЯ ПРАКТИКА: разрешаем не только «выученные»
+  // слова (knownSet, 2+ верных ответа), а весь материал до текущего уровня
+  // (максимального урока пула): у новичка выученных слов нет, и «Сборка
+  // фразы» мгновенно завершала сессию (выглядело как «не работает»).
+  // Если на этом уровне фразы ещё не собираются (первые уроки — только
+  // местоимения и артикли), расширяем материал вверх по урокам, пока не
+  // появится хотя бы один собираемый шаблон.
+  //
+  // ПРАКТИКА ПО УРОКУ — другой принцип: во фразах только слова, которые
+  // пользователь УЖЕ ИЗУЧИЛ (knownSet). Иначе в закрепление урока 1
+  // попадают неизученные слова из других уроков. Если изученных слов
+  // мало (первые уроки) — сборки нет совсем: practice.vue откатывается
+  // на тест-выбор по словам этого урока.
   const known = knownSet(progress)
-  const base = opts.lesson && opts.lesson > 0
-    ? opts.lesson
-    : pool.reduce((m, w) => Math.max(m, w.lesson), 0)
+  if (opts.lesson && opts.lesson > 0) {
+    if (known.size === 0) return null
+    const templates = allTemplates().filter((t) => countTemplate(t, known) > 0)
+    if (templates.length === 0) return null
+    const knownMaxLesson = ALL_WORDS.filter((w) => known.has(w.id)).reduce(
+      (m, w) => Math.max(m, w.lesson), 0,
+    )
+    for (let i = 0; i < 10; i++) {
+      const t = templates[Math.floor(rand() * templates.length)]
+      const fill = sampleFill(t, known, rand)
+      if (!fill) continue
+      const kind2 = t.variants[Math.floor(rand() * t.variants.length)]
+      return buildExercise(fill, t.id, kind2, rand, Math.max(knownMaxLesson, opts.lesson))
+    }
+    return null
+  }
+  const base = pool.reduce((m, w) => Math.max(m, w.lesson), 0)
   for (let limit = base; limit <= LESSONS.length; limit++) {
     const allowed = new Set([
       ...ALL_WORDS.filter((w) => w.lesson <= limit).map((w) => w.id),

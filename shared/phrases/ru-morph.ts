@@ -13,6 +13,10 @@ const GEN_EXCEPTIONS: Record<string, string> = {
   мать: 'матери',
   дочь: 'дочери',
   день: 'дня',
+  ребёнок: 'ребёнка',
+  рынок: 'рынка',
+  ботинок: 'ботинка',
+  подарок: 'подарка',
   время: 'времени',
   имя: 'имени',
   деньги: 'денег',
@@ -35,6 +39,22 @@ const GEN_EXCEPTIONS: Record<string, string> = {
 const PLURAL_EXCEPTIONS: Record<string, string> = {
   день: 'дни',
   брат: 'братья',
+  сестра: 'сёстры',
+  учитель: 'учителя',
+  мать: 'матери',
+  дочь: 'дочери',
+  сын: 'сыновья',
+  друг: 'друзья',
+  ребёнок: 'дети',
+  господин: 'господа',
+  // беглые гласные (отец → отцы, рынок → рынки)
+  отец: 'отцы',
+  рынок: 'рынки',
+  сок: 'соки',
+  ботинок: 'ботинки',
+  подарок: 'подарки',
+  яблоко: 'яблоки',
+  молоко: 'молоки',
   человек: 'люди',
   город: 'города',
   время: 'времена',
@@ -89,8 +109,14 @@ export function ruGenitive(noun: Word): string {
     if (baseWord.endsWith('ь')) return baseWord.slice(0, -1) + 'и'
     return baseWord
   }
-  // мужской род: +а/-я
+  // мужской род: +а/-я; слова на -а/-я (мужчина, дядя) склоняются как ж.р.
+  if (baseWord.endsWith('а')) {
+    const stem = baseWord.slice(0, -1)
+    return stem + (isHardConsK(stem) ? 'и' : 'ы')
+  }
+  if (baseWord.endsWith('я')) return baseWord.slice(0, -1) + 'и'
   if (baseWord.endsWith('й')) return baseWord.slice(0, -1) + 'я'
+  if (baseWord.endsWith('ь')) return baseWord.slice(0, -1) + 'я'
   return baseWord + 'а'
 }
 
@@ -124,6 +150,12 @@ export function ruPlural(noun: Word): string {
   }
   if (baseWord.endsWith('й')) return baseWord.slice(0, -1) + 'и'
   if (baseWord.endsWith('ь')) return baseWord.slice(0, -1) + 'и'
+  // м.р. на -а/-я (мужчина): мн.ч. как у ж.р. — мужчины
+  if (baseWord.endsWith('а')) {
+    const stem = baseWord.slice(0, -1)
+    return stem + (isHardConsK(stem) ? 'и' : 'ы')
+  }
+  if (baseWord.endsWith('я')) return baseWord.slice(0, -1) + 'и'
   return baseWord + (isHardConsonantEnd(baseWord) ? 'ы' : 'и')
 }
 

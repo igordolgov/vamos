@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest'
 import { emptyProgress } from '../../shared/types'
 import { ALL_WORDS, getWord } from '../../shared/data/words'
-import { makeExercise } from '../../shared/practice'
+import { makeExercise, type Exercise } from '../../shared/practice'
 
 /** Прогресс со словами первых 13 уроков (correct = 2 — «выучено») */
 function richProgress() {
@@ -73,12 +73,35 @@ describe('makeExercise', () => {
     }
   })
 
-  it('практика по уроку: сборка фразы работает без выученных слов', () => {
-    let ex = makeExercise('build', emptyProgress(), Math.random, { lesson: 1 })
+  it('практика по уроку: без изученных слов сборки нет', () => {
+    // Во фразах — только изученные слова. В первых уроках местоимения и
+    // артикли шаблоны не заполняют — сборка недоступна (practice.vue
+    // откатывается на тест-выбор по словам урока).
+    let ex: Exercise | null = makeExercise('build', emptyProgress(), Math.random, { lesson: 1 })
     for (let i = 0; i < 20 && !ex; i++) {
       ex = makeExercise('build', emptyProgress(), Math.random, { lesson: 1 })
     }
-    expect(ex).not.toBeNull()
-    expect(ex!.kind).toBe('build')
+    expect(ex).toBeNull()
+    // то же для урока 2 (артикли одни не собирают фраз)
+    let ex2: Exercise | null = makeExercise('build', emptyProgress(), Math.random, { lesson: 2 })
+    for (let i = 0; i < 20 && !ex2; i++) {
+      ex2 = makeExercise('build', emptyProgress(), Math.random, { lesson: 2 })
+    }
+    expect(ex2).toBeNull()
+  })
+
+  it('практика по уроку: во фразах только изученные слова', () => {
+    const p = emptyProgress()
+    // Выучены все слова уроков <= 12
+    for (const w of ALL_WORDS.filter((w) => w.lesson <= 12)) {
+      p.words[w.id] = { correct: 2, wrong: 0 }
+    }
+    const known = new Set(Object.keys(p.words))
+    for (let i = 0; i < 10; i++) {
+      const ex = makeExercise('build', p, Math.random, { lesson: 1 })
+      expect(ex).not.toBeNull()
+      // каждое слово фразы — изученное, а не «материал до уровня»
+      for (const id of ex!.wordIds) expect(known.has(id), id).toBe(true)
+    }
   })
 })
