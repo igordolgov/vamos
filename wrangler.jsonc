@@ -1,0 +1,18 @@
+// ============================================================
+// wrangler.jsonc — конфигурация Cloudflare Workers для «¡Vamos!».
+// main: pre-bundled вывод Nitro (preset cloudflare-module), поэтому
+// сборку отключаем (no_bundle). nodejs_compat нужен для node:-модулей
+// Nitro. Assets — статика из .output/public.
+// ============================================================
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vamos",
+  "main": ".output/server/index.mjs",
+  "compatibility_date": "2025-07-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "no_bundle": true,
+  "assets": {
+    "directory": ".output/public",
+    "binding": "ASSETS"
+  }
+}
