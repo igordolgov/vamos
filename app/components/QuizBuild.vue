@@ -7,7 +7,6 @@
 // ============================================================
 import { computed, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
-import { speakEs } from '~/composables/useSpeech'
 import type { WordTip } from '#shared/data/word-tips'
 import { glossLine } from '#shared/gloss'
 
@@ -73,9 +72,7 @@ const isCorrect = computed(() => {
 function check() {
   if (revealed.value || selected.value.length === 0) return
   revealed.value = true
-  // Неверная сборка: верная фраза озвучивается — слух закрепляет
-  // правильный порядок слов вместе с разбором
-  if (!isCorrect.value) void speakEs(props.answerTiles.join(' '))
+  // Без автоматической озвучки после ответа — только ручные кнопки 🔊
   emit('answered', isCorrect.value)
 }
 

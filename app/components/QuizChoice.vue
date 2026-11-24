@@ -8,7 +8,6 @@
 // ============================================================
 import { computed, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
-import { speakEs } from '~/composables/useSpeech'
 import type { WordTip } from '#shared/data/word-tips'
 import { glossLine } from '#shared/gloss'
 import SpeakButton from './SpeakButton.vue'
@@ -34,14 +33,10 @@ function choose(index: number) {
   if (revealed.value) return
   selected.value = index
   revealed.value = true
+  // Без автоматической озвучки после ответа: пользователь сам решает,
+  // слушать ли слово ещё раз (кнопка 🔊). Автоозвучка здесь звучала
+  // плохо — особенно в аудио-упражнении, где варианты русские
   const correct = index === props.answerIndex
-  // Неверный ответ: верный вариант озвучивается — слух закрепляет
-  // правильное слово/фразу вместе с разбором. ES-сторона есть в обоих
-  // направлениях: в ES→RU это вопрос, в RU→ES — верный вариант
-  if (!correct) {
-    const es = props.questionEs ?? props.options[props.answerIndex]
-    if (es) void speakEs(es)
-  }
   emit('answered', correct)
 }
 
