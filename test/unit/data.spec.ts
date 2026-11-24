@@ -6,8 +6,10 @@
 import { describe, it, expect } from 'vitest'
 import { ALL_WORDS, WORD_COUNT, WORDS_BY_ID, POS_LABELS } from '../../shared/data/words'
 import { LESSONS } from '../../shared/data/lessons'
+import { LESSON_WORDS } from '../../shared/data/curriculum'
 import { WORD_TIPS, PHRASE_TIPS } from '../../shared/data/word-tips'
-import { allTemplates } from '../../shared/phrases/templates'
+import { allTemplates, BARE_VERBS, SUBJECT_PRONOUNS } from '../../shared/phrases/templates'
+import { countTemplate, enumerateTemplate } from '../../shared/phrases/engine'
 import type { PartOfSpeech } from '../../shared/types'
 
 describe('Словарь', () => {
@@ -126,3 +128,49 @@ describe('Подсказки ошибок (word-tips)', () => {
 
 // Глаголы с личным «a» — дополнение-лицо
 const PERSON_VERBS = new Set(['v-ver', 'v-ayudar', 'v-llamar', 'v-conocer', 'v-esperar', 'v-buscar'])
+
+describe('Русские формы глаголов — регрессия порчи данных', () => {
+  it('beber: форма «вы» — «пьёте» (а не «нравятся»)', () => {
+    expect(WORDS_BY_ID['v-beber'].verb!.ruForms).toEqual([
+      'пью', 'пьёшь', 'пьёт', 'пьём', 'пьёте', 'пьют',
+    ])
+  })
+
+  it('pasar: личные формы от «происходить» во всех лицах', () => {
+    expect(WORDS_BY_ID['v-pasar'].verb!.ruForms).toEqual([
+      'происхожу', 'происходишь', 'происходит', 'происходим', 'происходите', 'происходят',
+    ])
+  })
+})
+
+describe('Фразы после ранних уроков (1 и 4)', () => {
+  // «Изучены» урок 1 (местоимения, ser/estar, no) и урок 4 (базовые глаголы)
+  const known = new Set<string>([...LESSON_WORDS[0]!, ...LESSON_WORDS[3]!])
+
+  it('без шаблона «глагол без дополнения» после уроков 1 и 4 фраз нет', () => {
+    // Раньше страница Фразы была пустой: все шаблоны требовали существительные/
+    // прилагательные/артикли из более поздних уроков. Регрессия: только новый
+    // шаблон даёт фразы, остальные пока недоступны — как и было
+    const withPhrases = allTemplates().filter((t) => countTemplate(t, known) > 0)
+    expect(withPhrases.map((t) => t.id)).toEqual(['t-pron-v-bare'])
+  })
+
+  it('шаблон собирается из местоимений и глаголов уроков 1+4', () => {
+    const tpl = allTemplates().find((t) => t.id === 't-pron-v-bare')!
+    const nPron = SUBJECT_PRONOUNS.filter((w) => known.has(w.id)).length
+    const nVerbs = BARE_VERBS.filter((w) => known.has(w.id)).length
+    const { phrases, total } = enumerateTemplate(tpl, known, 0, 500)
+    expect(total).toBe(nPron * nVerbs * 3)
+    expect(nPron).toBe(9)
+    expect(nVerbs).toBe(7) // beber — урок 27, ещё не известен
+
+    const rus = phrases.map((p) => p.ru)
+    const ess = phrases.map((p) => p.es)
+    expect(rus).toContain('Я работаю')
+    expect(rus).toContain('Они не пишут')
+    expect(rus).toContain('Ты живёшь?')
+    expect(ess).toContain('Yo trabajo')
+    expect(ess).toContain('Ellos no escriben')
+    expect(ess).toContain('¿Tú vives?')
+  })
+})

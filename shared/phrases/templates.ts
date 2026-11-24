@@ -29,6 +29,12 @@ export const IO_PRONOUNS: Word[] = ALL_WORDS.filter((w) => w.pronoun?.role === '
 /** Переходные глаголы с семантикой дополнения (говорить стол — исключено) */
 export const TRANSITIVE_VERBS: Word[] = wordsByPos('verb').filter((v) => v.verb?.transitive && (v.verb?.objClasses?.length ?? 0) > 0)
 
+/** Глаголы, звучащие естественно и без дополнения: «Я работаю», «Они не пишут»,
+ *  «¿Tú vives?». Именно с них начинаются фразы — достаточно уроков 1 и 4 */
+export const BARE_VERBS: Word[] = [
+  'v-hablar', 'v-comer', 'v-vivir', 'v-trabajar', 'v-estudiar', 'v-leer', 'v-escribir', 'v-beber',
+].map(getWord)
+
 /** Глаголы с прямым дополнением — лицом (личное «a») */
 export const PERSON_VERBS: Word[] = ['v-ver', 'v-ayudar', 'v-llamar', 'v-conocer', 'v-esperar', 'v-buscar'].map(getWord)
 
@@ -551,6 +557,38 @@ export const TEMPLATES: Template[] = [
       return kind === 'neg'
         ? capitalize(`${loc} нет ${ruGenitive(thingN)}`)
         : capitalize(`${loc} есть ${ruNounPhrase(thingN)}`)
+    },
+  },
+
+  // ==========================================================
+  // ГЛАГОЛ БЕЗ ДОПОЛНЕНИЯ: местоимение-подлежащее + глагол
+  // ==========================================================
+  {
+    // «Я работаю», «Они не пишут», «¿Tú vives?» — самые простые фразы:
+    // открываются уже после уроков 1 (местоимения) и 4 (базовые глаголы)
+    id: 't-pron-v-bare',
+    lesson: 4,
+    group: 'глагол + дополнение',
+    requires: [],
+    units: [
+      { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
+      { kind: 'free', role: 'v', words: BARE_VERBS },
+    ],
+    variants: ['aff', 'neg', 'yesno'],
+    render: (fill, kind) => {
+      const p = fill.s as Word
+      const v = fill.v as Word
+      const verb = conjugate(v, pronPerson(p))
+      if (kind === 'neg') return capitalize(`${p.es} no ${verb}`)
+      if (kind === 'yesno') return `¿${capitalize(`${p.es} ${verb}`)}?`
+      return capitalize(`${p.es} ${verb}`)
+    },
+    ru: (fill, kind) => {
+      const p = fill.s as Word
+      const v = fill.v as Word
+      if (kind === 'neg') return `${capitalize(ruPron(p))} не ${ruVerbP(v, p)}`
+      if (kind === 'yesno') return `${capitalize(ruPron(p))} ${ruVerbP(v, p)}?`
+      return `${capitalize(ruPron(p))} ${ruVerbP(v, p)}`
     },
   },
 

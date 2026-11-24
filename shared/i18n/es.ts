@@ -52,6 +52,8 @@ export const ES: Dict = {
   'words.forms': 'Formas',
   'words.youLearn': 'La aprendes — se abre {n} {w}',
   'words.empty': 'No se encontró nada',
+  'words.showMore': 'Mostrar más',
+  'words.shownOf': 'Mostrando {shown} de {total}',
 
   'phrases.title': 'Frases',
   'phrases.subtitle': 'Motor combinatorio: {known} de {total} frases disponibles',

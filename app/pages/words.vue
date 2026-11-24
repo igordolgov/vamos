@@ -3,7 +3,7 @@
 // pages/words.vue — словарь: фильтры по частям речи, поиск,
 // статусы и проекции «выучишь — узнаешь».
 // ============================================================
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useT, useLocale } from '~/composables/useI18n'
 import { useProgress } from '~/composables/useProgress'
 import { ALL_WORDS, POS_LABELS } from '#shared/data/words'
@@ -22,6 +22,14 @@ onMounted(() => {
 
 const search = ref('')
 const posFilter = ref<PartOfSpeech | 'all'>('all')
+
+// Показываем словарь порциями: все 313 карточек сразу тяжёлые
+// для мобильного рендера — остальные открываются по «Показать ещё»
+const WORDS_PAGE = 60
+const limit = ref(WORDS_PAGE)
+watch([search, posFilter], () => {
+  limit.value = WORDS_PAGE
+})
 
 const posOptions = (Object.keys(POS_LABELS) as PartOfSpeech[]).map((pos) => ({
   pos,
@@ -43,7 +51,7 @@ const filtered = computed(() =>
 )
 
 const cards = computed(() =>
-  filtered.value.slice(0, 60).map((w) => {
+  filtered.value.slice(0, limit.value).map((w) => {
     const wp = progress.value.words[w.id]
     // «Уже выучил» — пользователь подтвердил знание: показываем как выученное
     const status = wp && (isWordKnown(wp) || wp.star)
@@ -81,6 +89,13 @@ p(class="text-base-content/60 mb-2") {{ t('words.subtitle', { n: ALL_WORDS.lengt
     :status="card.status"
     :unlock="card.unlock"
   )
+
+// «Показать ещё» — когда фильтр находит больше карточек, чем показано
+.w-full.mt-2(v-if="filtered.length > limit")
+  p(class="text-xs text-base-content/50 mb-1")
+    | {{ t('words.shownOf', { shown: cards.length, total: filtered.length }) }}
+  button.btn.btn-outline.btn-sm.w-full(@click="limit += WORDS_PAGE")
+    | {{ t('words.showMore') }}
 
 EmptyState(v-if="cards.length === 0" :text="t('words.empty')" icon="🔍")
 </template>

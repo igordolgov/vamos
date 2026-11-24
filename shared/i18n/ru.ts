@@ -53,6 +53,8 @@ export const RU = {
   'words.forms': 'Формы',
   'words.youLearn': 'Выучите это — откроется {n} {w}',
   'words.empty': 'Ничего не найдено',
+  'words.showMore': 'Показать ещё',
+  'words.shownOf': 'Показано {shown} из {total}',
 
   // Фразы
   'phrases.title': 'Фразы',

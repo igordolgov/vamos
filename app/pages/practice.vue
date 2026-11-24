@@ -5,7 +5,7 @@
 // Режим закрепления урока: /practice?lesson=N — пул только из
 // слов этого урока (кнопка «Практика» на странице урока).
 // ============================================================
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
 import { speakEs, unlockSpeech } from '~/composables/useSpeech'
 import { useProgress, applyAnswer, markAlreadyKnown } from '~/composables/useProgress'
@@ -106,6 +106,13 @@ function nextExercise() {
     mode.value = 'result'
     return
   }
+  // Автоозвучка аудио-упражнения — синхронно в контексте жеста
+  // (клик по кнопке типа / «Дальше» / свайп). Отложенный по таймеру
+  // speak() десктопные браузеры блокируют (строгая политика
+  // активации), синхронный вызов разрешён везде. iOS: первый speak()
+  // обязан случиться в жесте — это делает unlockSpeech() в startSession
+  const ex = current.value
+  if (ex.kind === 'audio' && ex.speak) void speakEs(ex.speak)
 }
 
 function onAnswered(correct: boolean) {
@@ -129,20 +136,6 @@ function goNext() {
 function speakAudio() {
   if (current.value?.speak) speakEs(current.value.speak)
 }
-
-// ============================================================
-// Автоозвучка: аудио-упражнение произносится сразу, как только
-// показалось (кнопка остаётся для повторного прослушивания).
-// Небольшая задержка — дать карточке отрисоваться.
-// ============================================================
-watch(current, (ex) => {
-  if (mode.value !== 'session' || ex?.kind !== 'audio' || !ex.speak) return
-  const text = ex.speak
-  window.setTimeout(() => {
-    // пока таймер ждал, упражнение могло смениться («Уже выучил» и т.п.)
-    if (mode.value === 'session' && current.value === ex) void speakEs(text)
-  }, 300)
-})
 
 /** «Уже выучил»: пометить слово/фразу — будут попадаться реже,
  *  и сразу показать следующее упражнение (без подсчёта в сессию) */
