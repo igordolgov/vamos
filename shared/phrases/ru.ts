@@ -24,20 +24,42 @@ function ruAgreement(noun: Word, number: GramNumber): { gender: 'm' | 'f' | 'n';
 
 /**
  * Форма русского прилагательного: белый → белая / белое / белые.
+ * caseForm = 'acc' — винительный неодушевлённых: отличается от именительного
+ * только в ж.р. ед.ч. (дешёвая музыка → дешёвую музыку).
  */
-export function ruAdjForm(adjMasculine: string, gender: 'm' | 'f' | 'n', number: GramNumber): string {
+export function ruAdjForm(
+  adjMasculine: string,
+  gender: 'm' | 'f' | 'n',
+  number: GramNumber,
+  caseForm: 'nom' | 'acc' = 'nom',
+): string {
   if (number === 'pl') {
+    // вин. мн.ч. неодушевлённых = им. мн.ч.
     return ruAdjPlural(adjMasculine)
   }
   const stem = adjMasculine.slice(0, -2)
   const end = adjMasculine.slice(-2)
   if (end === 'ий') {
-    if (gender === 'f') return stem + 'яя'
+    const last = stem.slice(-1)
+    // к/г/х — твёрдая основа: высокая/высокое/высокую
+    if ('кгх'.includes(last)) {
+      if (gender === 'f') return stem + (caseForm === 'acc' ? 'ую' : 'ая')
+      if (gender === 'n') return stem + 'ое'
+      return adjMasculine
+    }
+    // шипящие ж/ш/ч/щ: хорошая/хорошее/хорошую
+    if ('жшщч'.includes(last)) {
+      if (gender === 'f') return stem + (caseForm === 'acc' ? 'ую' : 'ая')
+      if (gender === 'n') return stem + 'ее'
+      return adjMasculine
+    }
+    // мягкая основа: синяя/синее/синюю
+    if (gender === 'f') return stem + (caseForm === 'acc' ? 'юю' : 'яя')
     if (gender === 'n') return stem + 'ее'
     return adjMasculine
   }
-  // -ый и -ой: ж.р. -ая, с.р. -ое
-  if (gender === 'f') return stem + 'ая'
+  // -ый и -ой: ж.р. -ая (вин. -ую), с.р. -ое
+  if (gender === 'f') return stem + (caseForm === 'acc' ? 'ую' : 'ая')
   if (gender === 'n') return stem + 'ое'
   return adjMasculine
 }
@@ -48,6 +70,24 @@ function ruAdjPlural(adjMasculine: string): string {
   const end = adjMasculine.slice(-2)
   if (end === 'ий') return stem + 'ие'
   return stem + 'ые'
+}
+
+/**
+ * Русская форма определителя: мой → моё / моя / мою (вин. ж.р.) / мои.
+ * Формы заданы в данных слова (ruDet); без них — базовый перевод.
+ */
+export function ruDetForm(
+  det: Word,
+  gender: 'm' | 'f' | 'n',
+  number: GramNumber,
+  caseForm: 'nom' | 'acc' = 'nom',
+): string {
+  const f = det.ruDet
+  if (!f) return det.ru[0] ?? ''
+  if (number === 'pl') return f.pl
+  if (gender === 'f') return caseForm === 'acc' ? f.accF : f.f
+  if (gender === 'n') return f.n
+  return f.m
 }
 
 /** Русская форма существительного (мн.ч. вычисляется механически) */
@@ -75,7 +115,7 @@ export function ruNounPhrase(
   const isArticle = !!det?.det?.definite || !!det?.det?.indefinite
 
   if (det && !isArticle) {
-    parts.push(det.ru[0] ?? '')
+    parts.push(ruDetForm(det, gender, ruNum))
   }
 
   if (opts.adj && !isQuantity) {

@@ -7,8 +7,10 @@ import { describe, it, expect } from 'vitest'
 import { regularForms } from '../../shared/data/words/helpers'
 import { gerundOf } from '../../shared/phrases/es'
 import { conjugate, esArticle, esNounPhrase, joinPrepNP } from '../../shared/phrases/es'
-import { ruAdjForm, ruNounPhrase } from '../../shared/phrases/ru'
+import { ruAdjForm, ruDetForm, ruNounPhrase } from '../../shared/phrases/ru'
 import { ruGenitive, ruPlural, ruAccusative } from '../../shared/phrases/ru-morph'
+import { enumerateTemplate } from '../../shared/phrases/engine'
+import { TEMPLATES, npRuAcc } from '../../shared/phrases/templates'
 import { getWord, findWord } from '../../shared/data/words'
 
 describe('Правильные спряжения (латиноамериканский набор, без vosotros)', () => {
@@ -149,6 +151,77 @@ describe('Русская морфология', () => {
     const trabajo = getWord('n-trabajo')
     const mucho = getWord('d-mucho')
     expect(ruNounPhrase(trabajo, { det: mucho })).toBe('много работы')
+  })
+
+  it('-ий после к/г/х/ж/ш/щ/ч: высокая/высокое/высокую, а не «высокяя»', () => {
+    expect(ruAdjForm('высокий', 'f', 'sg')).toBe('высокая')
+    expect(ruAdjForm('высокий', 'n', 'sg')).toBe('высокое')
+    expect(ruAdjForm('высокий', 'm', 'pl')).toBe('высокие')
+    expect(ruAdjForm('хороший', 'f', 'sg')).toBe('хорошая')
+    expect(ruAdjForm('хороший', 'n', 'sg')).toBe('хорошее')
+    expect(ruAdjForm('хороший', 'f', 'sg', 'acc')).toBe('хорошую')
+    expect(ruAdjForm('маленький', 'f', 'sg')).toBe('маленькая')
+    expect(ruAdjForm('горячий', 'f', 'sg')).toBe('горячая')
+  })
+
+  it('винительный прилагательных: дешёвую музыку, синюю, мягкие -юю', () => {
+    expect(ruAdjForm('дешёвый', 'f', 'sg', 'acc')).toBe('дешёвую')
+    expect(ruAdjForm('белый', 'f', 'sg', 'acc')).toBe('белую')
+    expect(ruAdjForm('синий', 'f', 'sg')).toBe('синяя')
+    expect(ruAdjForm('синий', 'f', 'sg', 'acc')).toBe('синюю')
+    expect(ruAdjForm('высокий', 'f', 'sg', 'acc')).toBe('высокую')
+    // м.р./с.р./мн.ч. неодушевлённых = именительный
+    expect(ruAdjForm('дешёвый', 'm', 'sg', 'acc')).toBe('дешёвый')
+    expect(ruAdjForm('дешёвый', 'n', 'sg', 'acc')).toBe('дешёвое')
+    expect(ruAdjForm('дешёвый', 'f', 'pl', 'acc')).toBe('дешёвые')
+  })
+
+  it('русские определители: мой/моё/моя/мою/мои', () => {
+    const mi = getWord('p-mi')
+    expect(ruDetForm(mi, 'm', 'sg')).toBe('мой')
+    expect(ruDetForm(mi, 'n', 'sg')).toBe('моё')
+    expect(ruDetForm(mi, 'f', 'sg')).toBe('моя')
+    expect(ruDetForm(mi, 'f', 'sg', 'acc')).toBe('мою')
+    expect(ruDetForm(mi, 'm', 'pl')).toBe('мои')
+    expect(ruDetForm(getWord('p-nuestro'), 'f', 'sg')).toBe('наша')
+    expect(ruDetForm(getWord('p-este'), 'f', 'sg', 'acc')).toBe('эту')
+    expect(ruDetForm(getWord('p-ese'), 'f', 'sg')).toBe('та')
+  })
+
+  it('«Ellos hacen música barata» → «Они делают дешёвую музыку»', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-pron-v-do-adj')!
+    const known = new Set(['p-ellos', 'v-hacer', 'n-musica', 'a-barato'])
+    const { phrases } = enumerateTemplate(t, known, 0, 100)
+    const rus = phrases.map((p) => p.ru)
+    expect(rus).toContain('Они делают дешёвую музыку')
+    expect(rus.some((r) => /дешёвая музык/.test(r))).toBe(false)
+  })
+
+  it('вин.п. именной группы с определителем и прилагательным', () => {
+    // «Veo mi carro (barato)» → «вижу мою машину», «вижу мою дешёвую машину»
+    const carro = getWord('n-carro')
+    const mi = getWord('p-mi')
+    const barato = getWord('a-barato')
+    const acc = npRuAcc({ 'x#noun': carro, 'x#det': mi, 'x#adj': null, 'x#num': 'sg' }, 'x')
+    expect(acc).toBe('мою машину')
+    const accAdj = npRuAcc({ 'x#noun': carro, 'x#det': mi, 'x#adj': barato, 'x#num': 'sg' }, 'x')
+    expect(accAdj).toBe('мою дешёвую машину')
+  })
+
+  it('им.п. с определителем: «моя музыка», «моё время»', () => {
+    const musica = getWord('n-musica')
+    const tiempo = getWord('n-tiempo')
+    const mi = getWord('p-mi')
+    expect(ruNounPhrase(musica, { det: mi })).toBe('моя музыка')
+    expect(ruNounPhrase(tiempo, { det: mi })).toBe('моё время')
+  })
+
+  it('после «есть» — именительный: «У меня есть дешёвая музыка»', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-pron-v-do-adj')!
+    const { phrases } = enumerateTemplate(t, new Set(['p-yo', 'v-tener', 'n-musica', 'a-barato']), 0, 200)
+    const rus = phrases.map((p) => p.ru)
+    expect(rus).toContain('У меня есть дешёвая музыка')
+    expect(rus.some((r) => /есть дешёвую/.test(r))).toBe(false)
   })
 })
 

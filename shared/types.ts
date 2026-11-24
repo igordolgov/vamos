@@ -189,6 +189,9 @@ export interface Word {
   ruByClass?: Partial<Record<NounClass, string>>
   /** Краткая форма русского прилагательного-состояния (устал / устала / устали) */
   ruShort?: { m: string; f: string; pl: string }
+  /** Русские формы определителя: мой → моё / моя / мою (вин. ж.р.) / мои.
+   *  Артикли и «много/мало» не переводятся согласованием — поле им не нужно. */
+  ruDet?: { m: string; n: string; f: string; pl: string; accF: string }
 
   // --- Глаголы ---
   verb?: VerbData

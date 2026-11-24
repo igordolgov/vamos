@@ -41,15 +41,27 @@ export const PRONOUNS: Word[] = [
   p('p-los', 'los', ['их (муж.)'], 25, { role: 'object' }),
   p('p-las', 'las', ['их (жен.)'], 25, { role: 'object' }),
 
-  // --- Притяжательные (урок 24): согласуются в числе ---
-  p('p-mi', 'mi', ['мой', 'моя'], 24, { role: 'possessive', forms: { m: 'mi', f: 'mi', mp: 'mis', fp: 'mis' } }),
-  p('p-tu-pos', 'tu', ['твой', 'твоя'], 24, { role: 'possessive', forms: { m: 'tu', f: 'tu', mp: 'tus', fp: 'tus' } }),
-  p('p-su', 'su', ['его', 'её', 'их', 'ваш'], 24, { role: 'possessive', forms: { m: 'su', f: 'su', mp: 'sus', fp: 'sus' } }),
-  p('p-nuestro', 'nuestro', ['наш'], 24, { role: 'possessive', forms: { m: 'nuestro', f: 'nuestra', mp: 'nuestros', fp: 'nuestras' } }),
+  // --- Притяжательные (урок 24): согласуются в числе и в роде русского перевода ---
+  p('p-mi', 'mi', ['мой', 'моя'], 24, { role: 'possessive', forms: { m: 'mi', f: 'mi', mp: 'mis', fp: 'mis' } }, {
+    ruDet: { m: 'мой', n: 'моё', f: 'моя', pl: 'мои', accF: 'мою' },
+  }),
+  p('p-tu-pos', 'tu', ['твой', 'твоя'], 24, { role: 'possessive', forms: { m: 'tu', f: 'tu', mp: 'tus', fp: 'tus' } }, {
+    ruDet: { m: 'твой', n: 'твоё', f: 'твоя', pl: 'твои', accF: 'твою' },
+  }),
+  p('p-su', 'su', ['его', 'её', 'их', 'ваш'], 24, { role: 'possessive', forms: { m: 'su', f: 'su', mp: 'sus', fp: 'sus' } }, {
+    ruDet: { m: 'его', n: 'его', f: 'его', pl: 'его', accF: 'его' },
+  }),
+  p('p-nuestro', 'nuestro', ['наш'], 24, { role: 'possessive', forms: { m: 'nuestro', f: 'nuestra', mp: 'nuestros', fp: 'nuestras' } }, {
+    ruDet: { m: 'наш', n: 'наше', f: 'наша', pl: 'наши', accF: 'нашу' },
+  }),
 
   // --- Указательные (урок 24) ---
-  p('p-este', 'este', ['этот'], 24, { role: 'demonstrative', forms: { m: 'este', f: 'esta', mp: 'estos', fp: 'estas' } }),
-  p('p-ese', 'ese', ['тот', 'этот (рядом с тобой)'], 24, { role: 'demonstrative', forms: { m: 'ese', f: 'esa', mp: 'esos', fp: 'esas' } }),
+  p('p-este', 'este', ['этот'], 24, { role: 'demonstrative', forms: { m: 'este', f: 'esta', mp: 'estos', fp: 'estas' } }, {
+    ruDet: { m: 'этот', n: 'это', f: 'эта', pl: 'эти', accF: 'эту' },
+  }),
+  p('p-ese', 'ese', ['тот', 'этот (рядом с тобой)'], 24, { role: 'demonstrative', forms: { m: 'ese', f: 'esa', mp: 'esos', fp: 'esas' } }, {
+    ruDet: { m: 'тот', n: 'то', f: 'та', pl: 'те', accF: 'ту' },
+  }),
 
   // --- Неопределённые (урок 25) ---
   p('p-algo', 'algo', ['что-то', 'что-нибудь'], 25, { role: 'indefinite' }),

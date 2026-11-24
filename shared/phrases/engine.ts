@@ -167,7 +167,7 @@ export function unitWays(unit: Unit, known: Set<string>, chosen: Fill): number {
         for (const prepId of verb.verb.withPrep) {
           const prep = tryWord(prepId)
           if (!prep || !known.has(prep.id)) continue
-          ways += prepNounWays(prep, unit.nouns, known, unit.number)
+          ways += prepNounWays(prep, unit.nouns, known, unit.number, verb.id)
         }
       }
       return ways
@@ -241,11 +241,11 @@ function npWaysPerNounFor(
 }
 
 /** Способы заполнения существительного для конкретного предлога */
-function prepNounWays(prep: Word, nouns: Word[], known: Set<string>, number: GramNumber | 'any'): number {
+function prepNounWays(prep: Word, nouns: Word[], known: Set<string>, number: GramNumber | 'any', verbId?: string): number {
   let ways = 0
   for (const noun of nouns) {
     if (!known.has(noun.id)) continue
-    if (!nounMatchesPrep(prep, noun)) continue
+    if (!nounMatchesPrep(prep, noun, verbId)) continue
     const numbers: GramNumber[] = number === 'any' ? ['sg', 'pl'] : [number]
     for (const num of numbers) {
       // «без» — всегда без артикля («sin azúcar»), остальные — с определителем
@@ -261,12 +261,24 @@ function prepNounWays(prep: Word, nouns: Word[], known: Set<string>, number: Gra
   return ways
 }
 
-/** Подходит ли существительное к предлогу (класс + русская аннотация) */
-export function nounMatchesPrep(prep: Word, noun: Word): boolean {
+/** Подходит ли существительное к предлогу (класс + русская аннотация).
+ *  Русский ключ падежа зависит от глагола: pensar en → «думаю о…» (sobre);
+ *  проверяется именно тот ключ, по которому будет рендериться перевод. */
+export function nounMatchesPrep(prep: Word, noun: Word, verbId?: string): boolean {
   if (!(prep.nounClasses ?? []).includes(noun.nounClass as never)) return false
   // русская падежная аннотация обязательна (перевод без неё не собрать)
-  const key = prep.id.replace('prep-', '') as 'a' | 'de' | 'en' | 'con' | 'para' | 'sin' | 'sobre' | 'desde' | 'hasta'
-  return !!noun.ruCases?.[key]
+  const key = verbId ? verbPrepRuKey(verbId, prep.id) : prep.id.replace('prep-', '')
+  return !!noun.ruCases?.[key as 'a']
+}
+
+/** Карта русских падежных ключей для связок глагол+предлог */
+const VERB_PREP_RU: Record<string, Record<string, string>> = {
+  'v-pensar': { 'prep-en': 'sobre' },
+}
+
+/** Русский ключ падежной аннотации для связки глагол+предлог */
+export function verbPrepRuKey(verbId: string, prepId: string): string {
+  return VERB_PREP_RU[verbId]?.[prepId] ?? prepId.replace('prep-', '')
 }
 
 function tryWord(id: string): Word | undefined {
@@ -406,7 +418,7 @@ function unitGains(unit: Unit, known: Set<string>): Map<string, number> {
         let ways = 0
         for (const prepId of verb.verb.withPrep) {
           const prep = tryWord(prepId)
-          if (prep && known.has(prep.id)) ways += prepNounWays(prep, unit.nouns, known, unit.number)
+          if (prep && known.has(prep.id)) ways += prepNounWays(prep, unit.nouns, known, unit.number, verb.id)
         }
         if (ways > 0) gains.set(verb.id, ways)
       }
@@ -428,7 +440,7 @@ function unitGains(unit: Unit, known: Set<string>): Map<string, number> {
           if (!known.has(verb.id) || !verb.verb?.withPrep) continue
           for (const prepId of verb.verb.withPrep) {
             const prep = tryWord(prepId)
-            if (prep && known.has(prep.id) && nounMatchesPrep(prep, noun)) ways += 1
+            if (prep && known.has(prep.id) && nounMatchesPrep(prep, noun, verb.id)) ways += 1
           }
         }
         if (ways > 0) gains.set(noun.id, ways)
@@ -695,7 +707,7 @@ function unitOptionsWithIndexes(unit: Unit, chosen: Fill, known: Set<string>): A
         for (const prepId of verb.verb.withPrep) {
           const prep = tryWord(prepId)
           if (!prep || !known.has(prep.id)) continue
-          const nouns = unit.nouns.filter((n) => known.has(n.id) && nounMatchesPrep(prep, n))
+          const nouns = unit.nouns.filter((n) => known.has(n.id) && nounMatchesPrep(prep, n, verb.id))
           for (const noun of nouns) {
             const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
             for (const num of numbers) {
@@ -845,6 +857,65 @@ export function sampleFill(t: Template, known: Set<string>, rand: () => number =
     for (const [k, v] of Object.entries(picked)) fill[k] = v
   }
   return fill
+}
+
+// ============================================================
+// 5. Обход заполнений с ограничением (для скана качества переводов)
+// ============================================================
+
+/**
+ * Систематический обход заполнений шаблона, вызывающий visit(fill, kind)
+ * не более maxLeaves раз. Если пространство комбинаторики больше бюджета,
+ * на каждом уровне перебираются варианты с шагом (stride) — выборка
+ * остаётся детерминированной и покрывает всё пространство понемногу.
+ * Возвращает число вызовов visit.
+ */
+export function walkFills(
+  t: Template,
+  known: Set<string>,
+  visit: (fill: Fill, kind: PhraseKind) => void,
+  opts: { maxLeaves?: number } = {},
+): number {
+  if (!templateReady(t, known)) return 0
+  const maxLeaves = opts.maxLeaves ?? 100_000
+
+  // Произведение способов заполнения юнитов после i-го (пулы статичны)
+  const suffix: number[] = new Array(t.units.length + 1)
+  suffix[t.units.length] = 1
+  for (let i = t.units.length - 1; i >= 0; i--) {
+    suffix[i] = unitWays(t.units[i]!, known, {}) * suffix[i + 1]!
+  }
+
+  let budget = maxLeaves
+  let visited = 0
+  const fill: Fill = {}
+
+  const walk = (unitIdx: number): void => {
+    if (budget <= 0) return
+    if (unitIdx === t.units.length) {
+      for (const kind of t.variants) {
+        visit(fill, kind)
+        visited++
+      }
+      budget -= t.variants.length
+      return
+    }
+    const unit = t.units[unitIdx]!
+    const options = unitOptionsWithIndexes(unit, fill, known)
+    if (options.length === 0) return
+    // Листьев под этим узлом: варианты × остаток пути × варианты фразы
+    const subtreeLeaves = options.length * suffix[unitIdx + 1]! * t.variants.length
+    const stride = Math.max(1, Math.ceil(subtreeLeaves / Math.max(1, budget)))
+    for (let i = 0; i < options.length; i += stride) {
+      applyOption(fill, unit, options[i]![0])
+      walk(unitIdx + 1)
+      undoOption(fill, unit)
+      if (budget <= 0) return
+    }
+  }
+
+  walk(0)
+  return visited
 }
 
 // ============================================================

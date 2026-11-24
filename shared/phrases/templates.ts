@@ -11,9 +11,9 @@ import type { GramNumber, Word } from '../types'
 import { getWord } from '../data/words'
 import { ALL_WORDS, wordsByPos } from '../data/words'
 import { capitalize, conjugate, gerundOf, joinPrepNP } from './es'
-import { ruAdjForm, ruGustarForm, ruNounForm, ruNounPhrase } from './ru'
+import { ruAdjForm, ruDetForm, ruGustarForm, ruNounForm, ruNounPhrase } from './ru'
 import { ruAccusative, ruGenitive } from './ru-morph'
-import { initEngine, npEs, npNumber, npRu } from './engine'
+import { initEngine, npEs, npNumber, npRu, verbPrepRuKey } from './engine'
 import type { Fill, PhraseKind, Template } from './schema'
 
 // ============================================================
@@ -161,8 +161,10 @@ function ruShortFor(adj: Word, pron: Word): string {
   return pronGender(pron) === 'f' ? s.f : s.m
 }
 
-/** Русская именная группа в винительном падеже (вижу курицу) */
-function npRuAcc(fill: Fill, role: string): string {
+/** Русская именная группа в винительном падеже (вижу курицу).
+ *  Прилагательное и определитель согласуются и в падеже: дешёвую музыку,
+ *  мою машину; м.р./с.р./мн.ч. неодушевлённых совпадают с именительным. */
+export function npRuAcc(fill: Fill, role: string): string {
   const noun = fill[role + '#noun'] as Word
   const det = fill[role + '#det'] as Word | null
   const adj = fill[role + '#adj'] as Word | null
@@ -171,11 +173,12 @@ function npRuAcc(fill: Fill, role: string): string {
   const isArticle = !!det?.det?.definite || !!det?.det?.indefinite
   // русские plural-only существительные (часы, деньги) согласуются во мн.ч.
   const num = noun.ruPluralOnly ? 'pl' : numRaw
+  const g = noun.ruGender ?? 'm'
   const parts: string[] = []
-  if (det && !isArticle && !isQuantity) parts.push(det.ru[0] ?? '')
+  if (det && !isArticle && !isQuantity) parts.push(ruDetForm(det, g, num, 'acc'))
   if (adj && !isQuantity) {
     const masc = adj.ruByClass?.[noun.nounClass ?? 'thing'] ?? (adj.ru[0] ?? adj.adj!.m)
-    parts.push(ruAdjForm(masc, noun.ruGender ?? 'm', num))
+    parts.push(ruAdjForm(masc, g, num, 'acc'))
   }
   if (isQuantity) {
     // «много/мало» + родительный: много работы
@@ -615,9 +618,11 @@ export const TEMPLATES: Template[] = [
       const np = npRuAcc(fill, 'o')
       if (v.id === 'v-tener') {
         const noun = fill['o#noun'] as Word
+        // после «есть» — именительный падеж («У меня есть дешёвая музыка»)
+        const npNom = npRu(fill, 'o')
         if (kind === 'neg') return `У ${p.pronoun?.ruGen} нет ${ruGenitive(noun)}`
-        if (kind === 'yesno') return `У ${p.pronoun?.ruGen} есть ${np}?`
-        return `У ${p.pronoun?.ruGen} есть ${np}`
+        if (kind === 'yesno') return `У ${p.pronoun?.ruGen} есть ${npNom}?`
+        return `У ${p.pronoun?.ruGen} есть ${npNom}`
       }
       if (kind === 'neg') return `${capitalize(ruPron(p))} не ${ruVerbP(v, p)} ${np}`
       if (kind === 'yesno') return `${capitalize(ruPron(p))} ${ruVerbP(v, p)} ${np}?`
@@ -793,8 +798,10 @@ export const TEMPLATES: Template[] = [
       if (v.id === 'v-tener') {
         const subj = fill['s#noun'] as Word
         const noun = fill['o#noun'] as Word
+        // после «есть» — именительный падеж («У мужчины есть дешёвая музыка»)
+        const npNom = npRu(fill, 'o')
         if (kind === 'neg') return `У ${ruGenitive(subj)} нет ${ruGenitive(noun)}`
-        return kind === 'yesno' ? `У ${ruGenitive(subj)} есть ${npO}?` : `У ${ruGenitive(subj)} есть ${npO}`
+        return kind === 'yesno' ? `У ${ruGenitive(subj)} есть ${npNom}?` : `У ${ruGenitive(subj)} есть ${npNom}`
       }
       if (kind === 'neg') return `${capitalize(np)} не ${ruForm} ${npO}`
       if (kind === 'yesno') return `${capitalize(np)} ${ruForm} ${npO}?`
@@ -1304,15 +1311,6 @@ function qwTemplate(id: string, qwId: string, ruQw: string, verbs: Word[]): Temp
   }
 }
 
-/** Карта русских падежных ключей для связок глагол+предлог */
-const VERB_PREP_RU: Record<string, Record<string, string>> = {
-  'v-pensar': { 'prep-en': 'sobre' },
-}
-
-function verbPrepRuKey(verbId: string, prepId: string): string {
-  return VERB_PREP_RU[verbId]?.[prepId] ?? prepId.replace('prep-', '')
-}
-
 /** Русское будущее время: буду/будешь/будет/будем/будете/будут */
 function ruFuture(pron: Word): string {
   const id = pron.id
@@ -1328,5 +1326,3 @@ function ruFuture(pron: Word): string {
 export function allTemplates(): Template[] {
   return TEMPLATES
 }
-
-void ruAdjForm
