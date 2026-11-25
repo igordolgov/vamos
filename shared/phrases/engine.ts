@@ -38,23 +38,35 @@ export function detWords(set: 'subject' | 'object'): Word[] {
   return ids.map((id) => getWord(id))
 }
 
-/** Совместим ли определитель с существительным (род/число/семантика) */
+/** Совместимо ли определитель с существительным (род/число/семантика) */
 export function detCompatible(det: Word, noun: Word, number: GramNumber): boolean {
   const d = det.det
   if (!d) return false
   if (d.number && d.number !== number) return false
   if (d.gender && d.gender !== (noun.articleGender ?? noun.gender)) return false
-  // «много/мало» — только неисчисляемое: много работы, но не «много двери»
+  // «много/мало» — только неисчисляемое: много работы, но не «много двери».
+  // Чисто неисчисляемые — только в ед.ч.: «много одежды», не «многие одежды»
   if (d.quantity) {
     const cls = noun.nounClass
     if (cls === 'food' || cls === 'drink') return true
-    return UNCOUNTABLE_ABSTRACT.has(noun.id)
+    return UNCOUNTABLE_NOUNS.has(noun.id) && number === 'sg'
   }
+  // Неисчисляемые не сочетаются с неопределённым артиклем:
+  // «Tengo ropa/dinero/tiempo», но не «una ropa», «un dinero»
+  if (d.indefinite && NO_INDEFINITE_NOUNS.has(noun.id)) return false
   return true
 }
 
-/** Неисчисляемые абстрактные: с ними допустимо «много/мало» */
-const UNCOUNTABLE_ABSTRACT = new Set(['n-tiempo', 'n-dinero', 'n-trabajo', 'n-musica', 'n-vida', 'n-amor'])
+/** Неисчисляемые: допустимо «много/мало» (только ед.ч.) и голая форма,
+ *  но не неопределённый артикль */
+const UNCOUNTABLE_NOUNS = new Set([
+  'n-tiempo', 'n-dinero', 'n-trabajo', 'n-musica', 'n-vida', 'n-amor',
+  'n-agua', 'n-ropa',
+])
+
+/** Существительные, никогда не сочетающиеся с un/una/unos/unas:
+ *  «Tengo ropa», «Quiero dinero», «Hay tiempo» — без артикля */
+const NO_INDEFINITE_NOUNS = new Set(['n-ropa', 'n-dinero', 'n-tiempo', 'n-musica'])
 
 /** Совместимо ли прилагательное с существительным: формы (все имеют 4)
  *  + семантический белый список («уставшая кровать» исключена) */
@@ -72,11 +84,24 @@ function npNounBlocked(unit: NPUnit, noun: Word, chosen: Fill): boolean {
   return !!other && typeof other === 'object' && 'id' in other && (other as Word).id === noun.id
 }
 
-/** Разрешена ли «голая» форма (без артикля) для существительного ед.ч. */
+/** Разрешена ли «голая» форма (без артикля) для существительного ед.ч.:
+ *  неисчисляемые (комо pan, hay dinero) и casa (en casa).
+ *  Счётные абстрактные — всегда с артиклем: «hay una idea»,
+ *  «tengo un problema», но не «hay idea», «tengo problema» */
+const COUNTABLE_ABSTRACT = new Set([
+  'n-ano', 'n-cancion', 'n-dia', 'n-historia', 'n-hora', 'n-idea',
+  'n-manana', 'n-manera', 'n-mes', 'n-minuto', 'n-momento', 'n-mundo',
+  'n-noche', 'n-nombre', 'n-palabra', 'n-parte', 'n-pregunta',
+  'n-problema', 'n-razon', 'n-respuesta', 'n-semana', 'n-tarde', 'n-verdad',
+])
+
 export function bareAllowed(noun: Word, number: GramNumber): boolean {
   if (number !== 'sg') return false
   const cls = noun.nounClass
-  return cls === 'food' || cls === 'drink' || cls === 'abstract' || cls === 'language' || noun.id === 'n-casa'
+  if (cls === 'food' || cls === 'drink' || cls === 'language') return true
+  if (cls === 'abstract') return !COUNTABLE_ABSTRACT.has(noun.id)
+  // «ropa» — неисчисляемое из класса «вещи»: «Tengo ropa», «Hay ropa»
+  return noun.id === 'n-casa' || noun.id === 'n-ropa'
 }
 
 /** Определители, совместимые с существительным (без «голой» формы) */
@@ -139,6 +164,20 @@ let allNounsCache: Word[] = []
 export function initEngine(adjectives: Word[], nouns: Word[]): void {
   allAdjectives = adjectives
   allNounsCache = nouns
+}
+
+/** Глаголы, с которыми дополнение естественно звучит с «много/мало»:
+ *  «como mucho arroz», «quiero poco tiempo», «llevo mucha ropa».
+ *  С остальными количество ломает фразу: «hacen poco pollo» — нет */
+const QUANTITY_OBJ_VERBS = new Set(['v-comer', 'v-beber', 'v-querer', 'v-necesitar', 'v-tener', 'v-llevar'])
+
+/** Определители дополнения для глагола: «много/мало» — только с
+ *  глаголами потребления/желания/наличия */
+function objDetsForVerb(verb: Word, detSet: 'subject' | 'object' | 'none'): Word[] {
+  if (detSet === 'none') return []
+  const dets = detWords(detSet)
+  if (QUANTITY_OBJ_VERBS.has(verb.id)) return dets
+  return dets.filter((d) => !d.det?.quantity)
 }
 
 function countWords(words: Word[], known: Set<string>): number {
@@ -227,12 +266,13 @@ function npWaysPerNounFor(
   known: Set<string>,
   withAdj = false,
   detFilter?: (d: Word) => boolean,
+  detPool?: Word[],
 ): number {
   // прилагательные, совместимые с ЭТИМ существительным (белый список)
   const adjWays = withAdj ? countWords(allAdjectives.filter((a) => adjCompatible(a, noun)), known) : 1
   if (detSet === 'none') return adjWays
   let ways = 0
-  for (const det of detWords(detSet)) {
+  for (const det of detPool ?? detWords(detSet)) {
     if (!known.has(det.id) || !detCompatible(det, noun, number)) continue
     if (detFilter && !detFilter(det)) continue
     ways += det.det?.quantity ? 1 : adjWays
@@ -268,7 +308,7 @@ function objNounWays(
     if (!known.has(noun.id)) continue
     const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
     for (const num of numbers) {
-      ways += npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known, unit.withAdj)
+      ways += npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known, unit.withAdj, undefined, objDetsForVerb(verb, unit.detSet))
     }
   }
   return ways
@@ -288,7 +328,9 @@ function prepNounWays(prep: Word, nouns: Word[], known: Set<string>, number: Gra
         continue
       }
       let w = compatibleDets(detWords('object'), noun, num, known).filter((d) => !d.det?.quantity).length
-      if (bareAllowed(noun, num)) w += 1
+      // «sobre + абстрактное» — тема без артикля: «hablar sobre música»;
+      // остальные предлоги требуют определитель: «al trabajo», «de la comida»
+      if (prep.id === 'prep-sobre' && noun.nounClass === 'abstract' && num === 'sg') w += 1
       ways += w
     }
   }
@@ -599,7 +641,7 @@ function unitGains(unit: Unit, known: Set<string>): Map<string, number> {
           if (!verbObjCompatible(verb, noun)) continue
           const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
           for (const num of numbers) {
-            ways += npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known, unit.withAdj)
+            ways += npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known, unit.withAdj, undefined, objDetsForVerb(verb, unit.detSet))
           }
         }
         if (ways > 0) gains.set(noun.id, ways)
@@ -615,7 +657,7 @@ function unitGains(unit: Unit, known: Set<string>): Map<string, number> {
               if (!known.has(noun.id) || !adjCompatible(adj, noun)) continue
               const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
               for (const num of numbers) {
-                ways += npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known, false)
+                ways += npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known, false, undefined, objDetsForVerb(verb, unit.detSet))
               }
             }
           }
@@ -629,12 +671,14 @@ function unitGains(unit: Unit, known: Set<string>): Map<string, number> {
           let ways = 0
           for (const verb of unit.verbs) {
             if (!known.has(verb.id)) continue
+            // «много/мало» допустимы только с глаголами потребления/желания
+            if (det.det?.quantity && !QUANTITY_OBJ_VERBS.has(verb.id)) continue
             for (const noun of verbCompatibleNouns(verb, unit.nouns)) {
               if (!known.has(noun.id)) continue
               const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
               for (const num of numbers) {
                 if (!detCompatible(det, noun, num)) continue
-                ways += det.det?.quantity ? 1 : npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known, false)
+                ways += det.det?.quantity ? 1 : npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known, false, undefined, objDetsForVerb(verb, unit.detSet))
               }
             }
           }
@@ -773,7 +817,7 @@ function unitOptionsWithIndexes(unit: Unit, chosen: Fill, known: Set<string>): A
               dets.push(null)
             } else {
               if (unit.bareAuto && bareAllowed(noun, num)) dets.push(null)
-              for (const d of detWords(unit.detSet)) {
+              for (const d of objDetsForVerb(verb, unit.detSet)) {
                 if (known.has(d.id) && detCompatible(d, noun, num)) dets.push(d)
               }
             }
@@ -825,12 +869,15 @@ function unitOptionsWithIndexes(unit: Unit, chosen: Fill, known: Set<string>): A
           for (const noun of nouns) {
             const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
             for (const num of numbers) {
-              // «sin» — всегда без артикля; остальные — с совместимыми определителями
+              // «sin» — всегда без артикля («sin azúcar»); «casa» — идиоматично
+              // голая с любым предлогом («en casa», «de casa», «a casa»);
+              // «sobre + абстрактное» — тема без артикля («hablar sobre música»);
+              // остальные предлоги — с определителем («al trabajo», «de la comida»)
               const dets: Array<Word | null> = []
-              if (prep.id === 'prep-sin') {
+              if (prep.id === 'prep-sin' || noun.id === 'n-casa') {
                 dets.push(null)
               } else {
-                if (bareAllowed(noun, num)) dets.push(null)
+                if (prep.id === 'prep-sobre' && noun.nounClass === 'abstract' && num === 'sg') dets.push(null)
                 for (const d of detWords('object')) {
                   if (known.has(d.id) && detCompatible(d, noun, num) && !d.det?.quantity) dets.push(d)
                 }

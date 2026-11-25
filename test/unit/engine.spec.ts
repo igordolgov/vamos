@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { allTemplates } from '../../shared/phrases/templates'
-import { countTemplate, enumerateTemplate, sampleFill, gainsTemplate } from '../../shared/phrases/engine'
+import { countTemplate, enumerateTemplate, sampleFill, gainsTemplate, walkFills, bareAllowed, detCompatible } from '../../shared/phrases/engine'
 import { ruGenitive, ruPlural } from '../../shared/phrases/ru-morph'
 import { ALL_WORDS, getWord } from '../../shared/data/words'
 import type { Fill, Template } from '../../shared/phrases/schema'
@@ -252,5 +252,103 @@ describe('tener в глагольных шаблонах', () => {
     expect(ruPlural(hombre)).toBe('мужчины')
     expect(ruGenitive(maestro)).toBe('учителя')
     expect(ruPlural(maestro)).toBe('учителя')
+  })
+})
+
+
+describe('Артикли: правила употребления', () => {
+  const word = (id: string) => ALL_WORDS.find((w) => w.id === id)!
+
+  it('голая форма: неисчисляемые да, счётные абстрактные нет', () => {
+    // «Tengo dinero/tiempo», «Hay comida», «Como pan» — без артикля
+    expect(bareAllowed(word('n-dinero'), 'sg')).toBe(true)
+    expect(bareAllowed(word('n-tiempo'), 'sg')).toBe(true)
+    expect(bareAllowed(word('n-pan'), 'sg')).toBe(true)
+    expect(bareAllowed(word('n-agua'), 'sg')).toBe(true)
+    expect(bareAllowed(word('n-casa'), 'sg')).toBe(true)
+    expect(bareAllowed(word('n-ropa'), 'sg')).toBe(true)
+    // счётные абстрактные — всегда с артиклем: «tengo un problema»,
+    // «hay una idea», но не «tengo problema», «hay idea»
+    expect(bareAllowed(word('n-problema'), 'sg')).toBe(false)
+    expect(bareAllowed(word('n-pregunta'), 'sg')).toBe(false)
+    expect(bareAllowed(word('n-idea'), 'sg')).toBe(false)
+    expect(bareAllowed(word('n-historia'), 'sg')).toBe(false)
+    expect(bareAllowed(word('n-dia'), 'sg')).toBe(false)
+    // во мн.ч. голой формы нет вовсе
+    expect(bareAllowed(word('n-dinero'), 'pl')).toBe(false)
+  })
+
+  it('неисчисляемые не сочетаются с un/una, но сочетаются с mucho в ед.ч.', () => {
+    const ropa = word('n-ropa')
+    const dinero = word('n-dinero')
+    expect(detCompatible(getWord('d-un'), ropa, 'sg')).toBe(false)
+    expect(detCompatible(getWord('d-una'), ropa, 'sg')).toBe(false)
+    expect(detCompatible(getWord('d-unos'), ropa, 'pl')).toBe(false)
+    expect(detCompatible(getWord('d-un'), dinero, 'sg')).toBe(false)
+    expect(detCompatible(getWord('d-la'), ropa, 'sg')).toBe(true)
+    expect(detCompatible(getWord('d-mucho'), ropa, 'sg')).toBe(true)
+    // «muchas ropas» — нет (только ед.ч. с количеством)
+    expect(detCompatible(getWord('d-mucho'), ropa, 'pl')).toBe(false)
+    // «un agua» корректно по RAE (ж.р. с м.р. артиклем через articleGender)
+    const agua = word('n-agua')
+    expect(detCompatible(getWord('d-un'), agua, 'sg')).toBe(true)
+    expect(detCompatible(getWord('d-una'), agua, 'sg')).toBe(false)
+  })
+
+  it('hay: без языков и без голых счётных абстрактных', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-hay-noun')!
+    const seen: string[] = []
+    walkFills(t, ALL, (fill, kind) => seen.push(t.render(fill, kind)), { maxLeaves: 100_000 })
+    const langs = ['español', 'inglés', 'ruso']
+    for (const es of seen) {
+      const low = es.toLowerCase()
+      for (const l of langs) expect(low, es).not.toContain(`hay ${l}`)
+      // голые счётные: «hay historia», «hay idea» — нет
+      expect(low, es).not.toMatch(/\bhay (historia|idea|pregunta|problema|palabra|respuesta)\b/)
+    }
+    // при этом корректные голые формы остаются: «Hay comida/dinero/tiempo»
+    expect(seen.some((es) => /\bhay comida\b/i.test(es))).toBe(true)
+    expect(seen.some((es) => /\bhay dinero\b/i.test(es))).toBe(true)
+    expect(seen.some((es) => /\bhay una historia\b/i.test(es))).toBe(true)
+  })
+
+  it('tener: «Tengo un problema», но не «Tengo problema»; «Tengo ropa» без артикля', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-pron-tener-noun')!
+    const seen: string[] = []
+    walkFills(t, ALL, (fill, kind) => seen.push(t.render(fill, kind)), { maxLeaves: 100_000 })
+    for (const es of seen) {
+      expect(es.toLowerCase(), es).not.toMatch(/\btengo (problema|pregunta|idea|historia|respuesta)\b/)
+      expect(es.toLowerCase(), es).not.toMatch(/\b(un|una) (ropa|dinero|tiempo)\b/)
+    }
+    expect(seen.some((es) => /tengo un problema/i.test(es))).toBe(true)
+    expect(seen.some((es) => /tengo ropa/i.test(es))).toBe(true)
+    expect(seen.some((es) => /tengo dinero/i.test(es))).toBe(true)
+  })
+
+  it('предлоги: голая форма только у sin/casa и «sobre + тема»', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-pron-v-prep-np')!
+    const seen: string[] = []
+    walkFills(t, ALL, (fill, kind) => seen.push(t.render(fill, kind)), { maxLeaves: 120_000 })
+    const nouns = new Set(ALL_WORDS.filter((w) => w.pos === 'noun').flatMap((w) => [w.es.toLowerCase(), ...(w.nounPlural ? [w.nounPlural.toLowerCase()] : [])]))
+    const abstract = new Set(ALL_WORDS.filter((w) => w.pos === 'noun' && w.nounClass === 'abstract').map((w) => w.es.toLowerCase()))
+    const preps = ['a', 'de', 'en', 'con', 'para', 'por', 'sobre', 'antes de', 'después de']
+    for (const es of seen) {
+      const words = es.toLowerCase().replace(/[¿?¡!.]/g, '').split(/\s+/)
+      for (let i = 0; i < words.length - 1; i++) {
+        if (!preps.includes(words[i]!)) continue
+        const next = words[i + 1]!
+        if (!nouns.has(next)) continue // артикль/определитель/глагол — ок
+        if (words[i] === 'sin') continue
+        if (next === 'casa') continue
+        if (words[i] === 'sobre' && abstract.has(next)) continue
+        expect.fail(`голая форма после предлога: «${es}»`)
+      }
+    }
+    // идиоматичные голые формы работают (sin в шаблонах не участвует —
+    // ни один глагол его не требует, поэтому «sin …» тут не проверяем)
+    expect(seen.some((es) => / a casa| en casa| de casa/i.test(es))).toBe(true)
+    expect(seen.some((es) => /sobre m[uú]sica/i.test(es))).toBe(true)
+    // «salir de la escuela» / «voy al banco» — с определителем
+    expect(seen.some((es) => /de la escuela/i.test(es))).toBe(true)
   })
 })

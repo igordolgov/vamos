@@ -581,7 +581,8 @@ export const TEMPLATES: Template[] = [
       {
         kind: 'np',
         role: 'o',
-        nouns: THING_NOUNS,
+        // языки не бывают «hay»: «Hay español» — нет; только вещи/еда/напитки/абстрактные
+        nouns: THING_NOUNS.filter((n) => n.nounClass !== 'language'),
         number: 'sg',
         detSet: 'object',
         bareAuto: true,
@@ -611,7 +612,8 @@ export const TEMPLATES: Template[] = [
       {
         kind: 'np',
         role: 's',
-        nouns: THING_NOUNS,
+        // языки не бывают «hay» — только вещи/еда/напитки/абстрактные
+        nouns: THING_NOUNS.filter((n) => n.nounClass !== 'language'),
         number: 'sg',
         detSet: 'object',
         bareAuto: true,
@@ -978,9 +980,8 @@ export const TEMPLATES: Template[] = [
       const prep = fill.prep as Word
       const verb = conjugate(v, pronPerson(p))
       const noun = fill['o#noun'] as Word
-      // «en casa» и «a casa» без артикля
-      const bare = noun.id === 'n-casa' && (prep.id === 'prep-en' || prep.id === 'prep-a')
-      const np = bare ? 'casa' : npEs(fill, 'o')
+      // «casa» — голая форма с любым предлогом (en casa, a casa, de casa)
+      const np = noun.id === 'n-casa' ? 'casa' : npEs(fill, 'o')
       const es = joinPrepNP(prep.es, np)
       if (kind === 'neg') return capitalize(`${p.es} no ${verb} ${es}`)
       if (kind === 'yesno') return `¿${capitalize(`${p.es} ${verb} ${es}`)}?`
