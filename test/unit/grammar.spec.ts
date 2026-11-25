@@ -216,12 +216,15 @@ describe('Русская морфология', () => {
     expect(ruNounPhrase(tiempo, { det: mi })).toBe('моё время')
   })
 
-  it('после «есть» — именительный: «У меня есть дешёвая музыка»', () => {
+  it('после «есть» — именительный: «У меня есть новая книга»', () => {
+    // «tener + еда/музыка» исключены коллокациями («мало курицы»);
+    // морфологию проверяем на естественном сочетании
     const t = TEMPLATES.find((x) => x.id === 't-pron-v-do-adj')!
-    const { phrases } = enumerateTemplate(t, new Set(['p-yo', 'v-tener', 'n-musica', 'a-barato']), 0, 200)
+    const known = new Set(['p-yo', 'v-tener', 'n-libro', 'a-nuevo', 'd-un'])
+    const { phrases } = enumerateTemplate(t, known, 0, 200)
     const rus = phrases.map((p) => p.ru)
-    expect(rus).toContain('У меня есть дешёвая музыка')
-    expect(rus.some((r) => /есть дешёвую/.test(r))).toBe(false)
+    expect(rus).toContain('У меня есть новая книга')
+    expect(rus.some((r) => /есть новую/.test(r))).toBe(false)
   })
 })
 

@@ -93,8 +93,8 @@ export const ADJ_NOUN_CLASSES: Record<string, readonly NounClass[]> = {
   'a-azul': ['thing', 'food', 'drink', 'place'],
   'a-amarillo': ['thing', 'food', 'drink', 'place'],
 
-  // Вкус: еда и напитки
-  'a-rico': ['food', 'drink', 'person', 'family', 'place'], // вкусный хлеб / богатый человек
+  // Вкус и богатство: еда/напитки — «вкусный», люди/семья — «богатый»
+  'a-rico': ['food', 'drink', 'person', 'family'],
   'a-dulce': ['food', 'drink'],
   'a-delicioso': ['food', 'drink'],
 
@@ -112,9 +112,11 @@ export const ADJ_NOUN_EXCEPTIONS: Record<string, readonly string[]> = {
   // быстрый/медленный — люди, машина, еда (fast food), ответ
   'a-rapido': ['n-carro', 'n-comida', 'n-respuesta'],
   'a-lento': ['n-carro'],
-  // дешёвый/дорогой о жизни — «жизнь здесь дешёвая» (цена жизни)
-  'a-caro': ['n-vida'],
-  'a-barato': ['n-vida'],
+  // дешёвый/дорогой о жизни и музыке: «жизнь здесь дешёвая», «дешёвая музыка»
+  'a-caro': ['n-vida', 'n-musica'],
+  'a-barato': ['n-vida', 'n-musica'],
+  // богатый — о городе: «богатый город»
+  'a-rico': ['n-ciudad'],
 }
 
 /** Прилагательное семантически сочетается с существительным? */
@@ -190,7 +192,7 @@ export const VERB_OBJ_ALLOWED: Record<string, VerbObjRule> = {
 
   // ---------- давать/делать/платить/класть: «даю стол», «плачу деньги» — нет ----------
   'v-dar': { classes: [], nouns: ['n-regalo', 'n-libro', 'n-foto', 'n-carta', 'n-papel', 'n-lapiz', 'n-pluma', 'n-llave', 'n-bolsa', 'n-dinero', 'n-telefono', 'n-computadora', 'n-ropa', 'n-camisa', 'n-zapato', 'n-reloj', 'n-palabra', ...FOOD_DRINK] },
-  'v-hacer': { classes: [], nouns: ['n-comida', 'n-pan', 'n-cafe', 'n-jugo', 'n-vino', 'n-cerveza', 'n-carne', 'n-pollo', 'n-pescado', 'n-arroz', 'n-huevo', 'n-queso', 'n-fruta', 'n-manzana', 'n-platano', 'n-tomate', 'n-foto', 'n-trabajo'] },
+  'v-hacer': { classes: [], nouns: ['n-comida', 'n-pan', 'n-cafe', 'n-jugo', 'n-vino', 'n-cerveza', 'n-carne', 'n-pollo', 'n-pescado', 'n-arroz', 'n-huevo', 'n-queso', 'n-fruta', 'n-manzana', 'n-platano', 'n-tomate', 'n-foto', 'n-trabajo', 'n-musica'] },
   'v-pagar': { classes: [], nouns: [...FOOD_DRINK, 'n-carro', 'n-telefono', 'n-computadora', 'n-libro', 'n-ropa', 'n-camisa', 'n-zapato'] },
   'v-poner': { classes: [], nouns: ['n-mesa', 'n-libro', 'n-ropa', 'n-pluma', 'n-lapiz', 'n-llave', 'n-bolsa', 'n-telefono', 'n-dinero', 'n-comida', 'n-pan', 'n-carne', 'n-pollo', 'n-pescado', 'n-arroz', 'n-huevo', 'n-queso', 'n-fruta', 'n-manzana', 'n-platano', 'n-tomate', 'n-sal', 'n-azucar'] },
 

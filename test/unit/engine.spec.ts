@@ -62,13 +62,15 @@ describe('Подсчёт и перечисление', () => {
     }
   })
 
-  it('прогрессия: после 3 уроков фразы уже есть, после 13 — сотни тысяч', () => {
+  it('прогрессия: после 3 уроков фразы уже есть, после 13 — десятки тысяч', () => {
     // Вопросительные слова — урок 3 (curriculum.ts): «¿Qué es?»,
-    // «¿Cómo estás?» собираются сразу после первых уроков
+    // «¿Cómo estás?» собираются сразу после первых уроков.
+    // Порог — реальный объём БЕЗ абсурдных сочетаний (читаю стол,
+    // есть музыка, три отца): точность важнее «красивых» миллионов
     const after3 = TEMPLATES.reduce((acc, t) => acc + countTemplate(t, lessons(3)), 0)
     const after13 = TEMPLATES.reduce((acc, t) => acc + countTemplate(t, lessons(13)), 0)
     expect(after3).toBeGreaterThan(0)
-    expect(after13).toBeGreaterThan(100_000)
+    expect(after13).toBeGreaterThan(15_000)
     expect(after13).toBeLessThan(after3 * 1_000_000)
   })
 

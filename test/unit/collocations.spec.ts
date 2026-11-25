@@ -15,6 +15,7 @@ import {
   adjSemCompatible,
   verbObjCompatible,
   ADJ_NOUN_CLASSES,
+  ADJ_NOUN_EXCEPTIONS,
   VERB_OBJ_ALLOWED,
 } from '../../shared/phrases/collocations'
 import { countTemplate, enumerateTemplate, walkFills, adjCompatible } from '../../shared/phrases/engine'
@@ -43,11 +44,14 @@ describe('Прилагательное × существительное', () =>
     expect(adjSemCompatible(w('a-caliente'), w('n-hombre'))).toBe(false)
   })
 
-  it('вкус: только еда и напитки', () => {
+  it('вкус: только еда и напитки, богатство: люди', () => {
     expect(adjSemCompatible(w('a-rico'), w('n-pan'))).toBe(true)
     expect(adjSemCompatible(w('a-delicioso'), w('n-fruta'))).toBe(true)
     expect(adjSemCompatible(w('a-rico'), w('n-casa'))).toBe(false)
     expect(adjSemCompatible(w('a-rico'), w('n-libro'))).toBe(false)
+    // «богатый человек», «богатый город» — да (ruByClass переводит как «богатый»)
+    expect(adjSemCompatible(w('a-rico'), w('n-hombre'))).toBe(true)
+    expect(adjSemCompatible(w('a-rico'), w('n-ciudad'))).toBe(true)
   })
 
   it('цвета: предметы и напитки — да, люди — нет', () => {
@@ -71,7 +75,11 @@ describe('Прилагательное × существительное', () =>
 
   it('белый список покрывает все прилагательные с ограничениями корректными классами', () => {
     for (const [adjId, classes] of Object.entries(ADJ_NOUN_CLASSES)) {
-      expect(classes.length, adjId).toBeGreaterThan(0)
+      // пустой список = только исключения (fácil/difícil: «лёгкий вопрос»)
+      expect(
+        classes.length > 0 || (ADJ_NOUN_EXCEPTIONS[adjId]?.length ?? 0) > 0,
+        adjId,
+      ).toBe(true)
       const adj = w(adjId)
       expect(adj.pos, adjId).toBe('adjective')
     }
@@ -103,17 +111,18 @@ describe('Глагол × прямое дополнение', () => {
     expect(verbObjCompatible(w('v-recordar'), w('n-mesa'))).toBe(false)
   })
 
-  it('глаголы без записи в белом списке работают по objClasses', () => {
-    expect(VERB_OBJ_ALLOWED['v-comer']).toBeUndefined()
+  it('глаголы с точным списком: comer — только еда (не напитки), beber — напитки', () => {
     expect(verbObjCompatible(w('v-comer'), w('n-pan'))).toBe(true)
-    expect(verbObjCompatible(w('v-comer'), w('n-agua'))).toBe(true)
+    expect(verbObjCompatible(w('v-comer'), w('n-agua'))).toBe(false)
     expect(verbObjCompatible(w('v-comer'), w('n-libro'))).toBe(false)
+    expect(verbObjCompatible(w('v-beber'), w('n-agua'))).toBe(true)
+    expect(verbObjCompatible(w('v-beber'), w('n-pan'))).toBe(false)
   })
 })
 
 describe('Инвариант: подсчёт = перечисление, все пары из белого списка', () => {
   /** Шаблоны с прилагательными и дополнениями (небольшие — перечисляются целиком) */
-  const ids = ['t-pron-v-do', 't-pron-tener-noun', 't-pron-gustar-np', 't-pron-ser-prof']
+  const ids = ['t-pron-v-do', 't-pron-tener-noun', 't-pron-gustar-np', 't-pron-ser-prof', 't-noun-v-person', 't-noun-ser-adj', 't-pron-tener-num', 't-pron-modal-inf']
 
   /** Пары «прилагательное × существительное» и «глагол × дополнение» из заполнения */
   function pairsOf(t: ReturnType<typeof allTemplates>[number], fill: Fill): Array<[Word, Word]> {
@@ -122,6 +131,11 @@ describe('Инвариант: подсчёт = перечисление, все 
       if (unit.kind === 'np' && unit.withAdj) {
         const noun = fill[`${unit.role}#noun`] as Word | undefined
         const adj = fill[`${unit.role}#adj`] as Word | null | undefined
+        if (noun && adj) pairs.push([adj, noun])
+      }
+      if (unit.kind === 'npDep' && unit.depRole === 'adj') {
+        const noun = fill[`${unit.role}#noun`] as Word | undefined
+        const adj = fill[unit.depRole] as Word | null | undefined
         if (noun && adj) pairs.push([adj, noun])
       }
       if (unit.kind === 'verbObj') {
@@ -147,7 +161,6 @@ describe('Инвариант: подсчёт = перечисление, все 
       }
     }
   })
-
   it('walkFills: каждая пара «прил.×сущ.» и «глагол×дополнение» в белом списке', () => {
     for (const t of TEMPLATES) {
       walkFills(t, ALL, (fill) => {
@@ -171,6 +184,155 @@ describe('Инвариант: подсчёт = перечисление, все 
       const before = countTemplate(t, base)
       const after = countTemplate(t, extended)
       expect(after, t.id).toBeGreaterThanOrEqual(before)
+    }
+  })
+})
+
+describe('Примеры из жалоб — больше не генерируются', () => {
+  it('«Мы читаем дешёвую жизнь?» — leer/escribir не сочетаются с vida', () => {
+    expect(verbObjCompatible(w('v-leer'), w('n-vida'))).toBe(false)
+    expect(verbObjCompatible(w('v-escribir'), w('n-vida'))).toBe(false)
+    expect(verbObjCompatible(w('v-leer'), w('n-libro'))).toBe(true)
+    expect(verbObjCompatible(w('v-leer'), w('n-carta'))).toBe(true)
+    expect(verbObjCompatible(w('v-escribir'), w('n-historia'))).toBe(true)
+    expect(verbObjCompatible(w('v-leer'), w('n-mesa'))).toBe(false)
+  })
+
+  it('«Она может мочь?» — модальный не сочетается с модальным и с собой', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-pron-modal-inf')!
+    const { phrases } = enumerateTemplate(t, ALL, 0, 100_000)
+    for (const p of phrases) {
+      expect(p.es, p.es).not.toMatch(/\b(poder|querer|necesitar) (poder|querer|necesitar)\b/)
+    }
+    expect(phrases.some((p) => p.es === 'Ella puede trabajar')).toBe(true)
+    expect(phrases.some((p) => p.es === 'Yo quiero comer')).toBe(true)
+  })
+
+  it('«No hay la comida» — hay без определённого артикля и притяжательных', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-hay-noun')!
+    const { phrases, total } = enumerateTemplate(t, ALL, 0, 50_000)
+    expect(phrases.length, 'перечисление = подсчёт').toBe(total)
+    expect(total).toBe(countTemplate(t, ALL))
+    for (const p of phrases) {
+      expect(p.es, p.es).toMatch(/^(no hay |hay )/i)
+      expect(p.es, p.es).not.toMatch(/hay (el|la|los|las|mi|tu|su|nuestro|este|ese) /)
+    }
+    expect(phrases.some((p) => p.es === 'Hay comida')).toBe(true)
+    expect(phrases.some((p) => p.es === 'No hay comida')).toBe(true)
+    expect(phrases.some((p) => p.es === 'Hay una cama')).toBe(true)
+    expect(phrases.some((p) => p.es === 'Hay mucha comida')).toBe(true)
+  })
+
+  it('«У господина есть мало курицы» — tener без еды и музыки', () => {
+    expect(verbObjCompatible(w('v-tener'), w('n-pollo'))).toBe(false)
+    expect(verbObjCompatible(w('v-tener'), w('n-musica'))).toBe(false)
+    expect(verbObjCompatible(w('v-tener'), w('n-tiempo'))).toBe(true)
+    expect(verbObjCompatible(w('v-tener'), w('n-familia'))).toBe(true)
+    const t = TEMPLATES.find((x) => x.id === 't-pron-tener-noun')!
+    const { phrases, total } = enumerateTemplate(t, ALL, 0, 20_000)
+    expect(phrases.length, 'перечисление = подсчёт').toBe(total)
+    for (const p of phrases) {
+      expect(p.es, p.es).not.toMatch(/pollo|carne|leche|comida|música|vida/)
+    }
+    expect(phrases.some((p) => p.ru.startsWith('У меня есть время'))).toBe(true)
+    expect(phrases.some((p) => p.ru.startsWith('У меня есть семья'))).toBe(true)
+  })
+
+  it('«У неё есть три отца» — числа только с «безопасными» существительными', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-pron-tener-num')!
+    const { phrases, total } = enumerateTemplate(t, ALL, 0, 20_000)
+    expect(phrases.length, 'перечисление = подсчёт').toBe(total)
+    for (const p of phrases) {
+      expect(p.es, p.es).not.toMatch(/\b(padres|madres|abuelos|abuelas)\b/)
+      expect(p.es, p.es).not.toMatch(/dineros|ropas/)
+    }
+    expect(phrases.some((p) => p.es === 'Ella tiene dos hermanos')).toBe(true)
+    expect(phrases.some((p) => p.ru === 'У меня есть две кровати')).toBe(true)
+  })
+
+  it('«Ты даёшь быструю фотографию» — быстрый не описывает фотографию', () => {
+    expect(adjSemCompatible(w('a-rapido'), w('n-foto'))).toBe(false)
+    expect(adjSemCompatible(w('a-lento'), w('n-foto'))).toBe(false)
+    expect(adjSemCompatible(w('a-rapido'), w('n-carro'))).toBe(true)
+    expect(adjSemCompatible(w('a-rapido'), w('n-hombre'))).toBe(true)
+    expect(verbObjCompatible(w('v-dar'), w('n-mesa'))).toBe(false)
+    expect(verbObjCompatible(w('v-dar'), w('n-foto'))).toBe(true)
+  })
+
+  it('«У тебя есть лёгкая кровать?» — fácil/difícil не с предметами', () => {
+    expect(adjSemCompatible(w('a-facil'), w('n-cama'))).toBe(false)
+    expect(adjSemCompatible(w('a-dificil'), w('n-leche'))).toBe(false)
+    expect(adjSemCompatible(w('a-facil'), w('n-problema'))).toBe(true)
+    expect(adjSemCompatible(w('a-dificil'), w('n-tiempo'))).toBe(true)
+    expect(adjSemCompatible(w('a-dificil'), w('n-vida'))).toBe(true)
+    expect(adjSemCompatible(w('a-barato'), w('n-amor'))).toBe(false)
+    expect(adjSemCompatible(w('a-barato'), w('n-vida'))).toBe(true)
+  })
+
+  it('«Una maestra ve a la maestra» — подлежащее ≠ дополнение, подсчёт точен', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-noun-v-person')!
+    const { phrases, total } = enumerateTemplate(t, ALL, 0, 500_000)
+    expect(phrases.length, 'перечисление = подсчёт').toBe(total)
+    expect(total).toBe(countTemplate(t, ALL))
+    let checked = 0
+    walkFills(t, ALL, (fill) => {
+      const s = fill['s#noun'] as Word
+      const o = fill['o#noun'] as Word
+      expect(s.id, `${s.es} × ${o.es}`).not.toBe(o.id)
+      checked++
+    }, { maxLeaves: 600_000 })
+    expect(checked).toBeGreaterThan(1000)
+  })
+
+  it('«Молоко — трудное» — ser+прилагательное согласован по смыслу', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-noun-ser-adj')!
+    const { phrases, total } = enumerateTemplate(t, ALL, 0, 100_000)
+    expect(phrases.length, 'перечисление = подсчёт').toBe(total)
+    expect(total).toBe(countTemplate(t, ALL))
+    for (const p of phrases) {
+      expect(p.ru, p.ru).not.toBe('Молоко — трудное')
+      expect(p.ru, p.ru).not.toBe('Кровать — лёгкая')
+      expect(p.ru, p.ru).not.toBe('Деньги — лёгкие')
+    }
+    expect(phrases.some((p) => p.ru === 'Молоко — вкусное')).toBe(true)
+    expect(phrases.some((p) => p.ru === 'Кровать — новая')).toBe(true)
+    expect(phrases.some((p) => p.ru === 'Время — трудное')).toBe(true)
+  })
+
+  it('«Я — дешёвый» — местоимение + качественное прилагательное согласован по смыслу', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-pron-ser-adj')!
+    const { phrases } = enumerateTemplate(t, ALL, 0, 5_000)
+    for (const p of phrases) {
+      expect(p.ru, p.ru).not.toMatch(/— (дешёв|лёгк|трудн|горяч|холодн|сладк|бел|чёрн|красн|зелён|син|жёлт)/)
+    }
+    expect(phrases.some((p) => p.ru === 'Я — молодой')).toBe(true)
+    expect(phrases.some((p) => p.ru === 'Молоко — трудное')).toBe(false)
+  })
+
+  it('наречия: «Они всегда происхожу» — pasar исключён из местоименных пулов', () => {
+    for (const id of ['t-pron-v-adverb', 't-pron-v-adverb2', 't-pron-adv-no-v', 't-pron-tampoco-v', 't-pron-nunca-v', 't-qw-cuando', 't-qw-porque', 't-qw-quien']) {
+      const t = TEMPLATES.find((x) => x.id === id)!
+      const { phrases } = enumerateTemplate(t, ALL, 0, 20_000)
+      for (const p of phrases) {
+        expect(p.ru, `${id}: ${p.ru}`).not.toMatch(/происхож/)
+      }
+    }
+  })
+
+  it('estar+герундий и образ действия: без «Estoy teniendo», «Ser bien»', () => {
+    const ger = TEMPLATES.find((x) => x.id === 't-pron-estar-gerund')!
+    const { phrases } = enumerateTemplate(ger, ALL, 0, 30_000)
+    for (const p of phrases) {
+      expect(p.es, p.es).not.toMatch(/teniendo|queriendo|pudiendo/)
+      expect(p.es, p.es).not.toMatch(/^\w+ está (teniendo|queriendo)/)
+    }
+    expect(phrases.some((p) => p.es === 'Yo estoy comiendo pan')).toBe(true)
+
+    const man = TEMPLATES.find((x) => x.id === 't-pron-v-manner')!
+    const manPhrases = enumerateTemplate(man, ALL, 0, 20_000).phrases
+    for (const p of manPhrases) {
+      expect(p.es, p.es).not.toMatch(/\b(soy|eres|es|somos|son) (bien|mal|despacio|rápido|juntos)\b/)
+      expect(p.es, p.es).not.toMatch(/\b(se|sé) (bien|mal)\b/)
     }
   })
 })

@@ -1134,7 +1134,18 @@ export const TEMPLATES: Template[] = [
     requires: ['v-gustar'],
     units: [
       { kind: 'free', role: 'io', words: IO_PRONOUNS },
-      { kind: 'np', role: 'o', nouns: THING_NOUNS, number: 'any', detSet: 'object', bareAuto: false, withAdj: false },
+      {
+        kind: 'np',
+        role: 'o',
+        nouns: THING_NOUNS,
+        number: 'any',
+        detSet: 'object',
+        bareAuto: false,
+        withAdj: false,
+        // «Me gustan los libros / unas bolsas» — да;
+        // «Нам нравится мало риса» — количество с gustar не сочетаем
+        detFilter: (d) => !d.det?.quantity,
+      },
     ],
     variants: ['aff', 'neg', 'yesno'],
     render: (fill, kind) => {
@@ -1479,14 +1490,28 @@ export const TEMPLATES: Template[] = [
     requires: ['v-ser', 'qw-cual'],
     questionWord: getWord('qw-cual'),
     units: [
-      { kind: 'np', role: 'o', nouns: ALL_WORDS.filter((w) => w.nounClass === 'thing' || w.nounClass === 'abstract'), number: 'sg', detSet: 'subject', bareAuto: false, withAdj: false },
+      {
+        kind: 'np',
+        role: 'o',
+        nouns: ALL_WORDS.filter((w) => w.nounClass === 'thing' || w.nounClass === 'abstract'),
+        number: 'sg',
+        detSet: 'subject',
+        bareAuto: false,
+        withAdj: false,
+        // «¿Cuál es la respuesta?» — да; «¿Cuál es una tarde?» — нет:
+        // только определённый артикль, без времени суток
+        detFilter: (d) => !!d.det?.definite,
+        nounFilter: (n) => !['n-dia', 'n-noche', 'n-manana', 'n-tarde', 'n-hora', 'n-minuto', 'n-semana', 'n-mes', 'n-ano', 'n-tiempo', 'n-momento'].includes(n.id),
+      },
     ],
     variants: ['qw'],
     render: (fill) => `¿Cuál es ${npEs(fill, 'o')}?`,
     ru: (fill) => {
       const noun = fill['o#noun'] as Word
       const g = noun.ruGender ?? 'm'
-      const q = ruAdjForm('какой', g, 'sg')
+      // plural-only русские переводы: «Какие деньги?», «Какие часы?»
+      const num = noun.ruPluralOnly ? 'pl' : 'sg'
+      const q = ruAdjForm('какой', g, num)
       return capitalize(`${q} ${npRu(fill, 'o')}?`)
     },
   },

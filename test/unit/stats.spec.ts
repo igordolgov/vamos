@@ -75,7 +75,9 @@ describe('Статистика', () => {
     expect(keys.length).toBeGreaterThan(0)
     expect(keys[0]!.words.map((w) => w.id)).toEqual(['v-ser'])
     expect(keys[0]!.templates).toBe(4)
-    expect(keys[0]!.potential).toBeGreaterThan(20_000)
+    // ser открывает ser-шаблоны: «El hombre es alto», «Ella es maestra»…
+    // (порог — реальный объём без абсурдных сочетаний)
+    expect(keys[0]!.potential).toBeGreaterThan(10_000)
     // достижимые ключи (одно слово) идут раньше многосложных
     const lengths = keys.map((k) => k.words.length)
     expect([...lengths].sort((a, b) => a - b)).toEqual(lengths)
