@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest'
 import { regularForms } from '../../shared/data/words/helpers'
 import { gerundOf } from '../../shared/phrases/es'
 import { conjugate, esArticle, esNounPhrase, joinPrepNP } from '../../shared/phrases/es'
-import { ruAdjForm, ruDetForm, ruNounPhrase } from '../../shared/phrases/ru'
+import { ruAdjForNoun, ruAdjForm, ruDetForm, ruNounPhrase } from '../../shared/phrases/ru'
 import { ruGenitive, ruPlural, ruAccusative } from '../../shared/phrases/ru-morph'
 import { enumerateTemplate } from '../../shared/phrases/engine'
 import { TEMPLATES, npRuAcc } from '../../shared/phrases/templates'
@@ -141,6 +141,30 @@ describe('Русская морфология', () => {
     expect(ruAdjForm('синий', 'n', 'sg')).toBe('синее')
     expect(ruAdjForm('синий', 'm', 'pl')).toBe('синие')
     expect(ruAdjForm('большой', 'f', 'sg')).toBe('большая')
+  })
+
+  it('жи-ши и родственные: мн.ч. на «-ие» после к/г/х/ж/ш/ч/щ', () => {
+    // «большие», «плохие», «какие» — не «большые», «плохые», «какые»
+    expect(ruAdjForm('большой', 'm', 'pl')).toBe('большие')
+    expect(ruAdjForm('плохой', 'm', 'pl')).toBe('плохие')
+    expect(ruAdjForm('дорогой', 'm', 'pl')).toBe('дорогие')
+    expect(ruAdjForm('какой', 'm', 'pl')).toBe('какие')
+    expect(ruAdjForm('новый', 'm', 'pl')).toBe('новые')
+    expect(ruAdjForm('дешёвый', 'm', 'pl')).toBe('дешёвые')
+    // пояснение в скобках — не часть словоформы
+    expect(ruAdjForm('дорогой (цена)', 'f', 'sg')).toBe('дорогая')
+    expect(ruAdjForm('дорогой (цена)', 'n', 'sg')).toBe('дорогое')
+  })
+
+  it('ruAdjForNoun: «Молоко — дорогое», «Деньги — большие», «Еда — очень вкусная»', () => {
+    const leche = getWord('n-leche')
+    const dinero = getWord('n-dinero')
+    const comida = getWord('n-comida')
+    expect(ruAdjForNoun(leche, getWord('a-caro'))).toBe('дорогое')
+    expect(ruAdjForNoun(leche, getWord('a-delicioso'))).toBe('очень вкусное')
+    // plural-only (деньги, часы) — прилагательное во мн.ч.
+    expect(ruAdjForNoun(dinero, getWord('a-bueno'))).toBe('хорошие')
+    expect(ruAdjForNoun(comida, getWord('a-barato'), 'pl')).toBe('дешёвые')
   })
   it('русская именная группа: белый дом, белая машина, много работы', () => {
     const blanco = findWord('a-blanco')!

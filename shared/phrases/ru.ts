@@ -28,11 +28,13 @@ function ruAgreement(noun: Word, number: GramNumber): { gender: 'm' | 'f' | 'n';
  * только в ж.р. ед.ч. (дешёвая музыка → дешёвую музыку).
  */
 export function ruAdjForm(
-  adjMasculine: string,
+  adjRaw: string,
   gender: 'm' | 'f' | 'n',
   number: GramNumber,
   caseForm: 'nom' | 'acc' = 'nom',
 ): string {
+  // пояснение в скобках («дорогой (цена)») — не часть словоформы
+  const adjMasculine = adjRaw.replace(/\s*\(.*\)\s*/, '')
   if (number === 'pl') {
     // вин. мн.ч. неодушевлённых = им. мн.ч.
     return ruAdjPlural(adjMasculine)
@@ -64,11 +66,14 @@ export function ruAdjForm(
   return adjMasculine
 }
 
-/** Мн.ч. русского прилагательного: -ий → -ие, иначе -ые */
+/** Мн.ч. русского прилагательного: -ий → -ие, иначе -ые,
+ *  но после к/г/х/ж/ш/ч/щ — «-ие» (правило жи-ши:
+ *  большие, плохие, дорогие, какие — не «большые», «какые») */
 function ruAdjPlural(adjMasculine: string): string {
   const stem = adjMasculine.slice(0, -2)
   const end = adjMasculine.slice(-2)
   if (end === 'ий') return stem + 'ие'
+  if ('кгхжшщч'.includes(stem.slice(-1))) return stem + 'ие'
   return stem + 'ые'
 }
 
@@ -126,6 +131,17 @@ export function ruNounPhrase(
   // «много/мало» + родительный падеж: «много работы»
   parts.push(isQuantity ? ruGenitive(noun) : ruNounForm(noun, number))
   return parts.join(' ')
+}
+
+/**
+ * Русское прилагательное, согласованное с существительным:
+ * «Молоко — дорогое» (с.р.), «Деньги — большие» (plural-only).
+ * Учитывает ruByClass («богатый/вкусный») и пояснения в скобках.
+ */
+export function ruAdjForNoun(noun: Word, adj: Word, number: GramNumber = 'sg'): string {
+  const { gender, number: ruNum } = ruAgreement(noun, number)
+  const masc = adj.ruByClass?.[noun.nounClass ?? 'thing'] ?? (adj.ru[0] ?? adj.adj!.m)
+  return ruAdjForm(masc, gender, ruNum)
 }
 
 /** Форма глагола «нравиться» в русском: нравится / нравятся */

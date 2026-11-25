@@ -18,7 +18,7 @@ import {
   ADJ_NOUN_EXCEPTIONS,
   VERB_OBJ_ALLOWED,
 } from '../../shared/phrases/collocations'
-import { countTemplate, enumerateTemplate, walkFills, adjCompatible } from '../../shared/phrases/engine'
+import { countTemplate, enumerateTemplate, walkFills, adjCompatible, detCompatible, unitNumbers } from '../../shared/phrases/engine'
 import type { Fill, Word } from '../../shared/phrases/schema'
 
 const ALL = new Set(ALL_WORDS.map((w) => w.id))
@@ -221,6 +221,68 @@ describe('Примеры из жалоб — больше не генериру�
     expect(phrases.some((p) => p.es === 'No hay comida')).toBe(true)
     expect(phrases.some((p) => p.es === 'Hay una cama')).toBe(true)
     expect(phrases.some((p) => p.es === 'Hay mucha comida')).toBe(true)
+  })
+
+  it('«Te doy una leche» — неисчисляемые без un/una, без мн.ч. (жалоба пользователя)', () => {
+    // «дать молоко» — да, но только без неопределённого артикля
+    expect(verbObjCompatible(w('v-dar'), w('n-leche'))).toBe(true)
+    expect(detCompatible(w('d-una'), w('n-leche'), 'sg')).toBe(false)
+    expect(detCompatible(w('d-una'), w('n-azucar'), 'sg')).toBe(false)
+    expect(detCompatible(w('d-una'), w('n-sal'), 'sg')).toBe(false)
+    expect(detCompatible(w('d-un'), w('n-arroz'), 'sg')).toBe(false)
+    expect(detCompatible(w('d-una'), w('n-cama'), 'sg')).toBe(true)
+    // «много молока» — да
+    expect(detCompatible(w('d-mucho'), w('n-leche'), 'sg')).toBe(true)
+    // leche/azúcar/sal/arroz не имеют реального мн.ч. ни на одной оси
+    expect(unitNumbers(w('n-leche'), 'any')).toEqual(['sg'])
+    expect(unitNumbers(w('n-casa'), 'any')).toEqual(['sg', 'pl'])
+    // в t-io-dar-np: голая форма и «la leche» есть, «una leche» — нет
+    const dar = TEMPLATES.find((x) => x.id === 't-io-dar-np')!
+    const phrases = enumerateTemplate(dar, ALL, 0, 50_000).phrases
+    expect(phrases.some((p) => p.es === 'Te doy leche')).toBe(true)
+    expect(phrases.some((p) => p.es === 'Te doy la leche')).toBe(true)
+    expect(phrases.some((p) => p.ru === 'Я даю тебе молоко')).toBe(true)
+    for (const p of phrases) {
+      expect(p.es, p.es).not.toMatch(/una? (leche|azúcar|sal|arroz)|\b(leches|azúcares|arroces)\b/)
+    }
+  })
+
+  it('«У ребёнка есть чёрный фильм?» — цвета не описывают фильмы и фото', () => {
+    expect(adjSemCompatible(w('a-negro'), w('n-pelicula'))).toBe(false)
+    expect(adjSemCompatible(w('a-blanco'), w('n-pelicula'))).toBe(false)
+    expect(adjSemCompatible(w('a-azul'), w('n-foto'))).toBe(false)
+    // с обычными предметами цвета работают по-прежнему
+    expect(adjSemCompatible(w('a-negro'), w('n-carro'))).toBe(true)
+    expect(adjSemCompatible(w('a-blanco'), w('n-camisa'))).toBe(true)
+    // скан шаблона с прилагательным: никаких «чёрный фильм»/«белое фото»
+    const t = TEMPLATES.find((x) => x.id === 't-noun-v-do-adj')!
+    walkFills(t, ALL, (fill, kind) => {
+      const ru = t.ru(fill, kind)
+      expect(ru, ru).not.toMatch(/(чёрный|белый|красный|зелёный|синий|жёлтый) (фильм|фото)/)
+    }, { maxLeaves: 120_000 })
+  })
+
+  it('«Молоко — очень вкусное» — ser+прил. согласует прилагательное целиком', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-noun-ser-adj')!
+    const phrases = enumerateTemplate(t, ALL, 0, 100_000).phrases
+    expect(phrases.some((p) => p.ru === 'Молоко — дорогое')).toBe(true)
+    expect(phrases.some((p) => p.ru === 'Молоко — очень вкусное')).toBe(true)
+    expect(phrases.some((p) => p.ru === 'Машина — красивая')).toBe(true)
+    for (const p of phrases) {
+      // «Молоко — дорогой» (сбиты род/скобки) больше не генерируется
+      expect(p.ru, p.ru).not.toBe('Молоко — дорогой')
+      expect(p.ru, p.ru).not.toMatch(/— очень\?|— очень$/)
+    }
+  })
+
+  it('«Me gustan las leches» — не генерируется, «Me gusta la leche» — да', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-pron-gustar-np')!
+    const phrases = enumerateTemplate(t, ALL, 0, 50_000).phrases
+    expect(phrases.some((p) => p.es === 'Me gusta la leche')).toBe(true)
+    for (const p of phrases) {
+      expect(p.es, p.es).not.toMatch(/\b(leches|azúcares|arroces)\b/)
+      expect(p.ru, p.ru).not.toMatch(/молоки/)
+    }
   })
 
   it('«У господина есть мало курицы» — tener без еды и музыки', () => {

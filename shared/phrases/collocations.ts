@@ -119,8 +119,21 @@ export const ADJ_NOUN_EXCEPTIONS: Record<string, readonly string[]> = {
   'a-rico': ['n-ciudad'],
 }
 
+/** Запрещённые пары «прилагательное × существительное» — сильнее классов:
+ *  цвета не описывают фильмы и фото («чёрный фильм», «красное фото» —
+ *  по-испански только «película en blanco y negro», «foto en blanco y negro») */
+export const ADJ_NOUN_DENY: Record<string, readonly string[]> = {
+  'a-blanco': ['n-pelicula', 'n-foto'],
+  'a-negro': ['n-pelicula', 'n-foto'],
+  'a-rojo': ['n-pelicula', 'n-foto'],
+  'a-verde': ['n-pelicula', 'n-foto'],
+  'a-azul': ['n-pelicula', 'n-foto'],
+  'a-amarillo': ['n-pelicula', 'n-foto'],
+}
+
 /** Прилагательное семантически сочетается с существительным? */
 export function adjSemCompatible(adj: Word, noun: Word): boolean {
+  if (ADJ_NOUN_DENY[adj.id]?.includes(noun.id)) return false
   if (ADJ_NOUN_EXCEPTIONS[adj.id]?.includes(noun.id)) return true
   const allowed = ADJ_NOUN_CLASSES[adj.id]
   if (!allowed) return true // универсальное: хороший, большой, новый…

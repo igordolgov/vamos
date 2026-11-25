@@ -11,7 +11,7 @@ import type { GramNumber, VerbPerson, Word } from '../types'
 import { getWord } from '../data/words'
 import { ALL_WORDS, wordsByPos } from '../data/words'
 import { capitalize, conjugate, gerundOf, joinPrepNP } from './es'
-import { ruAdjForm, ruDetForm, ruGustarForm, ruNounForm, ruNounPhrase } from './ru'
+import { ruAdjForNoun, ruAdjForm, ruDetForm, ruGustarForm, ruNounForm, ruNounPhrase } from './ru'
 import { ruAccusative, ruGenitive } from './ru-morph'
 import { initEngine, npEs, npNumber, npRu, verbPrepRuKey, adjCompatible } from './engine'
 import { NEG_BEFORE_ADVERB_RU, TENER_NOUN_IDS, TENER_PLURAL_IDS, adjPersonCompatible, verbObjAllowedNouns } from './collocations'
@@ -390,8 +390,10 @@ export const TEMPLATES: Template[] = [
     },
     ru: (fill, kind) => {
       const np = npRu(fill, 's')
-      const a = fill.adj as Word
-      const adj = ruNounPhrase(fill['s#noun'] as Word, { adj: a }).split(' ')[0]
+      // прилагательное целиком, согласованное с существительным
+      // (раньше здесь был split(' ')[0] — он резал «очень вкусное» и ломался
+      //  на пояснениях в скобках: «Молоко — дорогой»)
+      const adj = ruAdjForNoun(fill['s#noun'] as Word, fill.adj as Word)
       const core = `${capitalize(np)} — ${adj}`
       if (kind === 'neg') return `${capitalize(np)} не ${adj}`
       return kind === 'yesno' ? `${capitalize(np)} — ${adj}?` : core

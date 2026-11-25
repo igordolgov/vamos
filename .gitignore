@@ -30,3 +30,4 @@ agent-ctx/
 # файл в репо переопределяет его и ломает сборку)
 wrangler.jsonc
 .wrangler/
+.qa-tmp/

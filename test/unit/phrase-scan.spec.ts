@@ -21,6 +21,12 @@ const KNOWN = new Set(ALL_WORDS.map((w) => w.id))
 /** «хорошяя», «высокяя» — твёрдая основа после к/г/х/ж/ш/щ/ч требует -ая */
 const VELAR_YA = /[кгхжшщч]яя/
 
+/** «большые», «плохые», «какые» — правило жи-ши: после к/г/х/ж/ш/ч/щ мн.ч. на -ие */
+const VELAR_YS = /[кгхжшщч]ые/
+
+/** пояснение в скобках не должно попадать в переводы: «дорогой (цена)» */
+const PARENS = /[()]/
+
 /** прилагательное в им.п. при существительном в вин.п.: «дешёвая музыку» */
 const ADJ_NOM_ACC_NOUN = /[а-яё]+(?:ая|яя)\s+[а-яё]+[ую]\b/
 
@@ -39,10 +45,16 @@ const MASC_NOUN_ON_A = new Set(['мужчина', 'папа', 'дядя', 'де�
 /** незаполненная падежная аннотация: «думаю ? идея» */
 const MISSING_CASE = /[а-яё] \? /
 
+/** неисчисляемые без un/una и без мн.ч.; цвета × фильм/фото */
+const BAD_ES =
+  /una? (leche|azúcar|sal|arroz)|\b(leches|azúcares|arroces)\b|\b(dos|unas) sales\b|película (negra|blanca|roja|verde|azul|amarilla)|foto (negra|blanca|roja|verde|azul|amarilla)/i
+
 const OTHER_GARBAGE = /undefined|NaN/
 
 function checkRu(ru: string): string | null {
   if (VELAR_YA.test(ru)) return `твёрдая основа + «-яя»: «${ru}»`
+  if (VELAR_YS.test(ru)) return `жи-ши: мн.ч. на «-ые» после к/г/х/ж/ш/ч/щ: «${ru}»`
+  if (PARENS.test(ru)) return `скобки в переводе: «${ru}»`
   if (ADJ_NOM_ACC_NOUN.test(ru)) return `им.п. при вин.п.: «${ru}»`
   if (MASC_DET_FEM_ADJ.test(ru)) return `определитель м.р. + прил. ж.р.: «${ru}»`
   if (ACC_AFTER_EST.test(ru)) return `вин.п. после «есть»: «${ru}»`
@@ -127,6 +139,8 @@ describe('Скан русских переводов всех шаблонов �
         checked += walkFills(t, KNOWN, (fill, kind) => {
           const bad = checkRu(t.ru(fill, kind))
           if (bad) violations.push(`[${t.id}] ${bad}`)
+          const es = t.render(fill, kind)
+          if (BAD_ES.test(es)) violations.push(`[${t.id}] недопустимое испанское: «${es}»`)
         }, { maxLeaves: MAX_LEAVES })
       }
 

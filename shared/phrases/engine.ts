@@ -62,11 +62,28 @@ export function detCompatible(det: Word, noun: Word, number: GramNumber): boolea
 const UNCOUNTABLE_NOUNS = new Set([
   'n-tiempo', 'n-dinero', 'n-trabajo', 'n-musica', 'n-vida', 'n-amor',
   'n-agua', 'n-ropa',
+  'n-leche', 'n-azucar', 'n-sal', 'n-arroz',
 ])
 
 /** Существительные, никогда не сочетающиеся с un/una/unos/unas:
- *  «Tengo ropa», «Quiero dinero», «Hay tiempo» — без артикля */
-const NO_INDEFINITE_NOUNS = new Set(['n-ropa', 'n-dinero', 'n-tiempo', 'n-musica'])
+ *  «Tengo ropa», «Quiero dinero», «Hay leche» — без артикля.
+ *  Молоко/сахар/соль/рис — неисчисляемые: «Te doy leche»,
+ *  а «una leche» — неверно (пользовательская жалоба) */
+const NO_INDEFINITE_NOUNS = new Set([
+  'n-ropa', 'n-dinero', 'n-tiempo', 'n-musica',
+  'n-leche', 'n-azucar', 'n-sal', 'n-arroz',
+])
+
+/** Неисчисляемые без реального мн.ч.: только ед.ч.
+ *  («Te doy leche», а не «dos leches» — по-русски «молоки» не бывает) */
+const SINGULAR_ONLY_NOUNS = new Set(['n-leche', 'n-azucar', 'n-sal', 'n-arroz'])
+
+/** Числа существительного в оси: «any» → ед.+мн.,
+ *  но неисчисляемые без мн.ч. остаются в ед.ч. на всех осях */
+export function unitNumbers(noun: Word, unitNumber: GramNumber | 'any'): GramNumber[] {
+  if (SINGULAR_ONLY_NOUNS.has(noun.id)) return unitNumber === 'pl' ? [] : ['sg']
+  return unitNumber === 'any' ? ['sg', 'pl'] : [unitNumber]
+}
 
 /** Совместимо ли прилагательное с существительным: формы (все имеют 4)
  *  + семантический белый список («уставшая кровать» исключена) */
@@ -197,7 +214,7 @@ export function unitWays(unit: Unit, known: Set<string>, chosen: Fill): number {
         if (unit.nounFilter && !unit.nounFilter(noun)) continue
         if (npNounBlocked(unit, noun, chosen)) continue
         if (!known.has(noun.id)) continue
-        const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+        const numbers: GramNumber[] = unitNumbers(noun, unit.number)
         for (const num of numbers) {
           ways += npWaysPerNoun(unit, noun, num, known)
         }
@@ -232,7 +249,7 @@ export function unitWays(unit: Unit, known: Set<string>, chosen: Fill): number {
         if (!known.has(noun.id)) continue
         const depWays = unit.deps.filter((d) => known.has(d.id) && unit.compat(noun, d)).length
         if (depWays === 0) continue
-        const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+        const numbers: GramNumber[] = unitNumbers(noun, unit.number)
         for (const num of numbers) {
           ways += npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known) * depWays
         }
@@ -283,7 +300,7 @@ function npWaysPerNounFor(
 
 /** Способы заполнения одной np-оси конкретным существительным (все числа) */
 function npNounWays(unit: NPUnit, noun: Word, known: Set<string>): number {
-  const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+  const numbers: GramNumber[] = unitNumbers(noun, unit.number)
   let ways = 0
   for (const num of numbers) ways += npWaysPerNoun(unit, noun, num, known)
   return ways
@@ -306,7 +323,7 @@ function objNounWays(
   let ways = 0
   for (const noun of verbCompatibleNouns(verb, unit.nouns)) {
     if (!known.has(noun.id)) continue
-    const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+    const numbers: GramNumber[] = unitNumbers(noun, unit.number)
     for (const num of numbers) {
       ways += npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known, unit.withAdj, undefined, objDetsForVerb(verb, unit.detSet))
     }
@@ -320,7 +337,7 @@ function prepNounWays(prep: Word, nouns: Word[], known: Set<string>, number: Gra
   for (const noun of nouns) {
     if (!known.has(noun.id)) continue
     if (!nounMatchesPrep(prep, noun, verbId)) continue
-    const numbers: GramNumber[] = number === 'any' ? ['sg', 'pl'] : [number]
+    const numbers: GramNumber[] = unitNumbers(noun, number)
     for (const num of numbers) {
       // «без» — всегда без артикля («sin azúcar»), остальные — с определителем
       if (prep.id === 'prep-sin') {
@@ -510,7 +527,7 @@ function unitGains(unit: Unit, known: Set<string>): Map<string, number> {
         if (unit.nounFilter && !unit.nounFilter(noun)) continue
         if (known.has(noun.id)) continue
         let ways = 0
-        const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+        const numbers: GramNumber[] = unitNumbers(noun, unit.number)
         for (const num of numbers) {
           ways += npWaysPerNoun(unit, noun, num, known)
         }
@@ -524,7 +541,7 @@ function unitGains(unit: Unit, known: Set<string>): Map<string, number> {
           for (const noun of unit.nouns) {
             if (unit.nounFilter && !unit.nounFilter(noun)) continue
             if (!known.has(noun.id) || !adjCompatible(adj, noun)) continue
-            const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+            const numbers: GramNumber[] = unitNumbers(noun, unit.number)
             for (const num of numbers) ways += detsCountAdj(unit, noun, num, known)
           }
           if (ways > 0) gains.set(adj.id, ways)
@@ -539,7 +556,7 @@ function unitGains(unit: Unit, known: Set<string>): Map<string, number> {
           for (const noun of unit.nouns) {
             if (unit.nounFilter && !unit.nounFilter(noun)) continue
             if (!known.has(noun.id)) continue
-            const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+            const numbers: GramNumber[] = unitNumbers(noun, unit.number)
             for (const num of numbers) {
               if (!detCompatible(det, noun, num)) continue
               ways += det.det?.quantity ? 1 : npAdjWays(unit, noun, known)
@@ -605,7 +622,7 @@ function unitGains(unit: Unit, known: Set<string>): Map<string, number> {
         const depWays = unit.deps.filter((d) => known.has(d.id) && unit.compat(noun, d)).length
         if (depWays === 0) continue
         let ways = 0
-        const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+        const numbers: GramNumber[] = unitNumbers(noun, unit.number)
         for (const num of numbers) {
           ways += npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known)
         }
@@ -616,7 +633,7 @@ function unitGains(unit: Unit, known: Set<string>): Map<string, number> {
         let ways = 0
         for (const noun of unit.nouns) {
           if (!known.has(noun.id) || !unit.compat(noun, dep)) continue
-          const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+          const numbers: GramNumber[] = unitNumbers(noun, unit.number)
           for (const num of numbers) {
             ways += npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known)
           }
@@ -639,7 +656,7 @@ function unitGains(unit: Unit, known: Set<string>): Map<string, number> {
         for (const verb of unit.verbs) {
           if (!known.has(verb.id)) continue
           if (!verbObjCompatible(verb, noun)) continue
-          const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+          const numbers: GramNumber[] = unitNumbers(noun, unit.number)
           for (const num of numbers) {
             ways += npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known, unit.withAdj, undefined, objDetsForVerb(verb, unit.detSet))
           }
@@ -655,7 +672,7 @@ function unitGains(unit: Unit, known: Set<string>): Map<string, number> {
             if (!known.has(verb.id)) continue
             for (const noun of verbCompatibleNouns(verb, unit.nouns)) {
               if (!known.has(noun.id) || !adjCompatible(adj, noun)) continue
-              const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+              const numbers: GramNumber[] = unitNumbers(noun, unit.number)
               for (const num of numbers) {
                 ways += npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known, false, undefined, objDetsForVerb(verb, unit.detSet))
               }
@@ -675,7 +692,7 @@ function unitGains(unit: Unit, known: Set<string>): Map<string, number> {
             if (det.det?.quantity && !QUANTITY_OBJ_VERBS.has(verb.id)) continue
             for (const noun of verbCompatibleNouns(verb, unit.nouns)) {
               if (!known.has(noun.id)) continue
-              const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+              const numbers: GramNumber[] = unitNumbers(noun, unit.number)
               for (const num of numbers) {
                 if (!detCompatible(det, noun, num)) continue
                 ways += det.det?.quantity ? 1 : npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known, false, undefined, objDetsForVerb(verb, unit.detSet))
@@ -767,7 +784,7 @@ function unitOptionsWithIndexes(unit: Unit, chosen: Fill, known: Set<string>): A
         if (unit.nounFilter && !unit.nounFilter(noun)) continue
         if (npNounBlocked(unit, noun, chosen)) continue
         if (!known.has(noun.id)) { i++; continue }
-        const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+        const numbers: GramNumber[] = unitNumbers(noun, unit.number)
         for (const num of numbers) {
           // «голая» форма — первый вариант, затем определители
           const dets: Array<Word | null> = []
@@ -810,7 +827,7 @@ function unitOptionsWithIndexes(unit: Unit, chosen: Fill, known: Set<string>): A
         if (!known.has(verb.id)) { i++; continue }
         for (const noun of verbCompatibleNouns(verb, unit.nouns)) {
           if (!known.has(noun.id)) continue
-          const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+          const numbers: GramNumber[] = unitNumbers(noun, unit.number)
           for (const num of numbers) {
             const dets: Array<Word | null> = []
             if (unit.detSet === 'none') {
@@ -867,7 +884,7 @@ function unitOptionsWithIndexes(unit: Unit, chosen: Fill, known: Set<string>): A
           if (!prep || !known.has(prep.id)) continue
           const nouns = unit.nouns.filter((n) => known.has(n.id) && nounMatchesPrep(prep, n, verb.id))
           for (const noun of nouns) {
-            const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+            const numbers: GramNumber[] = unitNumbers(noun, unit.number)
             for (const num of numbers) {
               // «sin» — всегда без артикля («sin azúcar»); «casa» — идиоматично
               // голая с любым предлогом («en casa», «de casa», «a casa»);
@@ -907,7 +924,7 @@ function unitOptionsWithIndexes(unit: Unit, chosen: Fill, known: Set<string>): A
         if (!known.has(noun.id)) { i++; continue }
         const deps = unit.deps.filter((d) => known.has(d.id) && unit.compat(noun, d))
         if (deps.length === 0) { i++; continue }
-        const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+        const numbers: GramNumber[] = unitNumbers(noun, unit.number)
         for (const num of numbers) {
           const dets: Array<Word | null> = []
           if (unit.bareAuto && bareAllowed(noun, num) && unit.detSet !== 'none') dets.push(null)

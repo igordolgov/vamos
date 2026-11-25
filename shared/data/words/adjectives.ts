@@ -41,7 +41,7 @@ export const ADJECTIVES: Word[] = [
   a('a-interesante', 'interesante', ['интересный'], 15, invA('interesante', 'interesantes')),
   a('a-rapido', 'rápido', ['быстрый'], 15, regA('rápido')),
   a('a-lento', 'lento', ['медленный'], 15, regA('lento')),
-  a('a-caro', 'caro', ['дорогой (цена)'], 15, regA('caro')),
+  a('a-caro', 'caro', ['дорогой'], 15, regA('caro'), false, { ruHint: 'О цене (вещи, еда, места), не о людях' }),
   a('a-barato', 'barato', ['дешёвый'], 15, regA('barato')),
   a('a-limpio', 'limpio', ['чистый'], 15, regA('limpio'), true),
   a('a-sucio', 'sucio', ['грязный'], 15, regA('sucio'), true),
