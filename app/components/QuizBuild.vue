@@ -14,6 +14,7 @@ import { computed, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
 import type { WordTip } from '#shared/data/word-tips'
 import { glossLine } from '#shared/gloss'
+import { targetedHint } from '#shared/phrases/diff-hint'
 
 const props = defineProps<{
   tiles: string[]
@@ -92,6 +93,17 @@ function check() {
 
 /** Пословный разбор верной фразы: слово → перевод (tengo — имею) */
 const gloss = computed(() => glossLine(props.answerTiles.join(' ')))
+
+/** Целевая подсказка про КОНКРЕТНУЮ ошибку. Сравнивает собранную фразу
+ *  с ответом: если ошибка однозначная (пропущен/лишний артикль, lo вместо
+ *  le, контракция a+el, форма глагола, порядок слов…) — объясняется
+ *  именно это правило. Если ошибок несколько или не то слово — null,
+ *  и показывается общий tip шаблона (why/hack). */
+const focusHint = computed<string | null>(() => {
+  if (!revealed.value || isCorrect.value) return null
+  const builtTokens = selected.value.map((i) => props.tiles[i])
+  return targetedHint(builtTokens, props.answerTiles, props.altAnswers)
+})
 </script>
 
 <template lang="pug">
@@ -144,17 +156,21 @@ const gloss = computed(() => glossLine(props.answerTiles.join(' ')))
             p.text-base.font-semibold.text-error(class="sm:text-lg") ✗ {{ t('practice.answerWas') }}
             p.text-xl.font-bold.text-base-content(class="sm:text-2xl") {{ answerTiles.join(' ') }}
 
-    // Объяснение ошибки: почему легко путать и лайфхак запоминания,
-    // пример и пословный разбор верной фразы. Появляется только
-    // при неверном ответе
-    .w-full(v-if="revealed && !isCorrect && tip")
+    // Объяснение ошибки: сначала — целевая подсказка про конкретную
+    // ошибку (🎯 артикль, le/les, предлог, форма глагола…), если она
+    // однозначная; иначе — общий разбор шаблона (почему путают +
+    // лайфхак + пример). Внизу — пословный разбор верной фразы
+    .w-full(v-if="revealed && !isCorrect")
       .rounded-xl.text-left(class="p-2.5 bg-warning/10 border border-warning/30")
-        p.text-sm(class="leading-snug")
-          | 💡 <b>{{ t('practice.tipWhy') }}:</b> {{ tip.why }}
-        p.text-sm.mt-1(class="leading-snug")
-          | 🧠 <b>{{ t('practice.tipHack') }}:</b> {{ tip.hack }}
-        p.text-sm.mt-1(class="leading-snug" v-if="tip.ex")
-          | 💬 <b>{{ t('practice.tipEx') }}:</b> «{{ tip.ex.es }}» — {{ tip.ex.ru }}
+        p.text-sm(class="leading-snug" v-if="focusHint")
+          | 🎯 {{ focusHint }}
+        template(v-else-if="tip")
+          p.text-sm(class="leading-snug")
+            | 💡 <b>{{ t('practice.tipWhy') }}:</b> {{ tip.why }}
+          p.text-sm.mt-1(class="leading-snug")
+            | 🧠 <b>{{ t('practice.tipHack') }}:</b> {{ tip.hack }}
+          p.text-sm.mt-1(class="leading-snug" v-if="tip.ex")
+            | 💬 <b>{{ t('practice.tipEx') }}:</b> «{{ tip.ex.es }}» — {{ tip.ex.ru }}
         p.text-sm.mt-1(class="leading-snug" v-if="gloss")
           | 🔍 <b>{{ t('practice.gloss') }}:</b> {{ gloss }}
 

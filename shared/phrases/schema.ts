@@ -140,6 +140,7 @@ export const PHRASE_GROUPS = [
   'глагол + предлог',
   'модальные глаголы',
   'gustar',
+  'le/les (получатель)',
   'there is/are (hay)',
   'вопросы',
   'наречия',

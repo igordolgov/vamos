@@ -7,14 +7,14 @@
 // падежей и согласования (см. ru-morph.ts и данные слов).
 // ============================================================
 
-import type { GramNumber, Word } from '../types'
+import type { GramNumber, VerbPerson, Word } from '../types'
 import { getWord } from '../data/words'
 import { ALL_WORDS, wordsByPos } from '../data/words'
 import { capitalize, conjugate, gerundOf, joinPrepNP } from './es'
 import { ruAdjForm, ruDetForm, ruGustarForm, ruNounForm, ruNounPhrase } from './ru'
 import { ruAccusative, ruGenitive } from './ru-morph'
 import { initEngine, npEs, npNumber, npRu, verbPrepRuKey, adjCompatible } from './engine'
-import { NEG_BEFORE_ADVERB_RU, TENER_NOUN_IDS, TENER_PLURAL_IDS, adjPersonCompatible } from './collocations'
+import { NEG_BEFORE_ADVERB_RU, TENER_NOUN_IDS, TENER_PLURAL_IDS, adjPersonCompatible, verbObjAllowedNouns } from './collocations'
 import type { Fill, PhraseKind, Template } from './schema'
 
 // ============================================================
@@ -1171,6 +1171,17 @@ export const TEMPLATES: Template[] = [
   },
 
   // ==========================================================
+  // LE/LES: получатель действия (dar, escribir, decir)
+  // Правило: кому? → le (мн.ч. les) ПЕРЕД глаголом. lo/la — прямые
+  // дополнения («что?») и получателем не бывают. Местоимение-получатель
+  // задаёт и подразумеваемое подлежащее: me → ты (Me das), te/le/les →
+  // я (Te/Le/Les doy), nos → вы (Nos dan).
+  // ==========================================================
+  ioDoTemplate('t-io-dar-np', 'v-dar'),
+  ioDoTemplate('t-io-escribir-np', 'v-escribir'),
+  ioDoTemplate('t-io-decir-np', 'v-decir'),
+
+  // ==========================================================
   // НАРЕЧИЯ
   // ==========================================================
   {
@@ -1517,6 +1528,85 @@ export const TEMPLATES: Template[] = [
     },
   },
 ]
+
+/**
+ * Шаблон «le/les + глагол дания/речи + вещь»: получатель действия.
+ * Урок 26 — с местоимениями-дополнениями; глагол везёт сам себя:
+ * decir (урок 29) добавит фразы только после его изучения (countTemplate).
+ */
+function ioDoTemplate(id: string, verbId: string): Template {
+  const verb = getWord(verbId)
+  const nouns = verbObjAllowedNouns(verb, ALL_WORDS.filter((w) => w.pos === 'noun'))
+  return {
+    id,
+    lesson: 26,
+    group: 'le/les (получатель)',
+    requires: [],
+    units: [
+      { kind: 'free', role: 'io', words: IO_PRONOUNS },
+      { kind: 'free', role: 'v', words: [verb] },
+      {
+        kind: 'np',
+        role: 'o',
+        nouns,
+        number: 'sg',
+        detSet: 'object',
+        bareAuto: true,
+        withAdj: false,
+        // «много/мало» здесь не генерируем: «le escribo mucho nombre» — нет
+        detFilter: (d) => !d.det?.quantity,
+      },
+    ],
+    variants: ['aff', 'neg', 'yesno'],
+    render: (fill, kind) => {
+      const io = fill.io as Word
+      const v = fill.v as Word
+      const verbForm = conjugate(v, ioSubjectFor(io).person)
+      const np = npEs(fill, 'o')
+      if (kind === 'neg') return `No ${io.es} ${verbForm} ${np}`
+      if (kind === 'yesno') return `¿${capitalize(`${io.es} ${verbForm} ${np}`)}?`
+      return capitalize(`${io.es} ${verbForm} ${np}`)
+    },
+    ru: (fill, kind) => {
+      const io = fill.io as Word
+      const v = fill.v as Word
+      const subj = ioSubjectFor(io)
+      const np = npRuAcc(fill, 'o')
+      const verbRu = ruVerbI(v, subj.ruIdx)
+      const ioRu = io.ru[0] ?? ''
+      // Вопрос с подразумеваемым «я» — предложение действия: «Дать ему книгу?»
+      // (а не «Я даю ему книгу?»). Отрицание — отдельный вариант (утверждение):
+      // «Я не даю ему книгу». С «ты»/«вы» — обычный вопрос
+      if (kind === 'yesno' && subj.ruSubj === 'Я') {
+        const inf = v.verb?.ruInf ?? v.ru[0] ?? v.es
+        return `${capitalize(inf)} ${ioRu} ${np}?`
+      }
+      if (kind === 'neg') return `${subj.ruSubj} не ${verbRu} ${ioRu} ${np}`
+      if (kind === 'yesno') return `${subj.ruSubj} ${verbRu} ${ioRu} ${np}?`
+      return `${subj.ruSubj} ${verbRu} ${ioRu} ${np}`
+    },
+  }
+}
+
+/**
+ * Подлежащее, подразумеваемое получателем: me → ты (Me das),
+ * te/le/les → я (Te/Le/Les doy), nos → вы (Nos dan). Форма глагола
+ * ставится под это лицо, и русский перевод начинается с того же субъекта.
+ */
+function ioSubjectFor(io: Word): { person: VerbPerson; ruSubj: string; ruIdx: number } {
+  switch (io.id) {
+    case 'p-me':
+      return { person: '2s', ruSubj: 'Ты', ruIdx: 1 }
+    case 'p-nos':
+      return { person: '3p', ruSubj: 'Вы', ruIdx: 4 }
+    case 'p-te':
+    case 'p-le':
+    case 'p-les':
+      return { person: '1s', ruSubj: 'Я', ruIdx: 0 }
+    default:
+      return { person: '1s', ruSubj: 'Я', ruIdx: 0 }
+  }
+}
 
 /** Вопросительный шаблон: ¿QW + глагол (2-е лицо ед.ч.)? */
 function qwTemplate(id: string, qwId: string, ruQw: string, verbs: Word[]): Template {

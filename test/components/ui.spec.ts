@@ -331,4 +331,47 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     await checkBtn(wrapper).trigger('click')
     expect(wrapper.emitted('answered')).toBeUndefined()
   })
+
+  it('ошибка-правило: целевая подсказка (🎯) вместо общего tip', async () => {
+    // Собрано без артикля «la» — подсказка должна быть именно про артикль
+    const wrapper = mount(QuizBuild, {
+      props: {
+        tiles: ['mujer', 'come', 'pan'],
+        answerTiles: ['La', 'mujer', 'come', 'pan'],
+        hint: 'Женщина ест хлеб',
+        tip: { why: 'ОБЩИЙ РАЗБОР ШАБЛОНА', hack: 'общий лайфхак' },
+      },
+    })
+    await tileBtn(wrapper, 'mujer').trigger('click')
+    await tileBtn(wrapper, 'come').trigger('click')
+    await tileBtn(wrapper, 'pan').trigger('click')
+    await checkBtn(wrapper).trigger('click')
+    expect(wrapper.emitted('answered')![0]).toEqual([false])
+    const text = wrapper.text()
+    expect(text).toContain('🎯')
+    expect(text).toMatch(/артикл/i)
+    expect(text).toContain('la mujer')
+    // общий tip скрыт — подсказка целевая
+    expect(text).not.toContain('ОБЩИЙ РАЗБОР ШАБЛОНА')
+  })
+
+  it('две ошибки: целевой подсказки нет — общий tip показывается', async () => {
+    const wrapper = mount(QuizBuild, {
+      props: {
+        tiles: ['tengo', 'la', 'ropa', 'vieja'],
+        answerTiles: ['Tengo', 'ropa'],
+        hint: 'У меня есть одежда',
+        tip: { why: 'ОБЩИЙ РАЗБОР ШАБЛОНА', hack: 'общий лайфхак' },
+      },
+    })
+    await tileBtn(wrapper, 'tengo').trigger('click')
+    await tileBtn(wrapper, 'la').trigger('click')
+    await tileBtn(wrapper, 'ropa').trigger('click')
+    await tileBtn(wrapper, 'vieja').trigger('click')
+    await checkBtn(wrapper).trigger('click')
+    const text = wrapper.text()
+    expect(text).not.toContain('🎯')
+    expect(text).toContain('💡')
+    expect(text).toContain('ОБЩИЙ РАЗБОР ШАБЛОНА')
+  })
 })
