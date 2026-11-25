@@ -4,6 +4,11 @@
 // После проверки фидбек занимает место пула плиток, а кнопка
 // «Проверить» превращается в «Дальше» — ничего не прыгает и
 // «Дальше» всегда под большим пальцем, без прокрутки.
+//
+// Плитки — компактные пилюли (маленькие паддинги, полностью
+// скруглённые углы). Зона сборки изначально держит ДВЕ строки
+// плиток (min-h-[102px]): фраза дорастает с одной строки
+// до двух без сдвига кнопки — карточка не меняет размер.
 // ============================================================
 import { computed, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
@@ -27,11 +32,17 @@ const t = useT()
 const selected = ref<number[]>([])
 const revealed = ref(false)
 
-/** Класс плитки: выбранная (и после проверки — вся пул) остаётся пустым
- *  местом своего размера — слова не перепрыгивают, а после проверки
- *  пул держит точную высоту, поэтому «Дальше» не сдвигается */
+/** Единый класс плитки-слова: компактная пилюля. Фиксированная высота
+ *  h-10 (40px) при шрифте 16px (18px на sm+) — без зависимости от
+ *  line-height и без растяжения по flex-stretch. Две строки плиток
+ *  + перенос gap-1 (4px) + паддинг зоны сборки p-2 (16px) + границы 2px
+ *  = 102px — ровно резерв зоны сборки min-h-[102px]: кнопка не
+ *  сдвигается никогда. Выбранная (и после проверки — вся пул) плитка
+ *  остаётся пустым местом своего размера — слова не перепрыгивают */
+const TILE = 'btn normal-case rounded-full h-10 px-3 leading-none text-base sm:text-lg'
+
 function tileClass(i: number): string {
-  const base = 'btn btn-outline btn-lg normal-case'
+  const base = `${TILE} btn-outline`
   return revealed.value || selected.value.includes(i)
     ? `${base} invisible pointer-events-none`
     : base
@@ -50,14 +61,15 @@ function undo(index: number) {
 /** Собранная фраза */
 const built = computed(() => selected.value.map((i) => props.tiles[i]).join(' '))
 
-/** Класс плитки в собранной фразе: до проверки — обычная; после
- *  НЕверной проверки — подсветка позиций: зелёная плитка стоит на
- *  своём месте, красная — не на своём (видно, где именно ошибка) */
+/** Класс плитки в собранной фразе (та же пилюля): до проверки —
+ *  обычная; после НЕверной проверки — подсветка позиций: зелёная
+ *  плитка стоит на своём месте, красная — не на своём */
 function builtClass(i: number): string {
-  if (!revealed.value) return 'btn-primary'
+  const base = TILE
+  if (!revealed.value) return `${base} btn-primary`
   const pos = selected.value.indexOf(i)
   const expected = props.answerTiles[pos]?.toLowerCase()
-  return props.tiles[i].toLowerCase() === expected ? 'btn-success' : 'btn-error'
+  return `${base} ${props.tiles[i].toLowerCase() === expected ? 'btn-success' : 'btn-error'}`
 }
 
 /** Верно, если собран полный ответ без учёта регистра — точный или
@@ -82,17 +94,20 @@ const gloss = computed(() => glossLine(props.answerTiles.join(' ')))
 
 <template lang="pug">
 .card.bg-base-100.shadow-lg.border.border-base-300.w-full
-  .card-body(class="gap-3 sm:gap-4 p-3 sm:p-4")
+  .card-body(class="gap-2 sm:gap-3 p-3 sm:p-4")
     // Подсказка-перевод (задание)
     .text-center
       h2.text-xl.font-bold.text-base-content(class="sm:text-2xl") {{ hint }}
 
-    // Собранная фраза
-    .min-h-14.border.border-dashed.border-base-300.rounded-lg.p-2.flex.flex-wrap.gap-1.items-center(
-      class="bg-base-200/50"
+    // Собранная фраза: зона заранее держит ДВЕ строки плиток.
+    // Расчёт резерва: 2 строки × 40px + перенос 4px + паддинг p-2 (16px)
+    // + границы зоны 2px = 102px — фраза дорастает с 1 строки до 2 без
+    // сдвига «Проверить/Дальше», карточка не меняет размер
+    .border.border-dashed.border-base-300.rounded-2xl.p-2.flex.flex-wrap.gap-1.items-center(
+      class="bg-base-200/50 min-h-[102px]"
       aria-label="Собранная фраза"
     )
-      button.btn.btn-md.text-lg(
+      button(
         v-for="i in selected"
         :key="i"
         :class="builtClass(i)"
@@ -104,8 +119,10 @@ const gloss = computed(() => glossLine(props.answerTiles.join(' ')))
     // Пул плиток. После проверки кнопки остаются на местах, но невидимыми:
     // контейнер держит точную высоту пула, поэтому «Дальше» стоит ровно
     // там же, где была «Проверить». min-h-24 страхует фидбек с подписью
-    // «Верный ответ:» и ответом на отдельных строках (до 2 строк текста)
-    .relative.min-h-24.flex.flex-wrap.gap-1.justify-center
+    // «Верный ответ:» и ответом на отдельных строках (до 2 строк текста).
+    // items/content-start: плитки не растягиваются по высоте контейнера
+    // (stretch по умолчанию при h-auto у плитки)
+    .relative.min-h-24.flex.flex-wrap.gap-1.justify-center.items-start.content-start
       button(
         v-for="(tile, i) in tiles"
         :key="i"

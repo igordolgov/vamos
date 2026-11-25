@@ -211,22 +211,22 @@ div.mb-2(v-if="mode === 'menu'")
   @touchstart.passive="onTouchStart"
   @touchend.passive="onTouchEnd"
 )
-  .flex.items-center.justify-between.mb-2
-    p(class="text-sm text-base-content/60") {{ t('practice.progress', { n: index + 1, total: SESSION_LENGTH }) }}
-    p.text-sm
-      span(class="font-bold text-success") {{ correctCount }} ✓
-      span(class="ml-2 font-bold text-error") {{ wrongCount }} ✗
-
-  template(v-if="current")
-    // «Уже выучил»: слово/фраза надоела — пометить, чтобы попадалась реже.
-    // Живёт на своём месте над карточкой, ничего не сдвигает
-    button.btn.btn-ghost.btn-xs.mb-1(
-      class="text-base-content/45 -ml-1 sm:btn-sm"
+  // Одна строка: прогресс слева, «Уже выучил» в центре, счёт справа —
+  // экономит вертикальное место, чтобы сессия помещалась на один экран
+  // (учитывая верхнюю/нижнюю панели мобильного браузера)
+  .flex.items-center.justify-between.mb-2(class="gap-1")
+    p(class="text-sm text-base-content/60 shrink-0") {{ t('practice.progress', { n: index + 1, total: SESSION_LENGTH }) }}
+    button.btn.btn-ghost.btn-xs(
+      class="text-base-content/45 min-h-0 h-7"
       @click="markKnown()"
     )
       span.text-sm ✨
       | {{ t('practice.alreadyKnown') }}
+    p.text-sm(class="shrink-0")
+      span(class="font-bold text-success") {{ correctCount }} ✓
+      span(class="ml-2 font-bold text-error") {{ wrongCount }} ✗
 
+  template(v-if="current")
     QuizChoice(
       v-if="current.kind === 'choice'"
       :key="index"

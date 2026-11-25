@@ -201,8 +201,20 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     await tileBtn(wrapper, 'quiero').trigger('click')
     await tileBtn(wrapper, 'hablar').trigger('click')
     // фраза собрана в зоне ответа в правильном порядке
-    const builtBtns = wrapper.findAll('.min-h-14 button').map((b) => b.text())
+    const builtBtns = wrapper.findAll('[aria-label="Собранная фраза"] button').map((b) => b.text())
     expect(builtBtns).toEqual(['Yo', 'quiero', 'hablar'])
+    // зона сборки заранее держит ДВЕ строки плиток (резерв 102px):
+    // кнопка «Проверить/Дальше» не сдвигается, когда фраза растёт с 1 до 2 строк
+    const area = wrapper.find('[aria-label="Собранная фраза"]')
+    expect(area.exists()).toBe(true)
+    expect(area.classes()).toContain('rounded-2xl')
+    // плитки — компактные пилюли: полностью скруглённые, фиксированная
+    // высота 40px (две строки = ровно резерв 102px), паддинги меньше btn-lg
+    const tile = area.findAll('button')[0]!
+    expect(tile.classes()).toContain('rounded-full')
+    expect(tile.classes()).toContain('h-10')
+    expect(tile.classes()).toContain('px-3')
+    expect(tile.classes()).not.toContain('btn-lg')
     await checkBtn(wrapper).trigger('click')
     expect(wrapper.emitted('answered')![0]).toEqual([true])
   })
@@ -285,10 +297,10 @@ describe('QuizBuild — сборка фразы из плиток', () => {
       props: { tiles: TILES, answerTiles: ANSWER, hint: 'x' },
     })
     await tileBtn(wrapper, 'Yo').trigger('click')
-    expect(wrapper.findAll('.min-h-14 button')).toHaveLength(1)
+    expect(wrapper.findAll('[aria-label="Собранная фраза"] button')).toHaveLength(1)
     // undo из зоны ответа
-    await wrapper.find('.min-h-14 button').trigger('click')
-    expect(wrapper.findAll('.min-h-14 button')).toHaveLength(0)
+    await wrapper.find('[aria-label="Собранная фраза"] button').trigger('click')
+    expect(wrapper.findAll('[aria-label="Собранная фраза"] button')).toHaveLength(0)
     expect(wrapper.findAll('.justify-center button')).toHaveLength(3)
   })
 
@@ -306,7 +318,7 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     expect(ph!.text()).toBe('quiero')
     expect((ph!.element as HTMLButtonElement).disabled).toBe(true)
     // undo возвращает плитку в её исходное место (плейсхолдер исчезает)
-    await wrapper.find('.min-h-14 button').trigger('click')
+    await wrapper.find('[aria-label="Собранная фраза"] button').trigger('click')
     expect(wrapper.findAll('.justify-center button.invisible')).toHaveLength(0)
   })
 
