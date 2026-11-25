@@ -208,10 +208,11 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     const area = wrapper.find('[aria-label="Собранная фраза"]')
     expect(area.exists()).toBe(true)
     expect(area.classes()).toContain('rounded-2xl')
-    // плитки — компактные пилюли: полностью скруглённые, фиксированная
-    // высота 40px (две строки = ровно резерв 102px), паддинги меньше btn-lg
+    // плитки — компактные, со стандартным скруглением DaisyUI
+    // (НЕ пилюли rounded-full — их трудно читать), высота 40px
+    // (две строки = ровно резерв 102px), паддинги меньше btn-lg
     const tile = area.findAll('button')[0]!
-    expect(tile.classes()).toContain('rounded-full')
+    expect(tile.classes()).not.toContain('rounded-full')
     expect(tile.classes()).toContain('h-10')
     expect(tile.classes()).toContain('px-3')
     expect(tile.classes()).not.toContain('btn-lg')
