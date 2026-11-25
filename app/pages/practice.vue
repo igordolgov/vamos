@@ -191,7 +191,7 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
 // соразмерными на широких экранах
 div.mb-2(v-if="mode === 'menu'")
   h2.card-title.text-lg.mb-2(class="sm:text-xl") {{ t('practice.source') }}
-  .grid.grid-cols-2.w-full.max-w-2xl(class="mx-auto gap-2.5 sm:grid-cols-4 sm:gap-3")
+  .grid.grid-cols-2.w-full.max-w-2xl(class="gap-2.5 sm:gap-3 sm:grid-cols-4 mx-auto")
     button.glass-card.glass-card--success(type="button" @click="startWith('choice')")
       span.glass-card-icon(aria-hidden="true") ✅
       span.glass-card-label {{ t('practice.choice') }}
@@ -216,8 +216,8 @@ div.mb-2(v-if="mode === 'menu'")
   // (учитывая верхнюю/нижнюю панели мобильного браузера)
   .flex.items-center.justify-between.mb-2(class="gap-1")
     p(class="text-sm text-base-content/60 shrink-0") {{ t('practice.progress', { n: index + 1, total: SESSION_LENGTH }) }}
-    button.btn.btn-ghost.btn-xs(
-      class="text-base-content/45 min-h-0 h-7"
+    button.btn.btn-md.border-primary(
+      class="h-7 min-h-0 text-base-content/50"
       @click="markKnown()"
     )
       span.text-sm ✨
