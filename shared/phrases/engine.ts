@@ -62,6 +62,16 @@ export function adjCompatible(adj: Word, noun: Word): boolean {
   return !!adj.adj && adjSemCompatible(adj, noun)
 }
 
+/** Ось-именная группа (для точного подсчёта пар с запретом совпадения) */
+type NPUnit = Extract<Unit, { kind: 'np' }>
+
+/** Существительное оси совпадает с уже выбранным существительным оси notSameNounAs? */
+function npNounBlocked(unit: NPUnit, noun: Word, chosen: Fill): boolean {
+  if (!unit.notSameNounAs) return false
+  const other = chosen[`${unit.notSameNounAs}#noun`]
+  return !!other && typeof other === 'object' && 'id' in other && (other as Word).id === noun.id
+}
+
 /** Разрешена ли «голая» форма (без артикля) для существительного ед.ч. */
 export function bareAllowed(noun: Word, number: GramNumber): boolean {
   if (number !== 'sg') return false
@@ -88,17 +98,17 @@ function freeWords(unit: Extract<Unit, { kind: 'free' }>, chosen: Fill): Word[] 
  * (в переводе: «много работы»), остальные — сочетают.
  */
 function npWaysPerNoun(
-  unit: Extract<Unit, { kind: 'np' }>,
+  unit: NPUnit,
   noun: Word,
   number: GramNumber,
   known: Set<string>,
 ): number {
-  return npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, number, known, unit.withAdj)
+  return npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, number, known, unit.withAdj, unit.detFilter)
 }
 
 /** Число определителей, сочетающихся с прилагательным (без quantity) */
 function detsCountAdj(
-  unit: Extract<Unit, { kind: 'np' }>,
+  unit: NPUnit,
   noun: Word,
   number: GramNumber,
   known: Set<string>,
@@ -106,7 +116,9 @@ function detsCountAdj(
   if (unit.detSet === 'none') return 1
   let ways = 0
   for (const det of detWords(unit.detSet)) {
-    if (known.has(det.id) && detCompatible(det, noun, number) && !det.det?.quantity) ways++
+    if (known.has(det.id) && detCompatible(det, noun, number) && !det.det?.quantity) {
+      if (!unit.detFilter || unit.detFilter(det)) ways++
+    }
   }
   if (unit.bareAuto && bareAllowed(noun, number)) ways += 1
   return ways
@@ -114,7 +126,7 @@ function detsCountAdj(
 
 /** Число вариантов прилагательного для np-юнита — только семантически
  *  совместимых с этим существительным (подсчёт согласован с перечислением) */
-function npAdjWays(unit: Extract<Unit, { kind: 'np' }>, noun: Word, known: Set<string>): number {
+function npAdjWays(unit: NPUnit, noun: Word, known: Set<string>): number {
   if (!unit.withAdj) return 1
   return countWords(allAdjectives.filter((a) => adjCompatible(a, noun)), known)
 }
@@ -144,6 +156,7 @@ export function unitWays(unit: Unit, known: Set<string>, chosen: Fill): number {
       let ways = 0
       for (const noun of unit.nouns) {
         if (unit.nounFilter && !unit.nounFilter(noun)) continue
+        if (npNounBlocked(unit, noun, chosen)) continue
         if (!known.has(noun.id)) continue
         const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
         for (const num of numbers) {
@@ -204,6 +217,46 @@ function verbCompatibleNouns(verb: Word, nouns: Word[]): Word[] {
   return verbObjAllowedNouns(verb, nouns)
 }
 
+/** Способы «определитель × прилагательное» без привязки к np-юниту.
+ *  detFilter ограничивает определители (hay: только un/una/mucho/poco). */
+function npWaysPerNounFor(
+  detSet: 'subject' | 'object' | 'none',
+  bareAuto: boolean,
+  noun: Word,
+  number: GramNumber,
+  known: Set<string>,
+  withAdj = false,
+  detFilter?: (d: Word) => boolean,
+): number {
+  // прилагательные, совместимые с ЭТИМ существительным (белый список)
+  const adjWays = withAdj ? countWords(allAdjectives.filter((a) => adjCompatible(a, noun)), known) : 1
+  if (detSet === 'none') return adjWays
+  let ways = 0
+  for (const det of detWords(detSet)) {
+    if (!known.has(det.id) || !detCompatible(det, noun, number)) continue
+    if (detFilter && !detFilter(det)) continue
+    ways += det.det?.quantity ? 1 : adjWays
+  }
+  if (bareAuto && bareAllowed(noun, number)) ways += adjWays
+  return ways
+}
+
+/** Способы заполнения одной np-оси конкретным существительным (все числа) */
+function npNounWays(unit: NPUnit, noun: Word, known: Set<string>): number {
+  const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
+  let ways = 0
+  for (const num of numbers) ways += npWaysPerNoun(unit, noun, num, known)
+  return ways
+}
+
+/** То же по id слова (для поправок прироста: слово может быть не существительным оси) */
+function npNounWaysById(unit: NPUnit, wordId: string, known: Set<string>): number {
+  const noun = unit.nouns.find((n) => n.id === wordId)
+  if (!noun) return 0
+  if (unit.nounFilter && !unit.nounFilter(noun)) return 0
+  return npNounWays(unit, noun, known)
+}
+
 /** Способы заполнения дополнения для глагола */
 function objNounWays(
   verb: Word,
@@ -218,27 +271,6 @@ function objNounWays(
       ways += npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known, unit.withAdj)
     }
   }
-  return ways
-}
-
-/** Способы «определитель × прилагательное» без привязки к np-юниту */
-function npWaysPerNounFor(
-  detSet: 'subject' | 'object' | 'none',
-  bareAuto: boolean,
-  noun: Word,
-  number: GramNumber,
-  known: Set<string>,
-  withAdj = false,
-): number {
-  // прилагательные, совместимые с ЭТИМ существительным (белый список)
-  const adjWays = withAdj ? countWords(allAdjectives.filter((a) => adjCompatible(a, noun)), known) : 1
-  if (detSet === 'none') return adjWays
-  let ways = 0
-  for (const det of detWords(detSet)) {
-    if (!known.has(det.id) || !detCompatible(det, noun, number)) continue
-    ways += det.det?.quantity ? 1 : adjWays
-  }
-  if (bareAuto && bareAllowed(noun, number)) ways += adjWays
   return ways
 }
 
@@ -300,12 +332,55 @@ export function templateReady(t: Template, known: Set<string>): boolean {
   return t.requires.every((id) => known.has(id))
 }
 
+/** Пара np-осей с запретом одинаковых существительных (notSameNounAs) */
+function npExclusionPair(
+  t: Template,
+): { src: NPUnit; dep: NPUnit; srcIdx: number; depIdx: number } | null {
+  for (let i = 0; i < t.units.length; i++) {
+    const u = t.units[i]!
+    if (u.kind !== 'np' || !u.notSameNounAs) continue
+    const srcIdx = t.units.findIndex(
+      (x) => x.kind === 'np' && x.role === u.notSameNounAs && !x.notSameNounAs,
+    )
+    if (srcIdx >= 0 && srcIdx !== i) {
+      return { src: t.units[srcIdx] as NPUnit, dep: u, srcIdx, depIdx: i }
+    }
+  }
+  return null
+}
+
 /**
  * Сколько фраз (с учётом вариантов) собирается из известных слов.
  * Аналитическая комбинаторика: произведение способов по юнитам × варианты.
+ * Для осей с запретом одинаковых существительных — точная сумма по паре
+ * (произведение завышало бы счёт: «Una maestra ve a la maestra» исключена).
  */
 export function countTemplate(t: Template, known: Set<string>): number {
   if (!templateReady(t, known)) return 0
+  const pair = npExclusionPair(t)
+  if (pair) {
+    const { src, dep, srcIdx, depIdx } = pair
+    let rest = t.variants.length
+    for (let k = 0; k < t.units.length; k++) {
+      if (k !== srcIdx && k !== depIdx) rest *= unitWays(t.units[k]!, known, {})
+    }
+    let sum = 0
+    for (const s of src.nouns) {
+      if (src.nounFilter && !src.nounFilter(s)) continue
+      if (!known.has(s.id)) continue
+      const ws = npNounWays(src, s, known)
+      if (ws === 0) continue
+      let wDep = 0
+      for (const o of dep.nouns) {
+        if (dep.nounFilter && !dep.nounFilter(o)) continue
+        if (o.id === s.id) continue
+        if (!known.has(o.id)) continue
+        wDep += npNounWays(dep, o, known)
+      }
+      sum += ws * wDep
+    }
+    return rest * sum
+  }
   let ways = 1
   const chosen: Fill = {}
   for (const unit of t.units) {
@@ -335,11 +410,43 @@ export function gainsTemplate(t: Template, known: Set<string>): Map<string, numb
     }
     restWays.set(i, p)
   }
+  const pair = npExclusionPair(t)
   for (let i = 0; i < t.units.length; i++) {
     const unit = t.units[i]
     const rest = restWays.get(i) ?? 0
     for (const [wordId, gain] of unitGains(unit, known)) {
-      result.set(wordId, (result.get(wordId) ?? 0) + gain * rest)
+      let g = gain * rest
+      // Поправка на запрет одинаковых существительных в паре осей:
+      // выучить «maestra» не даёт фраз вида «Una maestra ve a la maestra»
+      if (pair && (i === pair.srcIdx || i === pair.depIdx)) {
+        const other = i === pair.depIdx ? pair.src : pair.dep
+        const wOther = unitWays(other, known, {})
+        if (wOther > 0) {
+          const excl = npNounWaysById(other, wordId, known)
+          g *= (wOther - excl) / wOther
+        }
+      }
+      result.set(wordId, (result.get(wordId) ?? 0) + g)
+    }
+  }
+  // Для существительных, входящих в ОБЕ оси пары, поправка выше считает
+  // каждую ось независимо — вычитаем двойно исключённые заполнения
+  if (pair) {
+    const { src, dep, srcIdx, depIdx } = pair
+    const restDep = restWays.get(depIdx) ?? 0
+    const wSrc = unitWays(src, known, {})
+    if (wSrc > 0 && restDep > 0) {
+      const vu = restDep / wSrc // варианты × способы остальных осей
+      for (const s of src.nouns) {
+        if (known.has(s.id)) continue
+        if (!dep.nouns.some((o) => o.id === s.id)) continue
+        if (dep.nounFilter && !dep.nounFilter(s)) continue
+        const ws = npNounWays(src, s, known)
+        const wo = npNounWays(dep, s, known)
+        if (ws > 0 && wo > 0) {
+          result.set(s.id, (result.get(s.id) ?? 0) - ws * wo * vu)
+        }
+      }
     }
   }
   return result
@@ -385,6 +492,7 @@ function unitGains(unit: Unit, known: Set<string>): Map<string, number> {
       if (unit.detSet !== 'none') {
         for (const det of detWords(unit.detSet)) {
           if (known.has(det.id)) continue
+          if (unit.detFilter && !unit.detFilter(det)) continue
           let ways = 0
           for (const noun of unit.nouns) {
             if (unit.nounFilter && !unit.nounFilter(noun)) continue
@@ -613,6 +721,7 @@ function unitOptionsWithIndexes(unit: Unit, chosen: Fill, known: Set<string>): A
       let i = 0
       for (const noun of unit.nouns) {
         if (unit.nounFilter && !unit.nounFilter(noun)) continue
+        if (npNounBlocked(unit, noun, chosen)) continue
         if (!known.has(noun.id)) { i++; continue }
         const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
         for (const num of numbers) {
@@ -623,7 +732,10 @@ function unitOptionsWithIndexes(unit: Unit, chosen: Fill, known: Set<string>): A
           } else {
             if (unit.bareAuto && bareAllowed(noun, num)) dets.push(null)
             for (const d of detWords(unit.detSet)) {
-              if (known.has(d.id) && detCompatible(d, noun, num)) dets.push(d)
+              if (known.has(d.id) && detCompatible(d, noun, num)) {
+                if (unit.detFilter && !unit.detFilter(d)) continue
+                dets.push(d)
+              }
             }
           }
           for (const det of dets) {

@@ -13,8 +13,8 @@ import { ALL_WORDS, wordsByPos } from '../data/words'
 import { capitalize, conjugate, gerundOf, joinPrepNP } from './es'
 import { ruAdjForm, ruDetForm, ruGustarForm, ruNounForm, ruNounPhrase } from './ru'
 import { ruAccusative, ruGenitive } from './ru-morph'
-import { initEngine, npEs, npNumber, npRu, verbPrepRuKey } from './engine'
-import { NEG_BEFORE_ADVERB_RU } from './collocations'
+import { initEngine, npEs, npNumber, npRu, verbPrepRuKey, adjCompatible } from './engine'
+import { NEG_BEFORE_ADVERB_RU, TENER_NOUN_IDS, TENER_PLURAL_IDS, adjPersonCompatible } from './collocations'
 import type { Fill, PhraseKind, Template } from './schema'
 
 // ============================================================
@@ -94,9 +94,6 @@ export const NEG_ADV_ADVERBS: Word[] = ['adv-ya', 'adv-todavia'].map(getWord)
 export const PLACE_ADVERBS: Word[] = ['adv-aqui', 'adv-alli'].map(getWord)
 export const MANNER_ADVERBS: Word[] = ['adv-despacio', 'adv-rapido', 'adv-bien', 'adv-mal', 'adv-juntos'].map(getWord)
 
-/** Глаголы для обстоятельств образа действия (без модальных) */
-export const MANNER_VERBS: Word[] = CONJUGATED_VERBS.filter((v) => !v.verb?.modal && v.id !== 'v-tener')
-
 /** Прилагательные состояния: для людей (с краткой формой) и для предметов */
 export const STATE_ADJ_PEOPLE: Word[] = ALL_WORDS.filter((w) => w.adjState && !!w.ruShort)
 export const STATE_ADJ_THINGS: Word[] = ALL_WORDS.filter((w) => w.adjState && !w.ruShort)
@@ -106,6 +103,37 @@ export const QUALITY_ADJECTIVES: Word[] = ALL_WORDS.filter((w) => w.pos === 'adj
 
 /** Все прилагательные */
 export const ALL_ADJECTIVES: Word[] = wordsByPos('adjective')
+
+/** Качественные прилагательные, естественно описывающие людей:
+ *  «Я — молодой/богатый», но не «Я — дешёвый», «Молоко — трудное» */
+export const PERSON_QUALITY_ADJECTIVES: Word[] = QUALITY_ADJECTIVES.filter(adjPersonCompatible)
+
+/** Глаголы, естественно звучащие в «estar + герундий»:
+ *  «Estoy comiendo» — да, «Estoy teniendo/queriendo» — нет */
+export const ESTAR_GERUND_VERBS: Word[] = [
+  'v-comer', 'v-estudiar', 'v-leer', 'v-escribir', 'v-ver', 'v-hacer', 'v-abrir', 'v-cerrar',
+  'v-buscar', 'v-esperar', 'v-pagar', 'v-pedir', 'v-poner', 'v-decir', 'v-llevar', 'v-usar',
+  'v-dejar', 'v-terminar', 'v-empezar', 'v-recordar',
+].map(getWord)
+
+/** Немонодальные глаголы с русскими формами: инфинитив после модального —
+ *  только действие: «puedo comer», но не «puedo poder», «quiero necesitar» */
+export const NON_MODAL_CONJ_VERBS: Word[] = CONJUGATED_VERBS.filter((v) => !v.verb?.modal)
+
+/** Глаголы в шаблонах с местоимением-подлежащим (наречия, вопросы):
+ *  pasar исключён — «Они всегда происхожу» / «¿Quién pasas?» — абсурд */
+export const PRONOUN_CONJ_VERBS: Word[] = CONJUGATED_VERBS.filter((v) => v.id !== 'v-pasar')
+
+/** Глаголы обстоятельств образа действия: «работаю быстро», «сплю плохо» */
+export const MANNER_VERBS: Word[] = [
+  'v-hablar', 'v-comer', 'v-vivir', 'v-trabajar', 'v-estudiar', 'v-leer', 'v-escribir', 'v-beber',
+  'v-ir', 'v-dormir', 'v-entender', 'v-ver', 'v-decir', 'v-hacer', 'v-recordar', 'v-conocer',
+].map(getWord)
+
+/** Определители, корректные с hay: неопределённые и количество.
+ *  «Hay comida / una comida / mucha comida» — да;
+ *  «No hay la comida», «Hay mi comida» — нет */
+const HAY_DET_OK = (d: Word): boolean => !!d.det?.indefinite || !!d.det?.quantity
 
 // Регистрируем прилагательные и существительные в движке
 initEngine(ALL_ADJECTIVES, ALL_WORDS.filter((w) => w.pos === 'noun'))
@@ -271,7 +299,7 @@ export const TEMPLATES: Template[] = [
     requires: ['v-ser'],
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
-      { kind: 'free', role: 'adj', words: QUALITY_ADJECTIVES },
+      { kind: 'free', role: 'adj', words: PERSON_QUALITY_ADJECTIVES },
     ],
     variants: ['aff', 'neg', 'yesno'],
     render: (fill, kind) => {
@@ -333,9 +361,20 @@ export const TEMPLATES: Template[] = [
     lesson: 13,
     group: 'ser/estar',
     requires: ['v-ser'],
+    // Прилагательное согласуется с существительным и по форме, и по смыслу:
+    // «Молоко — вкусное» — да, «Молоко — трудное», «Кровать — лёгкая» — нет
     units: [
-      { kind: 'np', role: 's', nouns: ALL_WORDS.filter((w) => w.pos === 'noun'), number: 'sg', detSet: 'subject', bareAuto: false, withAdj: false },
-      { kind: 'free', role: 'adj', words: QUALITY_ADJECTIVES },
+      {
+        kind: 'npDep',
+        role: 's',
+        nouns: ALL_WORDS.filter((w) => w.pos === 'noun'),
+        number: 'sg',
+        detSet: 'subject',
+        bareAuto: false,
+        depRole: 'adj',
+        deps: QUALITY_ADJECTIVES,
+        compat: (noun, dep) => adjCompatible(dep, noun),
+      },
     ],
     variants: ['aff', 'neg', 'yesno'],
     render: (fill, kind) => {
@@ -459,7 +498,17 @@ export const TEMPLATES: Template[] = [
     requires: ['v-tener'],
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
-      { kind: 'np', role: 'o', nouns: THING_NOUNS, number: 'sg', detSet: 'object', bareAuto: true, withAdj: false },
+      {
+        kind: 'np',
+        role: 'o',
+        nouns: ALL_WORDS.filter((w) => w.pos === 'noun'),
+        number: 'sg',
+        detSet: 'object',
+        bareAuto: true,
+        withAdj: false,
+        // «У меня есть семья/время/машина», но не «мало курицы», «есть музыка»
+        nounFilter: (n) => TENER_NOUN_IDS.includes(n.id),
+      },
     ],
     variants: ['aff', 'neg', 'yesno'],
     render: (fill, kind) => {
@@ -492,11 +541,13 @@ export const TEMPLATES: Template[] = [
       {
         kind: 'np',
         role: 'o',
-        nouns: ALL_WORDS.filter((w) => w.nounClass === 'family' || w.nounClass === 'thing'),
+        nouns: ALL_WORDS.filter((w) => w.pos === 'noun'),
         number: 'pl',
         detSet: 'none',
         bareAuto: false,
         withAdj: false,
+        // «два брата», «три книги» — да; «три отца», «трое денег» — нет
+        nounFilter: (n) => TENER_PLURAL_IDS.includes(n.id),
       },
     ],
     variants: ['aff', 'yesno'],
@@ -527,7 +578,16 @@ export const TEMPLATES: Template[] = [
     group: 'there is/are (hay)',
     requires: ['cstr-hay'],
     units: [
-      { kind: 'np', role: 'o', nouns: THING_NOUNS, number: 'sg', detSet: 'object', bareAuto: true, withAdj: false },
+      {
+        kind: 'np',
+        role: 'o',
+        nouns: THING_NOUNS,
+        number: 'sg',
+        detSet: 'object',
+        bareAuto: true,
+        withAdj: false,
+        detFilter: HAY_DET_OK,
+      },
     ],
     variants: ['aff', 'neg'],
     render: (fill, kind) => {
@@ -548,7 +608,16 @@ export const TEMPLATES: Template[] = [
     group: 'there is/are (hay)',
     requires: ['cstr-hay', 'prep-en'],
     units: [
-      { kind: 'np', role: 's', nouns: THING_NOUNS, number: 'sg', detSet: 'object', bareAuto: true, withAdj: false },
+      {
+        kind: 'np',
+        role: 's',
+        nouns: THING_NOUNS,
+        number: 'sg',
+        detSet: 'object',
+        bareAuto: true,
+        withAdj: false,
+        detFilter: HAY_DET_OK,
+      },
       { kind: 'np', role: 'o', nouns: HUMAN_PLACE_NOUNS, number: 'sg', detSet: 'subject', bareAuto: true, withAdj: false },
     ],
     variants: ['aff', 'neg'],
@@ -856,7 +925,8 @@ export const TEMPLATES: Template[] = [
     },
   },
   {
-    // Существительное-подлежащее + глагол с лицом: El niño ve a la maestra
+    // Существительное-подлежащее + глагол с лицом: El niño ve a la maestra.
+    // Подлежащее и дополнение не совпадают: «Una maestra ve a la maestra» — не генерируем
     id: 't-noun-v-person',
     lesson: 7,
     group: 'глагол + дополнение',
@@ -864,7 +934,7 @@ export const TEMPLATES: Template[] = [
     units: [
       { kind: 'np', role: 's', nouns: PERSON_NOUNS, number: 'sg', detSet: 'subject', bareAuto: false, withAdj: false },
       { kind: 'free', role: 'v', words: PERSON_VERBS },
-      { kind: 'np', role: 'o', nouns: PERSON_NOUNS, number: 'sg', detSet: 'subject', bareAuto: false, withAdj: false },
+      { kind: 'np', role: 'o', nouns: PERSON_NOUNS, number: 'sg', detSet: 'subject', bareAuto: false, withAdj: false, notSameNounAs: 's' },
     ],
     variants: ['aff', 'neg', 'yesno'],
     render: (fill, kind) => {
@@ -947,7 +1017,8 @@ export const TEMPLATES: Template[] = [
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
       { kind: 'free', role: 'v', words: MODAL_VERBS },
-      { kind: 'free', role: 'v2', words: CONJUGATED_VERBS },
+      // «puede comer» — да; «puede poder», «quiero necesitar» — нет
+      { kind: 'free', role: 'v2', words: NON_MODAL_CONJ_VERBS },
     ],
     variants: ['aff', 'neg', 'yesno'],
     render: (fill, kind) => {
@@ -983,7 +1054,8 @@ export const TEMPLATES: Template[] = [
     requires: ['v-tener', 'cstr-tener-que'],
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
-      { kind: 'free', role: 'v2', words: CONJUGATED_VERBS },
+      // «должен работать», но не «должен мочь»
+      { kind: 'free', role: 'v2', words: NON_MODAL_CONJ_VERBS },
     ],
     variants: ['aff', 'neg', 'yesno'],
     render: (fill, kind) => {
@@ -1101,7 +1173,7 @@ export const TEMPLATES: Template[] = [
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
       { kind: 'free', role: 'adv', words: PREVERB_ADVERBS_NEG_OK },
-      { kind: 'free', role: 'v', words: CONJUGATED_VERBS },
+      { kind: 'free', role: 'v', words: PRONOUN_CONJ_VERBS },
     ],
     variants: ['aff', 'neg', 'yesno'],
     render: (fill, kind) => {
@@ -1134,7 +1206,7 @@ export const TEMPLATES: Template[] = [
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
       { kind: 'free', role: 'adv', words: PREVERB_ADVERBS_NO_NEG },
-      { kind: 'free', role: 'v', words: CONJUGATED_VERBS },
+      { kind: 'free', role: 'v', words: PRONOUN_CONJ_VERBS },
     ],
     variants: ['aff', 'yesno'],
     render: (fill, kind) => {
@@ -1163,7 +1235,7 @@ export const TEMPLATES: Template[] = [
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
       { kind: 'free', role: 'adv', words: NEG_ADV_ADVERBS },
-      { kind: 'free', role: 'v', words: CONJUGATED_VERBS },
+      { kind: 'free', role: 'v', words: PRONOUN_CONJ_VERBS },
     ],
     variants: ['neg'],
     render: (fill) => {
@@ -1190,7 +1262,7 @@ export const TEMPLATES: Template[] = [
     requires: ['adv-tampoco'],
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
-      { kind: 'free', role: 'v', words: CONJUGATED_VERBS },
+      { kind: 'free', role: 'v', words: PRONOUN_CONJ_VERBS },
     ],
     variants: ['neg', 'yesno'],
     render: (fill, kind) => {
@@ -1215,7 +1287,7 @@ export const TEMPLATES: Template[] = [
     requires: ['adv-nunca'],
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
-      { kind: 'free', role: 'v', words: CONJUGATED_VERBS },
+      { kind: 'free', role: 'v', words: PRONOUN_CONJ_VERBS },
     ],
     variants: ['aff', 'yesno'],
     render: (fill, kind) => {
@@ -1307,7 +1379,7 @@ export const TEMPLATES: Template[] = [
     requires: ['v-estar', 'cstr-estar-gerundio'],
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
-      { kind: 'verbObj', verbRole: 'v', verbs: TRANSITIVE_VERBS, nounRole: 'o', nouns: THING_NOUNS, number: 'sg', detSet: 'object', bareAuto: true, withAdj: false },
+      { kind: 'verbObj', verbRole: 'v', verbs: ESTAR_GERUND_VERBS, nounRole: 'o', nouns: THING_NOUNS, number: 'sg', detSet: 'object', bareAuto: true, withAdj: false },
     ],
     variants: ['aff', 'neg', 'yesno'],
     render: (fill, kind) => {
@@ -1362,8 +1434,8 @@ export const TEMPLATES: Template[] = [
   // ==========================================================
   qwTemplate('t-qw-que', 'qw-que', 'что', TRANSITIVE_VERBS),
   qwTemplate('t-qw-donde', 'qw-donde', 'где', PLACE_ADV_VERBS),
-  qwTemplate('t-qw-cuando', 'qw-cuando', 'когда', CONJUGATED_VERBS),
-  qwTemplate('t-qw-porque', 'qw-por-que', 'почему', CONJUGATED_VERBS),
+  qwTemplate('t-qw-cuando', 'qw-cuando', 'когда', PRONOUN_CONJ_VERBS),
+  qwTemplate('t-qw-porque', 'qw-por-que', 'почему', PRONOUN_CONJ_VERBS),
   {
     id: 't-qw-quien',
     lesson: 21,
@@ -1371,7 +1443,7 @@ export const TEMPLATES: Template[] = [
     // «Quién» — тоже слово: появляется только после изучения
     requires: ['qw-quien'],
     questionWord: getWord('qw-quien'),
-    units: [{ kind: 'free', role: 'v', words: CONJUGATED_VERBS }],
+    units: [{ kind: 'free', role: 'v', words: PRONOUN_CONJ_VERBS }],
     variants: ['qw'],
     render: (fill) => `¿Quién ${(fill.v as Word).verb!.forms['3s']}?`,
     ru: (fill) => `Кто ${(fill.v as Word).verb!.ruForms![2]}?`,

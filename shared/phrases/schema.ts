@@ -56,6 +56,12 @@ export type Unit =
       withAdj: boolean
       /** Фильтр существительных (статический, от chosen не зависит) */
       nounFilter?: (n: Word) => boolean
+      /** Фильтр определителей: hay сочетается только с un/una/mucho/poco,
+       *  «No hay la comida» и «Hay mi comida» — неправильно */
+      detFilter?: (d: Word) => boolean
+      /** Существительное не может совпадать с существительным оси
+       *  notSameNounAs: «Una maestra ve a la maestra» — не генерируем */
+      notSameNounAs?: string
     }
   | {
       /** Якорь → зависимость: род существительного согласуется с местоимением */
