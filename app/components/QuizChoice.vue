@@ -9,7 +9,6 @@
 import { computed, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
 import type { WordTip } from '#shared/data/word-tips'
-import { glossLine } from '#shared/gloss'
 import SpeakButton from './SpeakButton.vue'
 
 const props = defineProps<{
@@ -41,12 +40,6 @@ function choose(index: number) {
 }
 
 const isCorrect = computed(() => selected.value === props.answerIndex)
-
-/** Пословный разбор испанской фразы-вопроса (только для фраз —
- *  у одиночных слов разбор не нужен) */
-const gloss = computed(() =>
-  props.questionEs && props.questionEs.includes(' ') ? glossLine(props.questionEs) : null,
-)
 
 /** Пояснение выбранного неверного варианта: «где» — это «dónde» */
 const pickedNote = computed(() => {
@@ -107,9 +100,8 @@ function btnClass(index: number): string {
           p.text-sm(class="mt-0.5 text-error/70" v-if="pickedNote") {{ pickedNote }}
 
     // Объяснение ошибки: почему легко путать и лайфхак запоминания,
-    // пример употребления и пословный разбор фразы. Появляется только
-    // при неверном ответе — карточка вырастает один раз, всё объяснение
-    // читается до нажатия «Дальше»
+    // пример употребления. Появляется только при неверном ответе —
+    // карточка вырастает один раз, всё объяснение читается до «Дальше»
     .w-full(v-if="revealed && !isCorrect && tip")
       .rounded-xl.text-left(class="p-2.5 bg-warning/10 border border-warning/30")
         p.text-sm(class="leading-snug")
@@ -118,8 +110,6 @@ function btnClass(index: number): string {
           | 🧠 <b>{{ t('practice.tipHack') }}:</b> {{ tip.hack }}
         p.text-sm.mt-1(class="leading-snug" v-if="tip.ex")
           | 💬 <b>{{ t('practice.tipEx') }}:</b> «{{ tip.ex.es }}» — {{ tip.ex.ru }}
-        p.text-sm.mt-1(class="leading-snug" v-if="gloss")
-          | 🔍 <b>{{ t('practice.gloss') }}:</b> {{ gloss }}
 
     button.btn.btn-primary.text-lg(
       :class="revealed ? 'visible' : 'invisible'"

@@ -22,6 +22,13 @@ describe('targetedHint — артикли', () => {
     expect(h).toMatch(/неопределённ/)
   })
 
+  it('gustar: «нравится рис» → Me gusta el arroz — то, что нравится, с артиклем', () => {
+    const h = targetedHint(['me', 'gusta', 'arroz'], ['Me', 'gusta', 'el', 'arroz'])
+    expect(h).toBeTruthy()
+    expect(h).toContain('el arroz')
+    expect(h).toMatch(/подлеж|gusta/)
+  })
+
   it('не тот род артикля: el mujer → la mujer (согласование в роде)', () => {
     const h = targetedHint(['el', 'mujer'], ['la', 'mujer'])
     expect(h).toBeTruthy()

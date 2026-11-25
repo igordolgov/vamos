@@ -88,7 +88,6 @@ export const ES: Dict = {
   'practice.tipWhy': 'Por qué',
   'practice.tipHack': 'Truco',
   'practice.tipEx': 'Ejemplo',
-  'practice.gloss': 'Por palabras',
   'practice.progress': 'Pregunta {n} de {total}',
   'practice.finish': 'Terminar',
   'practice.result': '¡Sesión terminada!',

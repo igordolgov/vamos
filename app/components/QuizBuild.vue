@@ -13,7 +13,6 @@
 import { computed, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
 import type { WordTip } from '#shared/data/word-tips'
-import { glossLine } from '#shared/gloss'
 import { targetedHint } from '#shared/phrases/diff-hint'
 
 const props = defineProps<{
@@ -91,9 +90,6 @@ function check() {
   emit('answered', isCorrect.value)
 }
 
-/** Пословный разбор верной фразы: слово → перевод (tengo — имею) */
-const gloss = computed(() => glossLine(props.answerTiles.join(' ')))
-
 /** Целевая подсказка про КОНКРЕТНУЮ ошибку. Сравнивает собранную фразу
  *  с ответом: если ошибка однозначная (пропущен/лишний артикль, lo вместо
  *  le, контракция a+el, форма глагола, порядок слов…) — объясняется
@@ -159,7 +155,7 @@ const focusHint = computed<string | null>(() => {
     // Объяснение ошибки: сначала — целевая подсказка про конкретную
     // ошибку (🎯 артикль, le/les, предлог, форма глагола…), если она
     // однозначная; иначе — общий разбор шаблона (почему путают +
-    // лайфхак + пример). Внизу — пословный разбор верной фразы
+    // лайфхак + пример)
     .w-full(v-if="revealed && !isCorrect")
       .rounded-xl.text-left(class="p-2.5 bg-warning/10 border border-warning/30")
         p.text-sm(class="leading-snug" v-if="focusHint")
@@ -171,8 +167,6 @@ const focusHint = computed<string | null>(() => {
             | 🧠 <b>{{ t('practice.tipHack') }}:</b> {{ tip.hack }}
           p.text-sm.mt-1(class="leading-snug" v-if="tip.ex")
             | 💬 <b>{{ t('practice.tipEx') }}:</b> «{{ tip.ex.es }}» — {{ tip.ex.ru }}
-        p.text-sm.mt-1(class="leading-snug" v-if="gloss")
-          | 🔍 <b>{{ t('practice.gloss') }}:</b> {{ gloss }}
 
     // Кнопка: до проверки — «Проверить», после — «Дальше» (на том же месте)
     button.btn.text-lg(

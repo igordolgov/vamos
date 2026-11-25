@@ -511,6 +511,14 @@ export const TEMPLATES: Template[] = [
         withAdj: false,
         // «У меня есть семья/время/машина», но не «мало курицы», «есть музыка»
         nounFilter: (n) => TENER_NOUN_IDS.includes(n.id),
+        // Детерминированная пара ES/RU (жалоба «нет времени» ↔ poco tiempo):
+        // «мало/много» запрещены — «No tiene poco tiempo» читается
+        // «у него НЕ мало времени», а русский промпт «нет времени»
+        // отвечает «No tiene tiempo»;
+        // определённый артикль тоже запрещён: «У меня есть ключ» тогда
+        // отвечает ровно одна фраза — «Tengo una llave» (как учит tip
+        // шаблона), а неисчисляемое остаётся голым: «Tengo tiempo»
+        detFilter: (d) => !d.det?.quantity && !d.det?.definite,
       },
     ],
     variants: ['aff', 'neg', 'yesno'],

@@ -137,6 +137,13 @@ describe('Русский рендеринг', () => {
     for (const p of negs) {
       expect(p.ru.endsWith('нет'), p.ru).toBe(false)
     }
+    // пара ES/RU без количества: «У меня нет времени» ↔ «Yo no tengo tiempo»,
+    // а не «Yo no tengo poco/mucho tiempo» (жалоба пользователя)
+    const noTiempo = phrases.filter((p) => p.ru === 'У меня нет времени')
+    expect(noTiempo.length, 'фраза «У меня нет времени» существует').toBeGreaterThan(0)
+    for (const p of noTiempo) {
+      expect(p.es, p.es).toMatch(/no tengo tiempo$/i)
+    }
   })
 
   it('hace-tiempo: «Два года назад», «Две недели назад»', () => {
@@ -329,10 +336,16 @@ describe('Артикли: правила употребления', () => {
     for (const es of seen) {
       expect(es.toLowerCase(), es).not.toMatch(/\btengo (problema|pregunta|idea|historia|respuesta)\b/)
       expect(es.toLowerCase(), es).not.toMatch(/\b(un|una) (ropa|dinero|tiempo)\b/)
+      // детерминированная пара ES/RU (жалоба «нет времени» ↔ poco tiempo):
+      // «много/мало» и определённый артикль с tener не сочетаем —
+      // «У меня есть/нет X» отвечает ровно одна фраза
+      expect(es.toLowerCase(), es).not.toMatch(/\b(mucho|mucha|poco|poca)\b/)
+      expect(es.toLowerCase(), es).not.toMatch(/\b(el|la|los|las) \w/)
     }
     expect(seen.some((es) => /tengo un problema/i.test(es))).toBe(true)
     expect(seen.some((es) => /tengo ropa/i.test(es))).toBe(true)
     expect(seen.some((es) => /tengo dinero/i.test(es))).toBe(true)
+    expect(seen.some((es) => /no tengo tiempo/i.test(es))).toBe(true)
   })
 
   it('предлоги: голая форма только у sin/casa и «sobre + тема»', () => {

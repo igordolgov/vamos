@@ -267,6 +267,12 @@ function classifyIns(at: string, a: string[], ai: number): string | null {
     const nounTok = a[ai + 1] ?? ''
     const noun = nounByToken(nounTok)
     if (info.def) {
+      // gustar: «нравится рис» → Me gusta EL arroz — то, что нравится,
+      // подлежащее и несёт артикль (еда вообще); жалоба пользователя
+      const prev = ai > 0 ? a[ai - 1] : undefined
+      if (prev === 'gusta' || prev === 'gustan') {
+        return `То, что нравится, — подлежащее и стоит с артиклем: «${at} ${nounTok}». Me gusta el arroz — «нравится рис» (еда вообще); «Me gusta arroz» — ошибка.`
+      }
       const gender = noun?.gender ? ` («${nounTok}» — ${noun.gender === 'f' ? 'ж.р.' : 'м.р.'})` : ''
       return `Существительное в испанском почти не обходится без артикля: нужен «${at} ${nounTok}» — определённый артикль «тот самый»${gender}.`
     }
