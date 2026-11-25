@@ -327,7 +327,7 @@ function classifyDel(bt: string, b: string[], bi: number): string | null {
       return `Артикль не ставится рядом с другим определителем: «${nextTok}» (${DET_TOKEN_RU[nextTok] ?? 'определитель'}) уже определяет существительное. «mi casa», не «la mi casa».`
     }
     if (prev === 'hay') {
-      return 'После «hay» неисчисляемое стоит без артикля: Hay agua, Hay ropa. Артикль — только со счётными: Hay una idea.'
+      return 'После «hay» неисчисляемое стоит без артикля: Hay agua, Hay ropa, Hay comida. Артикль — только со счётными: Hay una idea.'
     }
     if (prev === 'sin') return 'После «sin» артикля нет: sin azúcar — «без сахара».'
     const noun = nounByToken(nounTok)

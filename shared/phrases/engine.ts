@@ -68,10 +68,15 @@ const UNCOUNTABLE_NOUNS = new Set([
 /** Существительные, никогда не сочетающиеся с un/una/unos/unas:
  *  «Tengo ropa», «Quiero dinero», «Hay leche» — без артикля.
  *  Молоко/сахар/соль/рис — неисчисляемые: «Te doy leche»,
- *  а «una leche» — неверно (пользовательская жалоба) */
+ *  а «una leche» — неверно (пользовательская жалоба).
+ *  Comida = «еда» (массовое): «No hay comida»,
+ *  а «No hay una comida» — неверно (пользовательская жалоба).
+ *  Agua: «un agua» допустимо по RAE (порция, «Un agua, por favor»),
+ *  но в приложении вода — массовое, как молоко: «Hay agua», «Quiero agua»,
+ *  а «No hay un agua» противоречит правилу, которое учит приложение */
 const NO_INDEFINITE_NOUNS = new Set([
   'n-ropa', 'n-dinero', 'n-tiempo', 'n-musica',
-  'n-leche', 'n-azucar', 'n-sal', 'n-arroz',
+  'n-leche', 'n-azucar', 'n-sal', 'n-arroz', 'n-comida', 'n-agua',
 ])
 
 /** Неисчисляемые без реального мн.ч.: только ед.ч.

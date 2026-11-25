@@ -6,6 +6,8 @@ import { describe, it, expect } from 'vitest'
 import { emptyProgress, KNOWN_THRESHOLD } from '../../shared/types'
 import { practicePool, wordChoiceExercise, buildExercise, audioExercise, makeExercise, recordAnswer, shuffle, starExercise, phraseStarKey, autoWordTip, type Exercise } from '../../shared/practice'
 import { getWord, ALL_WORDS } from '../../shared/data/words'
+import { TEMPLATES } from '../../shared/phrases/templates'
+import { walkFills } from '../../shared/phrases/engine'
 import { glossSentence, glossLine } from '../../shared/gloss'
 
 /** Прогресс: слова с N верными ответами */
@@ -369,5 +371,31 @@ describe('Пословный разбор (gloss)', () => {
   it('glossLine пропускает слова вне словаря', () => {
     expect(glossLine('xyzabc tengo')).toBe('tengo — имею')
     expect(glossLine('xyzabc')).toBeNull()
+  })
+})
+
+// ============================================================
+// Сквозная проверка «сборки фразы»: упражнение = плитки ответа.
+// «No hay una comida» — нет: comida — массовое «еда» (жалоба
+// пользователя); правильный ответ — «No hay comida».
+// ============================================================
+describe('Упражнение «Сборка фразы»: hay × comida (жалоба пользователя)', () => {
+  it('плитки ответа с comida никогда не содержат una; «No hay comida» собирается', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-hay-noun')!
+    const KNOWN = new Set(ALL_WORDS.map((w) => w.id))
+    let comidaExercises = 0
+    let bareNeg = false
+    const bad: string[] = []
+    walkFills(t, KNOWN, (fill, kind) => {
+      const es = t.render(fill, kind).toLowerCase()
+      if (!es.includes('comida')) return
+      comidaExercises++
+      if (es === 'no hay comida') bareNeg = true
+      const ex = buildExercise(fill, t.id, kind, Math.random, 32, KNOWN)
+      if (ex.answerTiles.includes('una')) bad.push(es)
+    }, { maxLeaves: 120_000 })
+    expect(comidaExercises, 'в шаблоне есть упражнения с comida').toBeGreaterThan(0)
+    expect(bareNeg, 'есть упражнение с ответом «No hay comida»').toBe(true)
+    expect(bad, bad.join('; ')).toEqual([])
   })
 })

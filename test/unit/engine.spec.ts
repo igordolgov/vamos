@@ -289,10 +289,18 @@ describe('Артикли: правила употребления', () => {
     expect(detCompatible(getWord('d-mucho'), ropa, 'sg')).toBe(true)
     // «muchas ropas» — нет (только ед.ч. с количеством)
     expect(detCompatible(getWord('d-mucho'), ropa, 'pl')).toBe(false)
-    // «un agua» корректно по RAE (ж.р. с м.р. артиклем через articleGender)
+    // agua — массовое (как leche): «Hay agua», а не «Hay un agua».
+    // Формально «un agua» допустимо по RAE (порция), но в приложении
+    // вода учится как вещество; определённый артикль остаётся: «el agua»
     const agua = word('n-agua')
-    expect(detCompatible(getWord('d-un'), agua, 'sg')).toBe(true)
+    expect(detCompatible(getWord('d-un'), agua, 'sg')).toBe(false)
     expect(detCompatible(getWord('d-una'), agua, 'sg')).toBe(false)
+    expect(detCompatible(getWord('d-el'), agua, 'sg')).toBe(true)
+    // «No hay una comida» — comida массовое «еда» (жалоба пользователя)
+    expect(detCompatible(getWord('d-una'), word('n-comida'), 'sg')).toBe(false)
+    expect(detCompatible(getWord('d-unos'), word('n-comida'), 'pl')).toBe(false)
+    expect(detCompatible(getWord('d-la'), word('n-comida'), 'sg')).toBe(true)
+    expect(detCompatible(getWord('d-mucho'), word('n-comida'), 'sg')).toBe(true)
   })
 
   it('hay: без языков и без голых счётных абстрактных', () => {
@@ -305,6 +313,8 @@ describe('Артикли: правила употребления', () => {
       for (const l of langs) expect(low, es).not.toContain(`hay ${l}`)
       // голые счётные: «hay historia», «hay idea» — нет
       expect(low, es).not.toMatch(/\bhay (historia|idea|pregunta|problema|palabra|respuesta)\b/)
+      // «hay una comida» — нет: comida — массовое «еда» (жалоба пользователя)
+      expect(low, es).not.toMatch(/\bhay una comida\b/)
     }
     // при этом корректные голые формы остаются: «Hay comida/dinero/tiempo»
     expect(seen.some((es) => /\bhay comida\b/i.test(es))).toBe(true)

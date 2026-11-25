@@ -131,7 +131,8 @@ export const MANNER_VERBS: Word[] = [
 ].map(getWord)
 
 /** Определители, корректные с hay: неопределённые и количество.
- *  «Hay comida / una comida / mucha comida» — да;
+ *  «Hay comida / mucha comida», «Hay una idea» — да;
+ *  «No hay una comida» — нет (comida — массовое, см. NO_INDEFINITE_NOUNS);
  *  «No hay la comida», «Hay mi comida» — нет */
 const HAY_DET_OK = (d: Word): boolean => !!d.det?.indefinite || !!d.det?.quantity
 

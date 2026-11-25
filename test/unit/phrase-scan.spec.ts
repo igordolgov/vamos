@@ -45,9 +45,9 @@ const MASC_NOUN_ON_A = new Set(['мужчина', 'папа', 'дядя', 'де�
 /** незаполненная падежная аннотация: «думаю ? идея» */
 const MISSING_CASE = /[а-яё] \? /
 
-/** неисчисляемые без un/una и без мн.ч.; цвета × фильм/фото */
+/** неисчисляемые без un/una и без мн.ч.; цвета × фильм/фото; comida/agua — массовые */
 const BAD_ES =
-  /una? (leche|azúcar|sal|arroz)|\b(leches|azúcares|arroces)\b|\b(dos|unas) sales\b|película (negra|blanca|roja|verde|azul|amarilla)|foto (negra|blanca|roja|verde|azul|amarilla)/i
+  /una? (leche|azúcar|sal|arroz|comida|agua)|\b(leches|azúcares|arroces)\b|\b(dos|unas) sales\b|película (negra|blanca|roja|verde|azul|amarilla)|foto (negra|blanca|roja|verde|azul|amarilla)/i
 
 const OTHER_GARBAGE = /undefined|NaN/
 

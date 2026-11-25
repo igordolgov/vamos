@@ -15,12 +15,17 @@ $AB storage local set vamos.progress "$(cat /tmp/demo-progress.json)" > /dev/nul
 $AB reload > /dev/null
 sleep 3
 
-GROUPS=("Все группы" "ser/estar" "глагол + дополнение" "глагол + предлог" "модальные глаголы" "gustar" "le/les (получатель)" "there is/are (hay)" "вопросы" "наречия" "числа и время")
+# ВНИМАНИЕ: не называть переменную GROUPS — в bash это встроенный
+# массив ID групп процесса; присваивание игнорируется и цикл
+# выполняется один раз со значением gid (баг «1001»)
+QGROUPS=("Все группы" "ser/estar" "глагол + дополнение" "глагол + предлог" "модальные глаголы" "gustar" "le/les (получатель)" "there is/are (hay)" "вопросы" "наречия" "числа и время")
 
 rm -f .qa-tmp/qa-phrases-*.txt
 i=0
-for g in "${GROUPS[@]}"; do
-  $AB eval "(() => { const b=[...document.querySelectorAll('button')].find(x=>x.textContent.trim()==='$g'); if(b){b.click(); return 'ok'} return 'missing' })()" > /dev/null
+for g in "${QGROUPS[@]}"; do
+  # На iPhone 14 группы — выпадающий список <select> (не кнопки):
+  # находим селект, у которого есть опция со значением группы
+  $AB eval "(() => { const g='$g'; const s=[...document.querySelectorAll('select')].find(x=>[...x.options].some(o=>o.value===g||o.textContent.trim()===g)); if(!s) return 'no select'; const o=[...s.options].find(o=>o.value===g||o.textContent.trim()===g); s.value=o.value; s.dispatchEvent(new Event('change',{bubbles:true})); return 'ok' })()" > /dev/null
   sleep 1.2
   for p in 1 2 3 4 5 6; do
     $AB eval "document.body.innerText" > .qa-tmp/qa-phrases-$i-$p.txt 2>/dev/null
@@ -40,7 +45,7 @@ for f in glob.glob('.qa-tmp/qa-phrases-*.txt'):
     except Exception:
         pass
 all_text = '\n'.join(texts)
-bad = re.compile(r'большые|плохые|какие |дорогие \(|молоки|una? (leche|azúcar|sal|arroz)|leches|azúcares|arroces|чёрный фильм|чёрное фото|— дорогой|— очень')
+bad = re.compile(r'большые|плохые|какие |дорогие \(|молоки|una? (leche|azúcar|sal|arroz|comida|agua)|leches|azúcares|arroces|чёрный фильм|чёрное фото|— дорогой|— очень')
 hits = sorted(set(bad.findall(all_text)) | {m.group(0) for m in bad.finditer(all_text)})
 print('ЗАПРЕЩЁННОЕ:', hits if hits else 'чисто')
 good = [s for s in ['Te doy leche', 'Te doy la leche', 'Молоко — дорогое', 'большие', 'плохие'] if s in all_text]

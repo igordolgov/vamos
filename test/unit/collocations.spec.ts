@@ -221,6 +221,9 @@ describe('Примеры из жалоб — больше не генериру�
     expect(phrases.some((p) => p.es === 'No hay comida')).toBe(true)
     expect(phrases.some((p) => p.es === 'Hay una cama')).toBe(true)
     expect(phrases.some((p) => p.es === 'Hay mucha comida')).toBe(true)
+    // «No hay una comida» — нет: comida — массовое «еда» (жалоба пользователя)
+    expect(phrases.some((p) => p.es === 'Hay una comida')).toBe(false)
+    expect(phrases.some((p) => p.es === 'No hay una comida')).toBe(false)
   })
 
   it('«Te doy una leche» — неисчисляемые без un/una, без мн.ч. (жалоба пользователя)', () => {
@@ -230,6 +233,8 @@ describe('Примеры из жалоб — больше не генериру�
     expect(detCompatible(w('d-una'), w('n-azucar'), 'sg')).toBe(false)
     expect(detCompatible(w('d-una'), w('n-sal'), 'sg')).toBe(false)
     expect(detCompatible(w('d-un'), w('n-arroz'), 'sg')).toBe(false)
+    // comida — массовое «еда»: «No hay comida», а не «No hay una comida»
+    expect(detCompatible(w('d-una'), w('n-comida'), 'sg')).toBe(false)
     expect(detCompatible(w('d-una'), w('n-cama'), 'sg')).toBe(true)
     // «много молока» — да
     expect(detCompatible(w('d-mucho'), w('n-leche'), 'sg')).toBe(true)
