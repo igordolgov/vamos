@@ -14,6 +14,7 @@ import { capitalize, conjugate, gerundOf, joinPrepNP } from './es'
 import { ruAdjForm, ruDetForm, ruGustarForm, ruNounForm, ruNounPhrase } from './ru'
 import { ruAccusative, ruGenitive } from './ru-morph'
 import { initEngine, npEs, npNumber, npRu, verbPrepRuKey } from './engine'
+import { NEG_BEFORE_ADVERB_RU } from './collocations'
 import type { Fill, PhraseKind, Template } from './schema'
 
 // ============================================================
@@ -78,8 +79,16 @@ export const NUMBERS_2_4: Word[] = ['num-dos', 'num-tres', 'num-cuatro'].map(get
 /** Существительные времени (hace dos años) */
 export const TIME_NOUNS: Word[] = ['n-ano', 'n-mes', 'n-dia', 'n-semana', 'n-hora', 'n-minuto'].map(getWord)
 
-/** Наречия перед глаголом */
-export const PREVERB_ADVERBS: Word[] = ['adv-siempre', 'adv-tambien', 'adv-ya', 'adv-todavia', 'adv-casi', 'adv-apenas', 'adv-ahora'].map(getWord)
+/** Наречия перед глаголом, допускающие «no + наречие»: только siempre
+ *  («No siempre trabajo» = «не всегда работаю») — см. collocations.ts */
+export const PREVERB_ADVERBS_NEG_OK: Word[] = ['adv-siempre'].map(getWord)
+/** Наречия перед глаголом БЕЗ корректного «no + наречие»:
+ *  отрицание строится иначе (también → tampoco, ya/todavía → «ya no») */
+export const PREVERB_ADVERBS_NO_NEG: Word[] = [
+  'adv-tambien', 'adv-ya', 'adv-todavia', 'adv-casi', 'adv-apenas', 'adv-ahora',
+].map(getWord)
+/** Наречия с особым отрицанием «наречие + no» («Ya no trabajo») */
+export const NEG_ADV_ADVERBS: Word[] = ['adv-ya', 'adv-todavia'].map(getWord)
 
 /** Наречия места и образа действия */
 export const PLACE_ADVERBS: Word[] = ['adv-aqui', 'adv-alli'].map(getWord)
@@ -1081,13 +1090,17 @@ export const TEMPLATES: Template[] = [
   // НАРЕЧИЯ
   // ==========================================================
   {
+    // «No siempre trabajo» — единственное корректное «no» перед наречием;
+    // у остальных наречий отрицание строится отдельными шаблонами
+    // («tampoco», «ya no», «todavía no»), иначе получается
+    // «No también trabajan» / «Они не тоже работают»
     id: 't-pron-v-adverb',
     lesson: 19,
     group: 'наречия',
     requires: [],
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
-      { kind: 'free', role: 'adv', words: PREVERB_ADVERBS },
+      { kind: 'free', role: 'adv', words: PREVERB_ADVERBS_NEG_OK },
       { kind: 'free', role: 'v', words: CONJUGATED_VERBS },
     ],
     variants: ['aff', 'neg', 'yesno'],
@@ -1096,7 +1109,6 @@ export const TEMPLATES: Template[] = [
       const adv = fill.adv as Word
       const v = fill.v as Word
       const verb = conjugate(v, pronPerson(p))
-      // nunca + no: «Nunca como» / отрицание: «No siempre como»
       const neg = kind === 'neg' ? 'no ' : ''
       if (kind === 'yesno') return `¿${capitalize(`${p.es} ${adv.es} ${verb}`)}?`
       return capitalize(`${p.es} ${neg}${adv.es} ${verb}`)
@@ -1106,10 +1118,93 @@ export const TEMPLATES: Template[] = [
       const adv = fill.adv as Word
       const v = fill.v as Word
       const ruForm = ruVerbP(v, p)
-      // nunca → «никогда не…», остальные — как есть
       const neg = kind === 'neg' ? 'не ' : ''
-      const core = `${capitalize(ruPron(p))} ${neg}${adv.ru[0]} ${ruForm}`.replace('не ', 'не  ')
-      return kind === 'yesno' ? `${core}?` : core.replace('  ', ' ')
+      const core = `${capitalize(ruPron(p))} ${neg}${adv.ru[0]} ${ruForm}`
+      return kind === 'yesno' ? `${core}?` : core
+    },
+  },
+  {
+    // Наречия, у которых нет формы «no + наречие»: только утверждение
+    // и вопрос («Ellos ya trabajan», «¿Todavía trabajan?»).
+    // Отрицание — в шаблоне t-pron-adv-no-v и t-pron-tampoco-v
+    id: 't-pron-v-adverb2',
+    lesson: 19,
+    group: 'наречия',
+    requires: [],
+    units: [
+      { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
+      { kind: 'free', role: 'adv', words: PREVERB_ADVERBS_NO_NEG },
+      { kind: 'free', role: 'v', words: CONJUGATED_VERBS },
+    ],
+    variants: ['aff', 'yesno'],
+    render: (fill, kind) => {
+      const p = fill.s as Word
+      const adv = fill.adv as Word
+      const v = fill.v as Word
+      const verb = conjugate(v, pronPerson(p))
+      if (kind === 'yesno') return `¿${capitalize(`${p.es} ${adv.es} ${verb}`)}?`
+      return capitalize(`${p.es} ${adv.es} ${verb}`)
+    },
+    ru: (fill, kind) => {
+      const p = fill.s as Word
+      const adv = fill.adv as Word
+      const v = fill.v as Word
+      const core = `${capitalize(ruPron(p))} ${adv.ru[0]} ${ruVerbP(v, p)}`
+      return kind === 'yesno' ? `${core}?` : core
+    },
+  },
+  {
+    // «Ya no trabajo» / «Todavía no trabajo» — особое отрицание:
+    // наречие стоит ПЕРЕД «no» (уже не / ещё не)
+    id: 't-pron-adv-no-v',
+    lesson: 19,
+    group: 'наречия',
+    requires: [],
+    units: [
+      { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
+      { kind: 'free', role: 'adv', words: NEG_ADV_ADVERBS },
+      { kind: 'free', role: 'v', words: CONJUGATED_VERBS },
+    ],
+    variants: ['neg'],
+    render: (fill) => {
+      const p = fill.s as Word
+      const adv = fill.adv as Word
+      const v = fill.v as Word
+      const verb = conjugate(v, pronPerson(p))
+      return capitalize(`${p.es} ${adv.es} no ${verb}`)
+    },
+    ru: (fill) => {
+      const p = fill.s as Word
+      const adv = fill.adv as Word
+      const v = fill.v as Word
+      const negRu = NEG_BEFORE_ADVERB_RU[adv.id] ?? `${adv.ru[0]} не`
+      return `${capitalize(ruPron(p))} ${negRu} ${ruVerbP(v, p)}`
+    },
+  },
+  {
+    // «Ellos tampoco trabajan» — корректное отрицание для «también».
+    // Требует изученного tampoco: слово из урока 19
+    id: 't-pron-tampoco-v',
+    lesson: 19,
+    group: 'наречия',
+    requires: ['adv-tampoco'],
+    units: [
+      { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
+      { kind: 'free', role: 'v', words: CONJUGATED_VERBS },
+    ],
+    variants: ['neg', 'yesno'],
+    render: (fill, kind) => {
+      const p = fill.s as Word
+      const v = fill.v as Word
+      const verb = conjugate(v, pronPerson(p))
+      const core = `${p.es} tampoco ${verb}`
+      return kind === 'yesno' ? `¿${capitalize(core)}?` : capitalize(core)
+    },
+    ru: (fill, kind) => {
+      const p = fill.s as Word
+      const v = fill.v as Word
+      const core = `${capitalize(ruPron(p))} тоже не ${ruVerbP(v, p)}`
+      return kind === 'yesno' ? `${core}?` : core
     },
   },
   {

@@ -165,11 +165,16 @@ describe('Достижения', () => {
   })
 
   it('достижение по серии дней', () => {
-    const p = { ...emptyProgress(), streakDates: ['2026-11-21', '2026-11-22', '2026-11-23'] }
-    const now = new Date(2026, 10, 23, 10, 0)
-    // 3 дня подряд на дату now
+    // Даты относительно «сегодня»: серия считается от текущей даты
+    // (захардкоженные даты ломаются с течением времени)
+    const isoDaysAgo = (n: number): string => {
+      const d = new Date()
+      d.setDate(d.getDate() - n)
+      return todayIso(d)
+    }
+    const p = { ...emptyProgress(), streakDates: [isoDaysAgo(2), isoDaysAgo(1), isoDaysAgo(0)] }
     const ctx = achievementContext({ ...p })
-    void now
+    // 3 дня подряд, заканчивающиеся сегодня
     expect(ctx.streak).toBe(3)
     const achieved = ACHIEVEMENTS.find((a) => a.id === 'streak-3')!
     expect(achieved.check(ctx)).toBe(true)

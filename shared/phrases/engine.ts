@@ -15,6 +15,7 @@ import { getWord } from '../data/words'
 import { esNounPhrase, needsPersonalA, joinPrepNP, conjugate, gerundOf } from './es'
 import { ruNounPhrase, ruAdjForm } from './ru'
 import { ruGenitive, ruPlural, ruAccusative, ruNumberWord } from './ru-morph'
+import { adjSemCompatible, verbObjAllowedNouns, verbObjCompatible } from './collocations'
 import type { Fill, PhraseKind, Template, Unit } from './schema'
 
 // ============================================================
@@ -55,9 +56,10 @@ export function detCompatible(det: Word, noun: Word, number: GramNumber): boolea
 /** Неисчисляемые абстрактные: с ними допустимо «много/мало» */
 const UNCOUNTABLE_ABSTRACT = new Set(['n-tiempo', 'n-dinero', 'n-trabajo', 'n-musica', 'n-vida', 'n-amor'])
 
-/** Совместимо ли прилагательное с существительным (все имеют 4 формы) */
+/** Совместимо ли прилагательное с существительным: формы (все имеют 4)
+ *  + семантический белый список («уставшая кровать» исключена) */
 export function adjCompatible(adj: Word, noun: Word): boolean {
-  return !!adj.adj
+  return !!adj.adj && adjSemCompatible(adj, noun)
 }
 
 /** Разрешена ли «голая» форма (без артикля) для существительного ед.ч. */
@@ -110,11 +112,11 @@ function detsCountAdj(
   return ways
 }
 
-/** Число вариантов прилагательного для np-юнита */
+/** Число вариантов прилагательного для np-юнита — только семантически
+ *  совместимых с этим существительным (подсчёт согласован с перечислением) */
 function npAdjWays(unit: Extract<Unit, { kind: 'np' }>, noun: Word, known: Set<string>): number {
   if (!unit.withAdj) return 1
-  // все прилагательные имеют формы для любого рода/числа
-  return countWords(allAdjectives, known)
+  return countWords(allAdjectives.filter((a) => adjCompatible(a, noun)), known)
 }
 
 // кэш прилагательных и существительных (заполняется init-ом из templates)
@@ -196,11 +198,10 @@ export function unitWays(unit: Unit, known: Set<string>, chosen: Fill): number {
   }
 }
 
-/** Существительные, семантически совместимые с глаголом */
+/** Существительные, семантически совместимые с глаголом:
+ *  белый список сочетаемости (collocations.ts) поверх грубых objClasses */
 function verbCompatibleNouns(verb: Word, nouns: Word[]): Word[] {
-  const cls = verb.verb?.objClasses
-  if (!cls || cls.length === 0) return []
-  return nouns.filter((n) => cls.includes(n.nounClass as never))
+  return verbObjAllowedNouns(verb, nouns)
 }
 
 /** Способы заполнения дополнения для глагола */
@@ -229,7 +230,8 @@ function npWaysPerNounFor(
   known: Set<string>,
   withAdj = false,
 ): number {
-  const adjWays = withAdj ? countWords(allAdjectives, known) : 1
+  // прилагательные, совместимые с ЭТИМ существительным (белый список)
+  const adjWays = withAdj ? countWords(allAdjectives.filter((a) => adjCompatible(a, noun)), known) : 1
   if (detSet === 'none') return adjWays
   let ways = 0
   for (const det of detWords(detSet)) {
@@ -486,7 +488,7 @@ function unitGains(unit: Unit, known: Set<string>): Map<string, number> {
         let ways = 0
         for (const verb of unit.verbs) {
           if (!known.has(verb.id)) continue
-          if (!(verb.verb?.objClasses ?? []).includes(noun.nounClass as never)) continue
+          if (!verbObjCompatible(verb, noun)) continue
           const numbers: GramNumber[] = unit.number === 'any' ? ['sg', 'pl'] : [unit.number]
           for (const num of numbers) {
             ways += npWaysPerNounFor(unit.detSet, unit.bareAuto, noun, num, known, unit.withAdj)
