@@ -18,7 +18,7 @@ import SpeakButton from '~/components/SpeakButton.vue'
 
 const route = useRoute()
 const t = useT()
-const {progress, ensureLoaded} = useProgress()
+const {progress, ensureLoaded, setProgressSetting} = useProgress()
 onMounted(() => {
   void ensureLoaded()
 })
@@ -45,6 +45,16 @@ function pickKind(): ExerciseKind {
   if (kind.value !== 'mixed') return kind.value
   const types: ExerciseKind[] = ['choice', 'build', 'audio']
   return types[Math.floor(Math.random() * types.length)]
+}
+
+// Поэтапная сборка («Слова по шагам»): усложнённый режим — плитки
+// открываются шаг за шагом, рядом с похожими словами. Настройка
+// хранится в прогрессе (settings.stagedBuild) — действует и для
+// «Сборки фразы», и для «Микса»
+const stagedBuild = computed(() => progress.value.settings.stagedBuild ?? false)
+
+function toggleStaged(e: Event) {
+  setProgressSetting('stagedBuild', (e.target as HTMLInputElement).checked)
 }
 
 // Закрепление урока: /practice?lesson=N (0 или мусор — весь словарь)
@@ -84,7 +94,7 @@ function exerciseSignature(ex: Exercise): string {
 }
 
 function generateUnique(chosen: ExerciseKind): Exercise | null {
-  const opts = { lesson: lessonFilter.value || undefined }
+  const opts = { lesson: lessonFilter.value || undefined, staged: stagedBuild.value }
   let ex = makeExercise(chosen, progress.value, Math.random, opts)
   for (let i = 0; i < 8 && ex && lastSignature && exerciseSignature(ex) === lastSignature; i++) {
     ex = makeExercise(chosen, progress.value, Math.random, opts)
@@ -205,6 +215,16 @@ div.mb-2(v-if="mode === 'menu'")
       span.glass-card-icon(aria-hidden="true") 🎲
       span.glass-card-label {{ t('practice.mixed') }}
 
+  // Поэтапный режим «Сборки фразы»: усложнение по переключателю.
+  // Плитки показываются не все сразу, а шаг за шагом — верное слово
+  // среди похожих (вопросительные с вопросительными, формы глагола
+  // с формами того же глагола)
+  .flex.flex-col.items-center.gap-1.mt-1.mb-2(class="max-w-2xl mx-auto")
+    label.flex.items-center.gap-2.cursor-pointer.select-none
+      input.toggle.toggle-sm.toggle-primary(type="checkbox" :checked="stagedBuild" @change="toggleStaged($event)")
+      span.text-sm.font-medium {{ t('practice.staged') }}
+    p.text-xs.text-center(class="text-base-content/50 max-w-md") {{ t('practice.stagedHint') }}
+
 // Сессия: свайп после ответа листает к следующему упражнению
 .max-w-xl.mx-auto(
   v-else-if="mode === 'session'"
@@ -245,6 +265,7 @@ div.mb-2(v-if="mode === 'menu'")
       :key="index"
       :tiles="current.tiles ?? []"
       :answer-tiles="current.answerTiles ?? []"
+      :stages="current.stages"
       :alt-answers="current.altAnswers"
       :hint="current.hint ?? ''"
       :tip="current.tip"

@@ -211,8 +211,8 @@ export function markAlreadyKnown(ex: Exercise): void {
 
 /** Сохранить настройки в прогресс (и синхронизировать) */
 export function setProgressSetting(
-  key: 'locale' | 'theme' | 'fontSize',
-  value: string,
+  key: 'locale' | 'theme' | 'fontSize' | 'stagedBuild',
+  value: string | boolean,
 ): void {
   const next: Progress = {
     ...progressState.value,

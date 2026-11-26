@@ -9,6 +9,11 @@
 // pointer-события (не HTML5 DnD) — работает и на сенсорном экране,
 // и мышью. Короткий тап по плитке по-прежнему возвращает её в пул.
 //
+// ПОЭТАПНЫЙ РЕЖИМ («Слова по шагам», prop stages): слова не видны
+// все сразу — для каждой позиции ответа показывается свой набор
+// кандидатов (верное слово + похожие отвлекающие). Выбор слова
+// переводит на следующий шаг, возврат плитки — на предыдущий.
+//
 // Плитки — компактные (маленькие паддинги, стандартное скругление
 // кнопок DaisyUI — пилюли читаются хуже). Зона сборки изначально
 // держит ДВЕ строки плиток (min-h-[102px]): фраза дорастает с одной
@@ -23,6 +28,9 @@ const props = defineProps<{
   tiles: string[]
   answerTiles: string[]
   hint: string
+  /** Поэтапный режим: stages[k] — кандидаты для k-го слова ответа.
+   *  Пусто/не задано — обычный режим, весь пул сразу */
+  stages?: string[][]
   /** Допустимые варианты без подлежащего-местоимения («Eres alto») */
   altAnswers?: string[]
   /** Объяснение ошибки: почему путают и как запомнить — при неверном ответе */
@@ -36,6 +44,19 @@ const t = useT()
 const selected = ref<number[]>([])
 const revealed = ref(false)
 
+// ============================================================
+// Поэтапный режим: выбранные слова хранятся как СТРОКИ (в обычном
+// режиме — индексы плиток пула: там пул один на всё упражнение,
+// а шаги сменяются — связывать выбор с индексами текущего шага
+// нельзя, поэтому в этом режиме строки удобнее)
+// ============================================================
+const staged = computed(() => (props.stages?.length ?? 0) > 0)
+/** Выбранные слова по шагам */
+const stagePicked = ref<string[]>([])
+/** Кандидаты текущего шага: для следующего (ещё не собранного) слова.
+ *  Возврат плитки уменьшает stagePicked — шаг и набор вернутся сами */
+const currentStage = computed(() => props.stages?.[stagePicked.value.length] ?? [])
+
 /** Единый класс плитки-слова: компактная, со стандартным скруглением
  *  кнопок DaisyUI (rounded-field) — полные пилюли нечитабельны.
  *  Фиксированная высота h-10 (40px) при шрифте 16px (18px на sm+) —
@@ -47,8 +68,15 @@ const revealed = ref(false)
  *  слова не перепрыгивают */
 const TILE = 'btn normal-case h-10 px-3 leading-none text-base sm:text-lg'
 
-function tileClass(i: number): string {
+/** Класс плитки ПУЛА: после проверки весь пул невидим (место держится
+ *  за фидбек); в обычном режиме выбранная плитка тоже невидима — пустое
+ *  место её размера. В поэтапном режиме выбранные плитки пул не
+ *  покидают: шаг сменился — весь набор сменился, прятать нечего */
+function poolTileClass(i: number): string {
   const base = `${TILE} btn-outline`
+  if (staged.value) {
+    return revealed.value ? `${base} invisible pointer-events-none` : base
+  }
   return revealed.value || selected.value.includes(i)
     ? `${base} invisible pointer-events-none`
     : base
@@ -56,12 +84,30 @@ function tileClass(i: number): string {
 
 function pick(index: number) {
   if (revealed.value) return
+  if (staged.value) {
+    const tile = currentStage.value[index]
+    if (tile === undefined) return
+    stagePicked.value = [...stagePicked.value, tile]
+    return
+  }
   selected.value = [...selected.value, index]
 }
 
 function undo(index: number) {
   if (revealed.value) return
   selected.value = selected.value.filter((i) => i !== index)
+}
+
+/** Убрать слово из собранной фразы по позиции. В поэтапном режиме это
+ *  шаг назад: currentStage пересчитается от длины stagePicked — набор
+ *  кандидатов предыдущего шага вернётся тем же (этапы предвычислены) */
+function undoPos(pos: number) {
+  if (revealed.value) return
+  if (staged.value) {
+    stagePicked.value = stagePicked.value.filter((_, i) => i !== pos)
+    return
+  }
+  undo(selected.value[pos]!)
 }
 
 // ============================================================
@@ -103,7 +149,9 @@ function onBuiltPointerMove(e: PointerEvent) {
 }
 
 /** Поставить тащимую плитку на позицию указателя: ищем плитку под
- *  пальцем и вставляем до/после неё в зависимости от половины */
+ *  пальцем и вставляем до/после неё в зависимости от половины.
+ *  В поэтапном режиме переставляем строки stagePicked, в обычном —
+ *  индексы выбранного */
 function reorderAt(x: number, y: number) {
   if (!drag || !buildZone.value) return
   for (const el of buildZone.value.querySelectorAll<HTMLElement>('[data-pos]')) {
@@ -111,11 +159,20 @@ function reorderAt(x: number, y: number) {
     if (pos === drag.pos) continue
     const r = el.getBoundingClientRect()
     if (x < r.left || x > r.right || y < r.top || y > r.bottom) continue
-    const arr = [...selected.value]
-    const [tile] = arr.splice(drag.pos, 1)
     const hovered = pos > drag.pos ? pos - 1 : pos
     const at = x < r.left + r.width / 2 ? hovered : hovered + 1
-    arr.splice(at, 0, tile!)
+    if (staged.value) {
+      const arr = [...stagePicked.value]
+      const [tile] = arr.splice(drag.pos, 1)
+      arr.splice(at, 0, tile!)
+      stagePicked.value = arr
+      drag.pos = at
+      dragPos.value = at
+      return
+    }
+    const arr = [...selected.value]
+    const [tile2] = arr.splice(drag.pos, 1)
+    arr.splice(at, 0, tile2!)
     selected.value = arr
     drag.pos = at
     dragPos.value = at
@@ -139,22 +196,26 @@ function onBuiltClick(pos: number) {
     suppressClick = false
     return
   }
-  // pos — позиция в selected; undo ожидает индекс плитки в tiles
-  undo(selected.value[pos]!)
+  undoPos(pos)
 }
 
-/** Собранная фраза */
-const built = computed(() => selected.value.map((i) => props.tiles[i]).join(' '))
+/** Собранная фраза: слова по позициям — в обоих режимах */
+const builtWords = computed<string[]>(() =>
+  staged.value ? stagePicked.value : selected.value.map((i) => props.tiles[i]!),
+)
+
+/** Собранная фраза (строкой) */
+const built = computed(() => builtWords.value.join(' '))
 
 /** Класс плитки в собранной фразе (та же пилюля): до проверки —
  *  обычная; после НЕверной проверки — подсветка позиций: зелёная
  *  плитка стоит на своём месте, красная — не на своём */
-function builtClass(i: number): string {
+function builtClass(pos: number): string {
   const base = TILE
   if (!revealed.value) return `${base} btn-primary`
-  const pos = selected.value.indexOf(i)
+  const word = builtWords.value[pos] ?? ''
   const expected = props.answerTiles[pos]?.toLowerCase()
-  return `${base} ${props.tiles[i].toLowerCase() === expected ? 'btn-success' : 'btn-error'}`
+  return `${base} ${word.toLowerCase() === expected ? 'btn-success' : 'btn-error'}`
 }
 
 /** Верно, если собран полный ответ без учёта регистра — точный или
@@ -167,7 +228,7 @@ const isCorrect = computed(() => {
 })
 
 function check() {
-  if (revealed.value || selected.value.length === 0) return
+  if (revealed.value || builtWords.value.length === 0) return
   revealed.value = true
   // Без автоматической озвучки после ответа — только ручные кнопки 🔊
   emit('answered', isCorrect.value)
@@ -180,8 +241,7 @@ function check() {
  *  и показывается общий tip шаблона (why/hack). */
 const focusHint = computed<string | null>(() => {
   if (!revealed.value || isCorrect.value) return null
-  const builtTokens = selected.value.map((i) => props.tiles[i])
-  return targetedHint(builtTokens, props.answerTiles, props.altAnswers)
+  return targetedHint(builtWords.value, props.answerTiles, props.altAnswers)
 })
 </script>
 
@@ -197,17 +257,19 @@ const focusHint = computed<string | null>(() => {
     // + границы зоны 2px = 102px — фраза дорастает с 1 строки до 2 без
     // сдвига «Проверить/Дальше», карточка не меняет размер.
     // touch-none на плитках: вертикальное движение пальца — это
-    // перетаскивание, а не прокрутка страницы (тащим в обе стороны)
+    // перетаскивание, а не прокрутка страницы (тащим в обе стороны).
+    // Ключ = позиция: при перестановке DOM-узлы остаются на местах
+    // (меняется содержимое) — pointer-capture перетаскивания не рвётся
     .border.border-dashed.border-base-300.rounded-2xl.p-2.flex.flex-wrap.gap-1.items-center(
       class="bg-base-200/50 min-h-[102px]"
       aria-label="Собранная фраза"
       ref="buildZone"
     )
       button(
-        v-for="(i, pos) in selected"
-        :key="i"
+        v-for="(w, pos) in builtWords"
+        :key="pos"
         :data-pos="pos"
-        :class="[builtClass(i), dragPos === pos ? 'opacity-50 ring-2 ring-primary' : '']"
+        :class="[builtClass(pos), dragPos === pos ? 'opacity-50 ring-2 ring-primary' : '']"
         class="touch-none select-none"
         @pointerdown="onBuiltPointerDown($event, pos)"
         @pointermove="onBuiltPointerMove"
@@ -215,24 +277,44 @@ const focusHint = computed<string | null>(() => {
         @pointercancel="onBuiltPointerCancel"
         @click="onBuiltClick(pos)"
       )
-        | {{ tiles[i] }}
-      span(class="text-sm text-base-content/30" v-if="selected.length === 0") …
+        | {{ w }}
+      span(class="text-sm text-base-content/30" v-if="builtWords.length === 0") …
 
-    // Пул плиток. После проверки кнопки остаются на местах, но невидимыми:
+    // Пул плиток. Обычный режим — весь пул сразу. Поэтапный («Слова
+    // по шагам») — только кандидаты ТЕКУЩЕГО шага: верное слово среди
+    // похожих; выбор слова переводит на следующий шаг (набор меняется
+    // целиком). После проверки кнопки остаются на местах, но невидимыми:
     // контейнер держит точную высоту пула, поэтому «Дальше» стоит ровно
     // там же, где была «Проверить». min-h-24 страхует фидбек с подписью
     // «Верный ответ:» и ответом на отдельных строках (до 2 строк текста).
     // items/content-start: плитки не растягиваются по высоте контейнера
     // (stretch по умолчанию при h-auto у плитки)
     .relative.min-h-24.flex.flex-wrap.gap-1.justify-center.items-start.content-start
-      button(
-        v-for="(tile, i) in tiles"
-        :key="i"
-        :class="tileClass(i)"
-        :disabled="revealed || selected.includes(i)"
-        @click="pick(i)"
-      )
-        | {{ tile }}
+      template(v-if="!staged")
+        button(
+          v-for="(tile, i) in tiles"
+          :key="i"
+          :class="poolTileClass(i)"
+          :disabled="revealed || selected.includes(i)"
+          @click="pick(i)"
+        )
+          | {{ tile }}
+      template(v-else)
+        // Номер шага: сколько слов собрано из скольких — чтобы
+        // пользователь видел, где он во фразе. Когда фраза собрана
+        // целиком, шага «лишнего» нет — индикатор прячется
+        p.w-full.text-center.text-xs(
+          v-if="!revealed && stagePicked.length < answerTiles.length"
+          class="text-base-content/50 select-none"
+        ) {{ t('practice.stagedStep', { n: stagePicked.length + 1, total: answerTiles.length }) }}
+        button(
+          v-for="(tile, i) in currentStage"
+          :key="stagePicked.length + '-' + i"
+          :class="poolTileClass(i)"
+          :disabled="revealed"
+          @click="pick(i)"
+        )
+          | {{ tile }}
 
       // Результат — поверх места плиток: подпись и сам ответ на
       // отдельных строках, с pop-анимацией
@@ -263,7 +345,7 @@ const focusHint = computed<string | null>(() => {
     // Кнопка: до проверки — «Проверить», после — «Дальше» (на том же месте)
     button.btn.text-lg(
       :class="revealed ? 'btn-primary' : 'bg-green-800'"
-      :disabled="!revealed && selected.length === 0"
+      :disabled="!revealed && builtWords.length === 0"
       @click="revealed ? emit('next') : check()"
     ) {{ revealed ? t('practice.next') : t('practice.check') }}
 </template>

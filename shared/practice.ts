@@ -112,6 +112,10 @@ export interface Exercise {
   tiles?: string[]
   /** Правильный порядок плиток */
   answerTiles?: string[]
+  /** Поэтапный режим («Слова по шагам»): stages[k] — набор плиток-кандидатов
+   *  для выбора k-го слова ответа: верное слово + похожие отвлекающие.
+   *  Слова фразы целиком не видны — собирать приходится шаг за шагом */
+  stages?: string[][]
   /** Допустимые варианты без подлежащего-местоимения: по-испански местоимение
    *  опускается, когда форму глагола не с кем перепутать («Eres alto» =
    *  «Tú eres alto»). Для неоднозначных форм (es/son) вариант не даётся */
@@ -421,6 +425,133 @@ function pronounDroppedVariants(fill: Fill, answerTiles: string[]): string[] {
   return out
 }
 
+// ============================================================
+// Поэтапная сборка («Слова по шагам»): усложнённый режим, в котором
+// пул плиток открывается шаг за шагом. На каждом шаге — верное слово
+// и похожие отвлекающие: сначала вопросительные (cómo среди qué/cuál),
+// затем местоимения (te среди me/tu/se), затем формы глагола
+// (llamas среди llamo/llama/llamar). Словарь расширять не нужно:
+// отвлекающие берутся из форм слов, которые уже есть в данных.
+// ============================================================
+
+/** Все испанские формы слова в нижнем регистре: базовая форма,
+ *  варианты написания, спряжения глагола, род/число прилагательного,
+ *  множественное число существительного */
+function wordForms(w: Word): string[] {
+  const out = [w.es, ...(w.esAlt ?? [])]
+  if (w.verb) out.push(...Object.values(w.verb.forms))
+  if (w.adj) out.push(w.adj.m, w.adj.f, w.adj.mp, w.adj.fp)
+  if (w.pronoun?.forms)
+    out.push(w.pronoun.forms.m, w.pronoun.forms.f, w.pronoun.forms.mp, w.pronoun.forms.fp)
+  if (w.nounPlural) out.push(w.nounPlural)
+  return out.map((s) => s.toLowerCase()).filter(Boolean)
+}
+
+/** Индекс «форма слова → слова»: для плиток без слова в заполнении
+ *  (служебные hay, que…) — найти источник по всему словарю.
+ *  Строится лениво один раз: словарь статичен */
+let FORM_INDEX: Map<string, Word[]> | null = null
+function formIndex(): Map<string, Word[]> {
+  if (FORM_INDEX) return FORM_INDEX
+  const idx = new Map<string, Word[]>()
+  for (const w of ALL_WORDS) {
+    for (const f of wordForms(w)) {
+      const list = idx.get(f)
+      if (list) list.push(w)
+      else idx.set(f, [w])
+    }
+  }
+  FORM_INDEX = idx
+  return idx
+}
+
+/**
+ * Плитки-кандидаты для каждой позиции ответа (поэтапный режим).
+ * stages[k] — набор плиток для выбора k-го слова: верное слово + до
+ * четырёх похожих отвлекающих. Приоритет отвлекающих:
+ * 1) другие формы того же слова (llamas → llamo, llama, llamar);
+ * 2) слова той же части речи (вопросительные — рядом с вопросительными;
+ *    местоимения и определители в одном пуле: te рядом с tu);
+ * 3) любые изученные слова уровня.
+ * Слова, уже собранные в начале фразы и больше не нужные, не
+ * предлагаются (шум без пользы), а слова оставшейся части фразы —
+ * предлагаются: попасться «рано» им не вредно.
+ */
+export function buildStages(
+  answerTiles: string[],
+  fill: Fill,
+  maxLesson: number,
+  rand: () => number = Math.random,
+  known?: Set<string>,
+): string[][] {
+  const answer = answerTiles.map((w) => w.toLowerCase())
+  // Плитка → слово-источник: сначала ищем среди слов заполнения (каждое
+  // слово претендует на «свою» плитку), иначе — по индексу форм словаря
+  const source: (Word | null)[] = answer.map(() => null)
+  const claimed = new Set<string>()
+  for (let k = 0; k < answer.length; k++) {
+    const token = answer[k]!
+    const free = Object.values(fill).filter(
+      (v): v is Word => !!v && typeof v === 'object' && 'id' in v && !claimed.has(v.id),
+    )
+    const match = free.find((w) => wordForms(w).includes(token))
+    if (match) {
+      source[k] = match
+      claimed.add(match.id)
+    } else {
+      source[k] = formIndex().get(token)?.[0] ?? null
+    }
+  }
+  const isQw = (w: Word) => w.pos === 'question'
+  const allowed = (w: Word) => w.lesson <= maxLesson && (!isQw(w) || (known?.has(w.id) ?? false))
+  return answer.map((target, k) => {
+    const src = source[k]
+    const usedBefore = answer.slice(0, k)
+    const remaining = answer.slice(k + 1)
+    // Отвлекающее не равно верному слову; слово из уже собранного начала
+    // предлагается, только если оно ещё понадобится в хвосте фразы
+    const allowedDistractor = (w: string) =>
+      w !== target && (remaining.includes(w) || !usedBefore.includes(w))
+    const pools: string[][] = []
+    // 1) другие формы того же слова — самые коварные отвлекающие
+    if (src) pools.push(shuffle(wordForms(src).filter((f) => f !== target), rand))
+    // 2) слова той же части речи; местоимения и определители — вместе
+    const posList: PartOfSpeech[] = !src
+      ? []
+      : src.pos === 'pronoun'
+        ? ['pronoun', 'determiner']
+        : src.pos === 'determiner'
+          ? ['determiner', 'pronoun']
+          : [src.pos]
+    if (posList.length) {
+      pools.push(
+        shuffle(
+          ALL_WORDS.filter(
+            (w) => posList.includes(w.pos) && w.id !== src?.id && allowed(w),
+          ).map((w) => w.es.toLowerCase()),
+          rand,
+        ),
+      )
+    }
+    // 3) общий пул изученных слов уровня
+    pools.push(
+      shuffle(ALL_WORDS.filter((w) => allowed(w)).map((w) => w.es.toLowerCase()), rand),
+    )
+    const poolWords = [target]
+    const taken = new Set([target])
+    outer: for (const pool of pools) {
+      for (const w of pool) {
+        if (poolWords.length >= 5) break outer
+        if (/\s/.test(w) || /[¿?¡!.,]/.test(w)) continue
+        if (taken.has(w) || !allowedDistractor(w)) continue
+        taken.add(w)
+        poolWords.push(w)
+      }
+    }
+    return shuffle(poolWords, rand)
+  })
+}
+
 /** Упражнение «сборка фразы из плиток» */
 export function buildExercise(
   fill: Fill,
@@ -429,6 +560,7 @@ export function buildExercise(
   rand: () => number = Math.random,
   maxLesson: number = 32,
   known?: Set<string>,
+  staged = false,
 ): Exercise {
   const t = allTemplates().find((t) => t.id === templateId)!
   const es = t.render(fill, kind)
@@ -446,11 +578,13 @@ export function buildExercise(
     .filter((v): v is Word => !!v && typeof v === 'object' && 'id' in v)
     .map((w) => w.id)
   const altAnswers = pronounDroppedVariants(fill, answerTiles)
+  const stages = staged ? buildStages(answerTiles, fill, maxLesson, rand, known) : undefined
   return {
     kind: 'build',
     questionRu: t.ru(fill, kind),
     tiles,
     answerTiles,
+    ...(stages ? { stages } : {}),
     altAnswers: altAnswers.length ? altAnswers : undefined,
     hint: t.ru(fill, kind),
     options: [],
@@ -530,6 +664,9 @@ function pickPool(progress: Progress, lesson?: number): Word[] {
 export interface MakeExerciseOpts {
   /** Практика по уроку: пул — только слова этого урока */
   lesson?: number
+  /** Поэтапная сборка («Слова по шагам»): плитки-кандидаты выдаются
+   *  по одному шагу, с похожими отвлекающими */
+  staged?: boolean
 }
 
 /**
@@ -591,10 +728,10 @@ export function makeExercise(
         fallback = { fill, templateId: t.id, variant: kind2 }
         continue
       }
-      return buildExercise(fill, t.id, kind2, rand, Math.max(knownMaxLesson, opts.lesson), known)
+      return buildExercise(fill, t.id, kind2, rand, Math.max(knownMaxLesson, opts.lesson), known, opts.staged === true)
     }
     return fallback
-      ? buildExercise(fallback.fill, fallback.templateId, fallback.variant, rand, Math.max(knownMaxLesson, opts.lesson), known)
+      ? buildExercise(fallback.fill, fallback.templateId, fallback.variant, rand, Math.max(knownMaxLesson, opts.lesson), known, opts.staged === true)
       : null
   }
   let fallback: { fill: Fill; templateId: string; variant: 'aff' | 'neg' | 'yesno' | 'qw'; limit: number } | null = null
@@ -619,11 +756,11 @@ export function makeExercise(
         fallback = { fill, templateId: t.id, variant: kind2, limit }
         continue
       }
-      return buildExercise(fill, t.id, kind2, rand, limit, known)
+      return buildExercise(fill, t.id, kind2, rand, limit, known, opts.staged === true)
     }
   }
   return fallback
-    ? buildExercise(fallback.fill, fallback.templateId, fallback.variant, rand, fallback.limit, known)
+    ? buildExercise(fallback.fill, fallback.templateId, fallback.variant, rand, fallback.limit, known, opts.staged === true)
     : null
 }
 
