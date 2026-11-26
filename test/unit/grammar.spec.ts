@@ -8,7 +8,7 @@ import { regularForms } from '../../shared/data/words/helpers'
 import { gerundOf } from '../../shared/phrases/es'
 import { conjugate, esArticle, esNounPhrase, joinPrepNP } from '../../shared/phrases/es'
 import { ruAdjForNoun, ruAdjForm, ruDetForm, ruNounPhrase } from '../../shared/phrases/ru'
-import { ruGenitive, ruPlural, ruAccusative } from '../../shared/phrases/ru-morph'
+import { ruAdjGenitive, ruDetGenitive, ruGenitive, ruPlural, ruAccusative } from '../../shared/phrases/ru-morph'
 import { enumerateTemplate } from '../../shared/phrases/engine'
 import { TEMPLATES, npRuAcc } from '../../shared/phrases/templates'
 import { getWord, findWord } from '../../shared/data/words'
@@ -137,6 +137,21 @@ describe('Русская морфология', () => {
     expect(ruGenitive(makeNoun('отец', 'm'))).toBe('отца')
     expect(ruGenitive(makeNoun('день', 'm'))).toBe('дня')
     expect(ruGenitive(makeNoun('ночь', 'f'))).toBe('ночи')
+  })
+  it('родительный прилагательного при «нет»: нет большого стола, хорошей одежды', () => {
+    // род берём по РУССКОМУ слову: libro = «книга» (ж.р.), mesa = «стол» (м.р.)
+    expect(ruAdjGenitive(getWord('a-grande'), getWord('n-mesa'))).toBe('большого')
+    expect(ruAdjGenitive(getWord('a-grande'), getWord('n-libro'))).toBe('большой')
+    expect(ruAdjGenitive(getWord('a-bueno'), getWord('n-ropa'))).toBe('хорошей')
+    expect(ruAdjGenitive(getWord('a-nuevo'), getWord('n-tiempo'))).toBe('нового')
+  })
+  it('родительный определителя «нет моего ключа, нет этой книги» (артикли — null)', () => {
+    expect(ruDetGenitive(getWord('p-mi'), getWord('n-llave'))).toBe('моего')
+    expect(ruDetGenitive(getWord('p-mi'), getWord('n-libro'))).toBe('моей')
+    expect(ruDetGenitive(getWord('p-este'), getWord('n-libro'))).toBe('этой')
+    expect(ruDetGenitive(getWord('p-este'), getWord('n-llave'))).toBe('этого')
+    expect(ruDetGenitive(getWord('d-el'), getWord('n-libro'))).toBeNull()
+    expect(ruDetGenitive(getWord('d-mucho'), getWord('n-tiempo'))).toBeNull()
   })
   it('мн.ч.: книга→книги, город→города, брат→братья, человек→люди', () => {
     expect(ruPlural(makeNoun('книга', 'f'))).toBe('книги')

@@ -116,6 +116,20 @@ describe('Испанский рендеринг', () => {
     expect(phrases.some((p) => p.es.includes(' gustan '))).toBe(true)
   })
 
+  it('gustar: «Me gusta el arroz» помечен «(вообще)», неопределённый артикль не генерируется', () => {
+    const seen = new Map<string, string>()
+    walkFills(t('t-pron-gustar-np'), ALL, (fill, kind) => {
+      seen.set(t('t-pron-gustar-np').render(fill, kind), t('t-pron-gustar-np').ru(fill, kind))
+    }, { maxLeaves: 50_000 })
+    // «Мне нравится рис (вообще)» ↔ «Me gusta el arroz» (жалоба пользователя)
+    expect(seen.get('Me gusta el arroz')).toBe('Мне нравится рис (вообще)')
+    const def = [...seen.entries()].filter(([es]) => /\b(el|la|los|las) /.test(es))
+    expect(def.length).toBeGreaterThan(50)
+    for (const [es, ru] of def) expect(ru, es).toContain('(вообще)')
+    // «Me gusta una cama» — странный испанский и «una» не видно в переводе
+    for (const es of seen.keys()) expect(es.toLowerCase(), es).not.toMatch(/\b(un|una|unos|unas) /)
+  })
+
   it('наличие артиклей в verbPrep (в школу не «в школа»)', () => {
     const { phrases } = enumerateTemplate(t('t-pron-v-prep-np'), ALL, 0, 200)
     for (const p of phrases) {
@@ -156,6 +170,13 @@ describe('Русский рендеринг', () => {
     const { phrases } = enumerateTemplate(t('t-pron-gustar-np'), ALL, 0, 2000)
     expect(phrases.some((p) => p.ru.includes(' нравится '))).toBe(true)
     expect(phrases.some((p) => p.ru.includes(' нравятся '))).toBe(true)
+  })
+
+  it('gustar: формы парадигмы исправлены (gusto/gustas, не «gusta» во всех лицах)', () => {
+    expect(getWord('v-gustar').verb?.forms).toEqual({
+      '1s': 'gusto', '2s': 'gustas', '3s': 'gusta',
+      '1p': 'gustamos', '2p': 'gustáis', '3p': 'gustan',
+    })
   })
 
   it('переводы не содержат служебных заглушек', () => {
@@ -346,6 +367,27 @@ describe('Артикли: правила употребления', () => {
     expect(seen.some((es) => /tengo ropa/i.test(es))).toBe(true)
     expect(seen.some((es) => /tengo dinero/i.test(es))).toBe(true)
     expect(seen.some((es) => /no tengo tiempo/i.test(es))).toBe(true)
+  })
+
+  it('tener в verbObj-шаблонах: после «no tengo…» нет «мало/много» и «el/la» (жалоба «La hija no tiene poco tiempo»)', () => {
+    for (const id of ['t-pron-v-do', 't-pron-v-do-adj', 't-noun-v-do', 't-noun-v-do-adj']) {
+      const tpl = TEMPLATES.find((x) => x.id === id)!
+      const negs: Array<{ es: string; ru: string }> = []
+      walkFills(tpl, ALL, (fill, kind) => {
+        if (kind !== 'neg') return
+        const es = tpl.render(fill, kind)
+        if (/no (tengo|tienes|tiene|tenemos|tienen)\b/.test(es)) negs.push({ es, ru: tpl.ru(fill, kind) })
+      }, { maxLeaves: 250_000 })
+      expect(negs.length, id).toBeGreaterThan(0)
+      for (const { es, ru } of negs) {
+        expect(es.toLowerCase(), `${id}: ${es} — ${ru}`).not.toMatch(/no (tengo|tienes|tiene|tenemos|tienen) (el|la|los|las|mucho|mucha|poco|poca)\b/)
+      }
+    }
+    // «La hija no tiene tiempo» существует (дочь = подлежащее-существительное)
+    const tpl = TEMPLATES.find((x) => x.id === 't-noun-v-do')!
+    const esAll: string[] = []
+    walkFills(tpl, ALL, (fill, kind) => esAll.push(tpl.render(fill, kind)), { maxLeaves: 250_000 })
+    expect(esAll.some((es) => /la hija no tiene tiempo/i.test(es))).toBe(true)
   })
 
   it('предлоги: голая форма только у sin/casa и «sobre + тема»', () => {

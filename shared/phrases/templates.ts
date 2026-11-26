@@ -12,7 +12,7 @@ import { getWord } from '../data/words'
 import { ALL_WORDS, wordsByPos } from '../data/words'
 import { capitalize, conjugate, gerundOf, joinPrepNP } from './es'
 import { ruAdjForNoun, ruAdjForm, ruDetForm, ruGustarForm, ruNounForm, ruNounPhrase } from './ru'
-import { ruAccusative, ruGenitive } from './ru-morph'
+import { ruAccusative, ruAdjGenitive, ruDetGenitive, ruGenitive } from './ru-morph'
 import { initEngine, npEs, npNumber, npRu, verbPrepRuKey, adjCompatible } from './engine'
 import { NEG_BEFORE_ADVERB_RU, TENER_NOUN_IDS, TENER_PLURAL_IDS, adjPersonCompatible, verbObjAllowedNouns } from './collocations'
 import type { Fill, PhraseKind, Template } from './schema'
@@ -251,6 +251,22 @@ function ruNumWord(num: Word, noun: Word): string {
 // ============================================================
 // Шаблоны
 // ============================================================
+
+/** Родительная группа при «нет»: [мой/этот] [прилагательное] существительное.
+ *  Точный перевод для neg-tener: «нет моего ключа», «нет хорошей одежды» —
+ *  иначе эти слова выпадают из перевода и ответ не восстановить
+ *  из промпта (жалоба «La hija no tiene poco tiempo»: «мало/много»
+ *  и «el/la» с tener вообще не сочетаются — см. engine.objDetsForVerb).
+ *  Артикль un/una не передаётся: счётное отвечает «un/una» по правилу
+ *  урока 5, масса остаётся голой (см. tip шаблона tener) */
+function ruTenerGenitive(noun: Word, det: Word | null, adj: Word | null): string {
+  const parts: string[] = []
+  const detGen = det ? ruDetGenitive(det, noun) : null
+  if (detGen) parts.push(detGen)
+  if (adj) parts.push(ruAdjGenitive(adj, noun))
+  parts.push(ruGenitive(noun))
+  return parts.join(' ')
+}
 
 export const TEMPLATES: Template[] = [
   // ==========================================================
@@ -532,13 +548,13 @@ export const TEMPLATES: Template[] = [
     },
     ru: (fill, kind) => {
       const p = fill.s as Word
-      const np = npRu(fill, 'o')
+      const det = fill['o#det'] as Word | null
       const noun = fill['o#noun'] as Word
-      const gen = ruGenitive(noun)
+      const gen = ruTenerGenitive(noun, det, null)
       // «У меня есть…» / «У меня нет…»
       if (kind === 'neg') return `У ${p.pronoun?.ruGen} нет ${gen}`
-      if (kind === 'yesno') return `У ${p.pronoun?.ruGen} есть ${np}?`
-      return `У ${p.pronoun?.ruGen} есть ${np}`
+      if (kind === 'yesno') return `У ${p.pronoun?.ruGen} есть ${npRu(fill, 'o')}?`
+      return `У ${p.pronoun?.ruGen} есть ${npRu(fill, 'o')}`
     },
   },
   {
@@ -710,9 +726,10 @@ export const TEMPLATES: Template[] = [
       const v = fill.v as Word
       // tener → «У меня есть…»: после «есть» — именительный падеж
       if (v.id === 'v-tener') {
+        const det = fill['o#det'] as Word | null
         const noun = fill['o#noun'] as Word
+        if (kind === 'neg') return `У ${p.pronoun?.ruGen} нет ${ruTenerGenitive(noun, det, null)}`
         const npNom = npRu(fill, 'o')
-        if (kind === 'neg') return `У ${p.pronoun?.ruGen} нет ${ruGenitive(noun)}`
         if (kind === 'yesno') return `У ${p.pronoun?.ruGen} есть ${npNom}?`
         return `У ${p.pronoun?.ruGen} есть ${npNom}`
       }
@@ -746,10 +763,12 @@ export const TEMPLATES: Template[] = [
       const v = fill.v as Word
       const np = npRuAcc(fill, 'o')
       if (v.id === 'v-tener') {
+        const det = fill['o#det'] as Word | null
+        const adj = fill['o#adj'] as Word | null
         const noun = fill['o#noun'] as Word
+        if (kind === 'neg') return `У ${p.pronoun?.ruGen} нет ${ruTenerGenitive(noun, det, adj)}`
         // после «есть» — именительный падеж («У меня есть дешёвая музыка»)
         const npNom = npRu(fill, 'o')
-        if (kind === 'neg') return `У ${p.pronoun?.ruGen} нет ${ruGenitive(noun)}`
         if (kind === 'yesno') return `У ${p.pronoun?.ruGen} есть ${npNom}?`
         return `У ${p.pronoun?.ruGen} есть ${npNom}`
       }
@@ -889,10 +908,11 @@ export const TEMPLATES: Template[] = [
       const ruForm = npNumber(fill, 's') === 'pl' ? ruVerbI(v, 5) : ruVerbI(v, 2)
       const npO = npRuAcc(fill, 'o')
       if (v.id === 'v-tener') {
+        const det = fill['o#det'] as Word | null
         const noun = fill['o#noun'] as Word
         // после «есть» — именительный падеж («У мужчины есть идея»)
         const npNom = npRu(fill, 'o')
-        if (kind === 'neg') return `У ${ruGenitive(subj)} нет ${ruGenitive(noun)}`
+        if (kind === 'neg') return `У ${ruGenitive(subj)} нет ${ruTenerGenitive(noun, det, null)}`
         return kind === 'yesno' ? `У ${ruGenitive(subj)} есть ${npNom}?` : `У ${ruGenitive(subj)} есть ${npNom}`
       }
       if (kind === 'neg') return `${capitalize(np)} не ${ruForm} ${npO}`
@@ -926,10 +946,12 @@ export const TEMPLATES: Template[] = [
       const ruForm = ruVerbI(v, 2)
       if (v.id === 'v-tener') {
         const subj = fill['s#noun'] as Word
+        const det = fill['o#det'] as Word | null
+        const adj = fill['o#adj'] as Word | null
         const noun = fill['o#noun'] as Word
         // после «есть» — именительный падеж («У мужчины есть дешёвая музыка»)
         const npNom = npRu(fill, 'o')
-        if (kind === 'neg') return `У ${ruGenitive(subj)} нет ${ruGenitive(noun)}`
+        if (kind === 'neg') return `У ${ruGenitive(subj)} нет ${ruTenerGenitive(noun, det, adj)}`
         return kind === 'yesno' ? `У ${ruGenitive(subj)} есть ${npNom}?` : `У ${ruGenitive(subj)} есть ${npNom}`
       }
       if (kind === 'neg') return `${capitalize(np)} не ${ruForm} ${npO}`
@@ -1154,9 +1176,10 @@ export const TEMPLATES: Template[] = [
         detSet: 'object',
         bareAuto: false,
         withAdj: false,
-        // «Me gustan los libros / unas bolsas» — да;
-        // «Нам нравится мало риса» — количество с gustar не сочетаем
-        detFilter: (d) => !d.det?.quantity,
+        // «Me gustan los libros» — да; «Нам нравится мало риса» — количество
+        // с gustar не сочетаем; неопределённый артикль тоже: «Me gusta una
+        // cama» — редкий/странный испанский, а в переводе «una» не видно
+        detFilter: (d) => !d.det?.quantity && !d.det?.indefinite,
       },
     ],
     variants: ['aff', 'neg', 'yesno'],
@@ -1175,9 +1198,12 @@ export const TEMPLATES: Template[] = [
       const num = det?.det?.quantity ? 'sg' : npNumber(fill, 'o')
       const np = npRu(fill, 'o')
       const g = ruGustarForm(fill['o#noun'] as Word, num)
-      if (kind === 'neg') return `${capitalize(io.ru[0] ?? '')} не ${g} ${np}`
-      if (kind === 'yesno') return `${capitalize(io.ru[0] ?? '')} ${g} ${np}?`
-      return `${capitalize(io.ru[0] ?? '')} ${g} ${np}`
+      // el/la = «вообще» (еда/вещь в принципе): пометка в промпте — иначе
+      // «Me gusta el arroz» не отличить от «Me gusta arroz» (жалоба)
+      const general = det?.det?.definite ? ' (вообще)' : ''
+      if (kind === 'neg') return `${capitalize(io.ru[0] ?? '')} не ${g} ${np}${general}`
+      if (kind === 'yesno') return `${capitalize(io.ru[0] ?? '')} ${g} ${np}${general}?`
+      return `${capitalize(io.ru[0] ?? '')} ${g} ${np}${general}`
     },
   },
 

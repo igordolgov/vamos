@@ -656,7 +656,7 @@ export const PHRASE_TIPS: Record<string, WordTip> = {
     hack: 'настроение и усталость «сейчас» — estar.',
   },
   't-pron-tener-noun': {
-    why: '«Иметь» по-испански — tener, а не «у меня есть»: Tengo un perro.',
+    why: '«Иметь» по-испански — tener, а не «у меня есть»: Tengo un perro. Счётная вещь — с un/una (Tengo una llave), масса — без артикля (Tengo tiempo, No tengo dinero). «нет моего ключа» — No tengo mi llave: mi/su/este в переводе сохраняются.',
     hack: 'вещь у тебя «в руках»: tengo = держу — имею.',
   },
   't-pron-tener-num': {
@@ -700,8 +700,8 @@ export const PHRASE_TIPS: Record<string, WordTip> = {
     hack: 'hay que — «АЙ, КАК надо всем!».',
   },
   't-pron-gustar-np': {
-    why: '«Gustar» — «нравиться», но наизнанку: Me gusta la música — буквально «музыка нравится мне». Ед.ч. — gusta, мн.ч. — gustan. То, что нравится, — подлежащее, и оно несёт артикль: Me gusta el arroz — «нравится рис» (еда вообще); конкретное видно из перевода: «этот рис» → esta canción.',
-    hack: 'подлежащее — то, что нравится: музыка сама «делает» gusta. Без указательного в переводе рис/еда «вообще» → артикль el/la: Me gusta el arroz.',
+    why: '«Gustar» — «нравиться», но наизнанку: Me gusta la música — буквально «музыка нравится мне». Ед.ч. — gusta, мн.ч. — gustan. То, что нравится, — подлежащее, и оно несёт артикль: Me gusta el arroz — «нравится рис» (еда вообще); перевод помечает это «(вообще)».',
+    hack: 'подлежащее — то, что нравится: музыка сама «делает» gusta. «(вообще)» в переводе → el/la: Me gusta el arroz; «этот/моя» → esta/mi.',
   },
   't-io-dar-np': {
     why: 'Получатель («кому?») — le (мн.ч. les) ПЕРЕД глаголом: Le doy el libro — «я даю ЕМУ книгу». lo/la — это «его/её» (прямое дополнение, «что?») — получателем они не бывают.',

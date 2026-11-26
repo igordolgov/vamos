@@ -80,8 +80,9 @@ const NO_INDEFINITE_NOUNS = new Set([
 ])
 
 /** Неисчисляемые без реального мн.ч.: только ед.ч.
- *  («Te doy leche», а не «dos leches» — по-русски «молоки» не бывает) */
-const SINGULAR_ONLY_NOUNS = new Set(['n-leche', 'n-azucar', 'n-sal', 'n-arroz'])
+ *  («Te doy leche», а не «dos leches» — по-русски «молоки» не бывает);
+ *  ropa — то же: «las ropas» — архаизм, по-русски «одежды» нет */
+const SINGULAR_ONLY_NOUNS = new Set(['n-leche', 'n-azucar', 'n-sal', 'n-arroz', 'n-ropa'])
 
 /** Числа существительного в оси: «any» → ед.+мн.,
  *  но неисчисляемые без мн.ч. остаются в ед.ч. на всех осях */
@@ -194,10 +195,15 @@ export function initEngine(adjectives: Word[], nouns: Word[]): void {
 const QUANTITY_OBJ_VERBS = new Set(['v-comer', 'v-beber', 'v-querer', 'v-necesitar', 'v-tener', 'v-llevar'])
 
 /** Определители дополнения для глагола: «много/мало» — только с
- *  глаголами потребления/желания/наличия */
+ *  глаголами потребления/желания/наличия.
+ *  tener — детерминированная пара ES/RU (жалоба «La hija no tiene poco
+ *  tiempo»): «много/мало» и определённый артикль с ним не сочетаем
+ *  (как в t-pron-tener-noun) — иначе русский «нет времени» требует
+ *  угадать «poco/el», которых в переводе не видно */
 function objDetsForVerb(verb: Word, detSet: 'subject' | 'object' | 'none'): Word[] {
   if (detSet === 'none') return []
   const dets = detWords(detSet)
+  if (verb.id === 'v-tener') return dets.filter((d) => !d.det?.quantity && !d.det?.definite)
   if (QUANTITY_OBJ_VERBS.has(verb.id)) return dets
   return dets.filter((d) => !d.det?.quantity)
 }
@@ -693,8 +699,10 @@ function unitGains(unit: Unit, known: Set<string>): Map<string, number> {
           let ways = 0
           for (const verb of unit.verbs) {
             if (!known.has(verb.id)) continue
-            // «много/мало» допустимы только с глаголами потребления/желания
-            if (det.det?.quantity && !QUANTITY_OBJ_VERBS.has(verb.id)) continue
+            // тот же пул, что при семплинге: «много/мало» — только с
+            // глаголами потребления/желания; у tener — без «много/мало»
+            // и без определённого артикля
+            if (!objDetsForVerb(verb, unit.detSet).includes(det)) continue
             for (const noun of verbCompatibleNouns(verb, unit.nouns)) {
               if (!known.has(noun.id)) continue
               const numbers: GramNumber[] = unitNumbers(noun, unit.number)

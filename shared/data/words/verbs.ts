@@ -149,8 +149,10 @@ export const VERBS: Word[] = [
 
   // ===== Урок 26: gustar — «нравиться» =====
   v('v-gustar', 'gustar', ['нравиться'], 26, {
-    // У gustar согласование идёт с предметом: me gusta (ед.ч.) / me gustan (мн.ч.)
-    forms: forms(['gusta', 'gusta', 'gusta', 'gustamos', 'gustáis', 'gustan']),
+    // Парадигма обычная: gusto, gustas… (жалоба: была «gusta» во всех лицах).
+    // В употреблении gustar согласуется с ПРЕДМЕТОМ: me gusta / me gustan —
+    // фразовый движок берёт 3s/3p (conjugate), карточка показывает все лица
+    forms: forms(['gusto', 'gustas', 'gusta', 'gustamos', 'gustáis', 'gustan']),
     special: 'gustar',
   }, { ruHint: 'me gusta la música, me gustan los libros' }),
 

@@ -173,6 +173,34 @@ export function ruAccusative(noun: Word): string {
   return baseWord
 }
 
+/** Родительный падеж прилагательного по роду существительного (ед.ч.):
+ *  «нет хорошЕЙ одежды», «нет большОГО стола».
+ *  Регулярные окончания: -ый/-ой → -ого/-ой, -ий → -его/-ей. */
+export function ruAdjGenitive(adj: Word, noun: Word): string {
+  const masc = adj.ruByClass?.[noun.nounClass ?? 'thing'] ?? (adj.ru[0] ?? adj.adj?.m ?? '')
+  if (masc.endsWith('ий')) return masc.slice(0, -2) + ((noun.ruGender ?? 'm') === 'f' ? 'ей' : 'его')
+  if (masc.endsWith('ый') || masc.endsWith('ой')) return masc.slice(0, -2) + ((noun.ruGender ?? 'm') === 'f' ? 'ой' : 'ого')
+  return masc // нестандартная форма — без склонения
+}
+
+/** Родительный падеж определителя-притяжательного/указательного (ед.ч.):
+ *  «нет МОЕГО ключа», «нет ЭТОЙ книги». Для артиклей/количества — null
+ *  (в русском переводе не передаются). */
+const DET_GENITIVE: Record<string, { m: string; f: string }> = {
+  мой: { m: 'моего', f: 'моей' },
+  твой: { m: 'твоего', f: 'твоей' },
+  его: { m: 'его', f: 'его' },
+  наш: { m: 'нашего', f: 'нашей' },
+  этот: { m: 'этого', f: 'этой' },
+  тот: { m: 'того', f: 'той' },
+}
+
+export function ruDetGenitive(det: Word, noun: Word): string | null {
+  const forms = det.ruDet ? DET_GENITIVE[det.ruDet.m] : undefined
+  if (!forms) return null
+  return (noun.ruGender ?? 'm') === 'f' ? forms.f : forms.m
+}
+
 /**
  * Числительное 2 по роду: два (м/ср), две (ж).
  */

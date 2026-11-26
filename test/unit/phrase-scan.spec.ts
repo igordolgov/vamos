@@ -24,8 +24,13 @@ const VELAR_YA = /[кгхжшщч]яя/
 /** «большые», «плохые», «какые» — правило жи-ши: после к/г/х/ж/ш/ч/щ мн.ч. на -ие */
 const VELAR_YS = /[кгхжшщч]ые/
 
-/** пояснение в скобках не должно попадать в переводы: «дорогой (цена)» */
+/** пояснение в скобках не должно попадать в переводы: «дорогой (цена)».
+ *  Единственное исключение — маркер «(вообще)» у gustar: el/la = «еда/вещь
+ *  в принципе», без пометки «Me gusta el arroz» не восстановить из промпта
+ *  (жалоба пользователя) */
 const PARENS = /[()]/
+
+const GENERAL_MARKER = '(вообще)'
 
 /** прилагательное в им.п. при существительном в вин.п.: «дешёвая музыку» */
 const ADJ_NOM_ACC_NOUN = /[а-яё]+(?:ая|яя)\s+[а-яё]+[ую]\b/
@@ -54,7 +59,8 @@ const OTHER_GARBAGE = /undefined|NaN/
 function checkRu(ru: string): string | null {
   if (VELAR_YA.test(ru)) return `твёрдая основа + «-яя»: «${ru}»`
   if (VELAR_YS.test(ru)) return `жи-ши: мн.ч. на «-ые» после к/г/х/ж/ш/ч/щ: «${ru}»`
-  if (PARENS.test(ru)) return `скобки в переводе: «${ru}»`
+  // маркер «(вообще)» разрешён (gustar), остальные скобки — нет
+  if (PARENS.test(ru.replaceAll(GENERAL_MARKER, ''))) return `скобки в переводе: «${ru}»`
   if (ADJ_NOM_ACC_NOUN.test(ru)) return `им.п. при вин.п.: «${ru}»`
   if (MASC_DET_FEM_ADJ.test(ru)) return `определитель м.р. + прил. ж.р.: «${ru}»`
   if (ACC_AFTER_EST.test(ru)) return `вин.п. после «есть»: «${ru}»`

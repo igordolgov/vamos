@@ -55,8 +55,9 @@ const POS_SINGULAR: Record<PartOfSpeech, { ru: string; es: string }> = {
 }
 const posSingular = computed(() => POS_SINGULAR[props.word.pos][locale.value === 'es' ? 'es' : 'ru'])
 
-/** Полная парадигма лица: yo, tú, usted, nosotros, vosotros, ustedes */
-const persons = ['yo', 'tú', 'usted', 'nosotros', 'vosotros', 'ustedes'] as const
+/** Полная парадигма лица: yo, tú, él/ella/Ud., nosotros, vosotros, ellos/ellas/Uds.
+ *  (usted спрягается как él/ella, ustedes — как ellos: подпись показывает это) */
+const persons = ['yo', 'tú', 'él/ella/Ud.', 'nosotros', 'vosotros', 'ellos/ellas/Uds.'] as const
 
 /** Спряжение глагола в настоящем времени */
 const conjugationRows = computed(() => {
