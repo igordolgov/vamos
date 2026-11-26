@@ -24,10 +24,12 @@ export type PartOfSpeech =
   | 'construction'  // конструкции (hay, tener que + инфинитив...)
 
 /**
- * Лица глагола в настоящем времени — латиноамериканский набор (без vosotros):
- * 1s = yo, 2s = tú, 3s = usted/él/ella, 1p = nosotros, 3p = ustedes/ellos/ellas
+ * Лица глагола в настоящем времени:
+ * 1s = yo, 2s = tú, 3s = usted/él/ella, 1p = nosotros,
+ * 2p = vosotros (полная парадигма для карточки слова),
+ * 3p = ustedes/ellos/ellas (в фразах — латиноамериканский набор)
  */
-export type VerbPerson = '1s' | '2s' | '3s' | '1p' | '3p'
+export type VerbPerson = '1s' | '2s' | '3s' | '1p' | '2p' | '3p'
 
 /** Род существительного/прилагательного */
 export type Gender = 'm' | 'f'
@@ -223,8 +225,8 @@ export interface WordProgress {
   wrong: number
   /** Когда слово стало «выученным» (timestamp) */
   knownAt?: number
-  /** Пользователь отметил «уже выучил» (timestamp) — слово попадается реже,
-   *  но не исключается совсем и не влияет на счётчик выученных */
+  /** Пользователь отметил «Уже знал» (timestamp) — слово считается
+   *  выученным: входит в knownSet и во фразы, как пройденное в уроках */
   star?: number
 }
 
@@ -284,9 +286,13 @@ export function emptyProgress(): Progress {
  */
 export const KNOWN_THRESHOLD = 2
 
-/** Слово выучено? (по статистике ответов) */
+/**
+ * Слово выучено? Порог верных ответов — или пользователь подтвердил
+ * знание кнопкой «Уже знал» (тогда слово включается во фразы,
+ * как будто пройдено в уроках).
+ */
 export function isWordKnown(w: WordProgress | undefined): boolean {
-  return !!w && w.correct >= KNOWN_THRESHOLD
+  return !!w && (w.correct >= KNOWN_THRESHOLD || !!w.star)
 }
 
 /** ===== Аутентификация / API ===== */

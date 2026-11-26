@@ -228,15 +228,37 @@ describe('«Уже выучил» — реже, но не исчезает', () 
     expect(p.words['n-casa']?.star).toBeUndefined()
   })
 
-  it('помеченные слова не в основных группах пула, а в маленьком хвосте (≤2)', () => {
-    const p = withProgress({ 'v-ser': 1, 'n-casa': 2, 'v-hablar': 2 })
-    p.words['v-ser']!.star = 1000
-    p.words['n-casa']!.star = 1000
+  it('помеченные «Уже знал» слова — как выученные: в группе повторения', () => {
+    const p = withProgress({ 'v-hablar': 2 })
+    starWord(p, 'v-ser', 1000)
+    starWord(p, 'n-casa', 1000)
+    // помеченные считаются известными — известность без ответов
+    expect(isWordKnown(p.words['v-ser'])).toBe(true)
+    expect(knownSet(p).has('v-ser')).toBe(true)
+    expect(knownSet(p).has('n-casa')).toBe(true)
+    // в пуле они в группе повторения наравне с выученными,
+    // а не в «редком хвосте» — и не в группе новых
     const pool = practicePool(p)
     const starredIds = pool.filter((w) => p.words[w.id]?.star).map((w) => w.id)
-    expect(starredIds.length).toBeLessThanOrEqual(2)
-    // немаркированные слова остаются доступны
+    expect(starredIds).toContain('v-ser')
+    expect(starredIds).toContain('n-casa')
+    // немаркированное выученное слово тоже доступно
     expect(pool.some((w) => w.id === 'v-hablar')).toBe(true)
+    // помеченные — в группе повторения, после новых слов (конец пула)
+    const firstStarredIdx = pool.findIndex((w) => p.words[w.id]?.star)
+    const firstFreshIdx = pool.findIndex((w) => !p.words[w.id]?.correct && !p.words[w.id]?.star)
+    expect(firstStarredIdx).toBeGreaterThanOrEqual(0)
+    expect(firstStarredIdx).toBeGreaterThan(firstFreshIdx)
+  })
+
+  it('unstarWord снимает пометку без потери счётчиков', () => {
+    const p = withProgress({ 'v-ser': 1 })
+    starWord(p, 'v-ser', 1000)
+    expect(isWordKnown(p.words['v-ser'])).toBe(true)
+    unstarWord(p, 'v-ser')
+    expect(p.words['v-ser']?.star).toBeUndefined()
+    expect(isWordKnown(p.words['v-ser'])).toBe(false)
+    expect(p.words['v-ser']?.correct).toBe(1)
   })
 
   it('phraseStarKey: build — по плиткам, фраза-choice — по вопросу, слово — null', () => {

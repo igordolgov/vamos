@@ -53,8 +53,8 @@ const filtered = computed(() =>
 const cards = computed(() =>
   filtered.value.slice(0, limit.value).map((w) => {
     const wp = progress.value.words[w.id]
-    // «Уже выучил» — пользователь подтвердил знание: показываем как выученное
-    const status = wp && (isWordKnown(wp) || wp.star)
+    // «Уже знал» — пользователь подтвердил знание: слово выучено
+    const status = wp && isWordKnown(wp)
       ? ('known' as const)
       : wp?.correct
         ? ('progress' as const)
@@ -64,8 +64,8 @@ const cards = computed(() =>
   }),
 )
 
-// «Уже знал» из словаря: пометка знания слова. Тост — обратная связь,
-// объясняющая эффект пометки (в практике слово будет попадаться реже)
+// «Уже знал» из словаря: пометка знания слова. Слово считается
+// выученным — включается во фразы, как пройденное в уроках
 function toggleStar(id: string, starred: boolean) {
   setWordStar(id, starred)
   if (starred) {

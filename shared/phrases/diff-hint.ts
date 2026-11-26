@@ -85,14 +85,14 @@ const PREP_RU: Record<string, string> = {
 
 /** Лица для объяснения формы глагола */
 const PERSON_RU: Record<VerbPerson, string> = {
-  '1s': '«я»', '2s': '«ты»', '3s': '«он/она/вы»', '1p': '«мы»', '3p': '«они/вы (мн.)»',
+  '1s': '«я»', '2s': '«ты»', '3s': '«он/она/вы»', '1p': '«мы»', '2p': '«вы (vosotros)»', '3p': '«они/вы (мн.)»',
 }
 
 /** Индекс форм глаголов: токен → глагол + лицо. Строится один раз. */
 const VERB_FORMS: Map<string, { verb: Word; person: VerbPerson }> = (() => {
   const m = new Map<string, { verb: Word; person: VerbPerson }>()
   for (const v of wordsByPos('verb')) {
-    for (const p of ['1s', '2s', '3s', '1p', '3p'] as VerbPerson[]) {
+    for (const p of ['1s', '2s', '3s', '1p', '2p', '3p'] as VerbPerson[]) {
       const f = v.verb?.forms[p]
       if (f && !m.has(f)) m.set(f, { verb: v, person: p })
     }

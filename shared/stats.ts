@@ -15,13 +15,13 @@ import { countTemplate, gainsTemplate, templateReady } from './phrases/engine'
 /**
  * Множество известных слов из прогресса. Слово считается известным,
  * когда набран порог верных ответов — или когда пользователь отметил
- * «Уже выучил» (он подтверждает, что знает слово: оно идёт в процент
- * уроков и статистику, а в практике будет попадаться реже).
+ * «Уже знал» (слово считается выученным: идёт в процент уроков,
+ * статистику и включается во фразы, как пройденное в уроках).
  */
 export function knownSet(progress: Progress): Set<string> {
   const set = new Set<string>()
   for (const [id, wp] of Object.entries(progress.words)) {
-    if (isWordKnown(wp) || wp.star) set.add(id)
+    if (isWordKnown(wp)) set.add(id)
   }
   return set
 }

@@ -13,25 +13,25 @@ import { enumerateTemplate } from '../../shared/phrases/engine'
 import { TEMPLATES, npRuAcc } from '../../shared/phrases/templates'
 import { getWord, findWord } from '../../shared/data/words'
 
-describe('Правильные спряжения (латиноамериканский набор, без vosotros)', () => {
+describe('Правильные спряжения (все лица, включая vosotros)', () => {
   it('-ar: hablar', () => {
     expect(regularForms('hablar')).toEqual({
-      '1s': 'hablo', '2s': 'hablas', '3s': 'habla', '1p': 'hablamos', '3p': 'hablan',
+      '1s': 'hablo', '2s': 'hablas', '3s': 'habla', '1p': 'hablamos', '2p': 'habláis', '3p': 'hablan',
     })
   })
   it('-er: comer', () => {
     expect(regularForms('comer')).toEqual({
-      '1s': 'como', '2s': 'comes', '3s': 'come', '1p': 'comemos', '3p': 'comen',
+      '1s': 'como', '2s': 'comes', '3s': 'come', '1p': 'comemos', '2p': 'coméis', '3p': 'comen',
     })
   })
   it('-ir: vivir', () => {
     expect(regularForms('vivir')).toEqual({
-      '1s': 'vivo', '2s': 'vives', '3s': 'vive', '1p': 'vivimos', '3p': 'viven',
+      '1s': 'vivo', '2s': 'vives', '3s': 'vive', '1p': 'vivimos', '2p': 'vivís', '3p': 'viven',
     })
   })
   it('ключевые неправильные', () => {
     expect(getWord('v-ser').verb!.forms).toEqual({
-      '1s': 'soy', '2s': 'eres', '3s': 'es', '1p': 'somos', '3p': 'son',
+      '1s': 'soy', '2s': 'eres', '3s': 'es', '1p': 'somos', '2p': 'sois', '3p': 'son',
     })
     expect(getWord('v-estar').verb!.forms['1s']).toBe('estoy')
     expect(getWord('v-tener').verb!.forms['1s']).toBe('tengo')
@@ -47,6 +47,24 @@ describe('Правильные спряжения (латиноамерикан�
     expect(getWord('v-cerrar').verb!.forms['3s']).toBe('cierra')
     expect(getWord('v-volver').verb!.forms['1s']).toBe('vuelvo')
     expect(getWord('v-recordar').verb!.forms['3p']).toBe('recuerdan')
+  })
+  it('vosotros: чередование гласной не затрагивает 2p, у неправильных — своя форма', () => {
+    // у стем-чейндж глаголов в vosotros гласная НЕ меняется
+    expect(getWord('v-pensar').verb!.forms['2p']).toBe('pensáis')
+    expect(getWord('v-querer').verb!.forms['2p']).toBe('queréis')
+    expect(getWord('v-cerrar').verb!.forms['2p']).toBe('cerráis')
+    expect(getWord('v-dormir').verb!.forms['2p']).toBe('dormís')
+    expect(getWord('v-pedir').verb!.forms['2p']).toBe('pedís')
+    expect(getWord('v-seguir').verb!.forms['2p']).toBe('seguís')
+    // собственно неправильные формы
+    expect(getWord('v-estar').verb!.forms['2p']).toBe('estáis')
+    expect(getWord('v-ir').verb!.forms['2p']).toBe('vais')
+    expect(getWord('v-tener').verb!.forms['2p']).toBe('tenéis')
+    expect(getWord('v-dar').verb!.forms['2p']).toBe('dais')
+    expect(getWord('v-ver').verb!.forms['2p']).toBe('veéis')
+    expect(getWord('v-decir').verb!.forms['2p']).toBe('decís')
+    expect(getWord('v-hacer').verb!.forms['2p']).toBe('hacéis')
+    expect(getWord('v-saber').verb!.forms['2p']).toBe('sabéis')
   })
   it('герундий: правильный вычисляется, неправильный берётся из данных', () => {
     expect(gerundOf(getWord('v-hablar'))).toBe('hablando')

@@ -50,9 +50,9 @@ describe('Словарь', () => {
     }
   })
 
-  it('глаголы: 5 испанских форм, 6 русских (кроме ser/estar/gustar)', () => {
+  it('глаголы: 6 испанских форм (с vosotros), 6 русских (кроме ser/estar/gustar)', () => {
     for (const w of ALL_WORDS.filter((w) => w.pos === 'verb')) {
-      expect(Object.keys(w.verb!.forms).length, w.id).toBe(5)
+      expect(Object.keys(w.verb!.forms).length, w.id).toBe(6)
       const noRuForms = ['v-ser', 'v-estar', 'v-gustar']
       if (!noRuForms.includes(w.id)) {
         expect(w.verb!.ruForms?.length, w.id).toBe(6)

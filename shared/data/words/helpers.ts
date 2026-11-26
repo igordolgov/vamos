@@ -19,24 +19,28 @@ import type {
 
 /**
  * Правильные формы глагола в настоящем времени по инфинитиву.
- * Латиноамериканский набор лиц: yo, tú, usted, nosotros, ustedes.
+ * Лица: yo, tú, usted/él/ella, nosotros, vosotros, ustedes/ellos.
+ * (В фразах приложение использует латиноамериканский набор —
+ * без vosotros, полная парадигма нужна для карточки слова.)
  */
 export function regularForms(inf: string): Record<VerbPerson, string> {
   const stem = inf.slice(0, -2)
   const ending = inf.slice(-2)
   if (ending === 'ar') {
-    return { '1s': stem + 'o', '2s': stem + 'as', '3s': stem + 'a', '1p': stem + 'amos', '3p': stem + 'an' }
+    return { '1s': stem + 'o', '2s': stem + 'as', '3s': stem + 'a', '1p': stem + 'amos', '2p': stem + 'áis', '3p': stem + 'an' }
   }
   if (ending === 'er') {
-    return { '1s': stem + 'o', '2s': stem + 'es', '3s': stem + 'e', '1p': stem + 'emos', '3p': stem + 'en' }
+    return { '1s': stem + 'o', '2s': stem + 'es', '3s': stem + 'e', '1p': stem + 'emos', '2p': stem + 'éis', '3p': stem + 'en' }
   }
   // ir
-  return { '1s': stem + 'o', '2s': stem + 'es', '3s': stem + 'e', '1p': stem + 'imos', '3p': stem + 'en' }
+  return { '1s': stem + 'o', '2s': stem + 'es', '3s': stem + 'e', '1p': stem + 'imos', '2p': stem + 'ís', '3p': stem + 'en' }
 }
 
-/** Формы глагола из массива [yo, tú, usted, nosotros, ustedes] */
-export function forms(arr: [string, string, string, string, string]): Record<VerbPerson, string> {
-  return { '1s': arr[0], '2s': arr[1], '3s': arr[2], '1p': arr[3], '3p': arr[4] }
+/** Формы глагола из массива [yo, tú, usted, nosotros, vosotros, ustedes] */
+export function forms(
+  arr: [string, string, string, string, string, string],
+): Record<VerbPerson, string> {
+  return { '1s': arr[0], '2s': arr[1], '3s': arr[2], '1p': arr[3], '2p': arr[4], '3p': arr[5] }
 }
 
 /** Глагол с правильным спряжением */

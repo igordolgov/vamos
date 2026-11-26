@@ -29,8 +29,8 @@ const knownCount = computed(() => words.value.filter((w) => known.value.has(w.id
 const cards = computed(() =>
   words.value.map((w) => {
     const wp = progress.value.words[w.id]
-    // «Уже выучил» — пользователь подтвердил знание: показываем как выученное
-    const status = wp && (isWordKnown(wp) || wp.star)
+    // «Уже знал» — пользователь подтвердил знание: слово выучено
+    const status = wp && isWordKnown(wp)
       ? ('known' as const)
       : wp?.correct
         ? ('progress' as const)

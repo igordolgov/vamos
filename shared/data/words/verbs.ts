@@ -3,8 +3,8 @@
 //
 // Испанские формы записаны явно (защита от ошибок в неправильных
 // глаголах и «эталон» для тестов).
-// Порядок испанских форм: [yo, tú, usted/él/ella, nosotros, ustedes/ellos]
-// Порядок русских форм:   [я,  ты, он/она,        мы,       они]
+// Порядок испанских форм: [yo, tú, usted/él/ella, nosotros, vosotros, ustedes/ellos]
+// Порядок русских форм:   [я,  ты, он/она,        мы,       вы,       они]
 // ============================================================
 
 import type { Word } from '../../types'
@@ -13,13 +13,13 @@ import { forms, v } from './helpers'
 export const VERBS: Word[] = [
   // ===== Урок 3: ser / estar — главные глаголы =====
   v('v-ser', 'ser', ['быть (постоянный признак)'], 3, {
-    forms: forms(['soy', 'eres', 'es', 'somos', 'son']),
+    forms: forms(['soy', 'eres', 'es', 'somos', 'sois', 'son']),
     transitive: false,
     ruInf: 'быть',
   }, { ruHint: 'Постоянные свойства: профессия, национальность, качество. yo soy, tú eres, él es…' }),
 
   v('v-estar', 'estar', ['быть (состояние/место)'], 3, {
-    forms: forms(['estoy', 'estás', 'está', 'estamos', 'están']),
+    forms: forms(['estoy', 'estás', 'está', 'estamos', 'estáis', 'están']),
     withPrep: ['prep-en'],
     placeAdv: true,
     ruInf: 'находиться',
@@ -85,7 +85,7 @@ export const VERBS: Word[] = [
 
   // ===== Урок 5: ключевые неправильные глаголы =====
   v('v-tener', 'tener', ['иметь'], 5, {
-    forms: forms(['tengo', 'tienes', 'tiene', 'tenemos', 'tienen']),
+    forms: forms(['tengo', 'tienes', 'tiene', 'tenemos', 'tenéis', 'tienen']),
     transitive: true,
     objClasses: ['thing', 'food', 'drink', 'abstract'],
     ruInf: 'иметь',
@@ -93,7 +93,7 @@ export const VERBS: Word[] = [
   }, { ruHint: 'tener … años — возраст: tengo 20 años. В переводе: «У меня есть…»' }),
 
   v('v-hacer', 'hacer', ['делать'], 5, {
-    forms: forms(['hago', 'haces', 'hace', 'hacemos', 'hacen']),
+    forms: forms(['hago', 'haces', 'hace', 'hacemos', 'hacéis', 'hacen']),
     transitive: true,
     objClasses: ['thing', 'food', 'abstract'],
     ruInf: 'делать',
@@ -101,7 +101,7 @@ export const VERBS: Word[] = [
   }),
 
   v('v-ir', 'ir', ['идти', 'ехать'], 5, {
-    forms: forms(['voy', 'vas', 'va', 'vamos', 'van']),
+    forms: forms(['voy', 'vas', 'va', 'vamos', 'vais', 'van']),
     withPrep: ['prep-a', 'prep-hasta'],
     gerund: 'yendo',
     ruInf: 'идти',
@@ -109,7 +109,7 @@ export const VERBS: Word[] = [
   }, { ruHint: 'ir a + место: voy a la escuela; ir a + инфинитив: voy a comer' }),
 
   v('v-poder', 'poder', ['мочь'], 5, {
-    forms: forms(['puedo', 'puedes', 'puede', 'podemos', 'pueden']),
+    forms: forms(['puedo', 'puedes', 'puede', 'podemos', 'podéis', 'pueden']),
     modal: true,
     gerund: 'pudiendo',
     ruInf: 'мочь',
@@ -117,7 +117,7 @@ export const VERBS: Word[] = [
   }, { ruHint: 'poder + инфинитив: puedo hablar' }),
 
   v('v-querer', 'querer', ['хотеть', 'любить'], 5, {
-    forms: forms(['quiero', 'quieres', 'quiere', 'queremos', 'quieren']),
+    forms: forms(['quiero', 'quieres', 'quiere', 'queremos', 'queréis', 'quieren']),
     modal: true,
     transitive: true,
     objClasses: ['thing', 'food', 'drink', 'abstract'],
@@ -126,13 +126,13 @@ export const VERBS: Word[] = [
   }, { ruHint: 'querer + инфинитив: quiero comer; te quiero — я тебя люблю' }),
 
   v('v-saber', 'saber', ['знать'], 5, {
-    forms: forms(['sé', 'sabes', 'sabe', 'sabemos', 'saben']),
+    forms: forms(['sé', 'sabes', 'sabe', 'sabemos', 'sabéis', 'saben']),
     ruInf: 'знать',
     ruForms: ['знаю', 'знаешь', 'знает', 'знаем', 'знаете', 'знают'],
   }),
 
   v('v-ver', 'ver', ['видеть'], 5, {
-    forms: forms(['veo', 'ves', 've', 'vemos', 'ven']),
+    forms: forms(['veo', 'ves', 've', 'vemos', 'veéis', 'ven']),
     transitive: true,
     objClasses: ['thing'],
     ruInf: 'видеть',
@@ -140,7 +140,7 @@ export const VERBS: Word[] = [
   }),
 
   v('v-dar', 'dar', ['давать'], 5, {
-    forms: forms(['doy', 'das', 'da', 'damos', 'dan']),
+    forms: forms(['doy', 'das', 'da', 'damos', 'dais', 'dan']),
     transitive: true,
     objClasses: ['thing'],
     ruInf: 'давать',
@@ -150,7 +150,7 @@ export const VERBS: Word[] = [
   // ===== Урок 26: gustar — «нравиться» =====
   v('v-gustar', 'gustar', ['нравиться'], 26, {
     // У gustar согласование идёт с предметом: me gusta (ед.ч.) / me gustan (мн.ч.)
-    forms: forms(['gusta', 'gusta', 'gusta', 'gustamos', 'gustan']),
+    forms: forms(['gusta', 'gusta', 'gusta', 'gustamos', 'gustáis', 'gustan']),
     special: 'gustar',
   }, { ruHint: 'me gusta la música, me gustan los libros' }),
 
@@ -170,7 +170,7 @@ export const VERBS: Word[] = [
   }),
 
   v('v-cerrar', 'cerrar', ['закрывать'], 27, {
-    forms: forms(['cierro', 'cierras', 'cierra', 'cerramos', 'cierran']),
+    forms: forms(['cierro', 'cierras', 'cierra', 'cerramos', 'cerráis', 'cierran']),
     transitive: true,
     objClasses: ['thing'],
     ruInf: 'закрывать',
@@ -178,7 +178,7 @@ export const VERBS: Word[] = [
   }, { ruHint: 'e → ie: cierra la puerta' }),
 
   v('v-empezar', 'empezar', ['начинать'], 27, {
-    forms: forms(['empiezo', 'empiezas', 'empieza', 'empezamos', 'empiezan']),
+    forms: forms(['empiezo', 'empiezas', 'empieza', 'empezamos', 'empezáis', 'empiezan']),
     transitive: true,
     objClasses: ['thing', 'abstract'],
     ruInf: 'начинать',
@@ -193,13 +193,13 @@ export const VERBS: Word[] = [
   }),
 
   v('v-entender', 'entender', ['понимать'], 27, {
-    forms: forms(['entiendo', 'entiendes', 'entiende', 'entendemos', 'entienden']),
+    forms: forms(['entiendo', 'entiendes', 'entiende', 'entendemos', 'entendéis', 'entienden']),
     ruInf: 'понимать',
     ruForms: ['понимаю', 'понимаешь', 'понимает', 'понимаем', 'понимаете', 'понимают'],
   }, { ruHint: 'e → ie: entiendo' }),
 
   v('v-recordar', 'recordar', ['помнить', 'вспоминать'], 27, {
-    forms: forms(['recuerdo', 'recuerdas', 'recuerda', 'recordamos', 'recuerdan']),
+    forms: forms(['recuerdo', 'recuerdas', 'recuerda', 'recordamos', 'recordáis', 'recuerdan']),
     transitive: true,
     objClasses: ['abstract', 'thing'],
     ruInf: 'помнить',
@@ -270,7 +270,7 @@ export const VERBS: Word[] = [
   }),
 
   v('v-pensar', 'pensar', ['думать'], 28, {
-    forms: forms(['pienso', 'piensas', 'piensa', 'pensamos', 'piensan']),
+    forms: forms(['pienso', 'piensas', 'piensa', 'pensamos', 'pensáis', 'piensan']),
     withPrep: ['prep-en'],
     ruInf: 'думать',
     ruForms: ['думаю', 'думаешь', 'думает', 'думаем', 'думаете', 'думают'],
@@ -283,14 +283,14 @@ export const VERBS: Word[] = [
   }),
 
   v('v-salir', 'salir', ['выходить', 'уходить'], 28, {
-    forms: forms(['salgo', 'sales', 'sale', 'salimos', 'salen']),
+    forms: forms(['salgo', 'sales', 'sale', 'salimos', 'salís', 'salen']),
     withPrep: ['prep-de'],
     ruInf: 'выходить',
     ruForms: ['выхожу', 'выходишь', 'выходит', 'выходим', 'выходите', 'выходят'],
   }),
 
   v('v-volver', 'volver', ['возвращаться'], 28, {
-    forms: forms(['vuelvo', 'vuelves', 'vuelve', 'volvemos', 'vuelven']),
+    forms: forms(['vuelvo', 'vuelves', 'vuelve', 'volvemos', 'volvéis', 'vuelven']),
     withPrep: ['prep-a'],
     ruInf: 'возвращаться',
     ruForms: ['возвращаюсь', 'возвращаешься', 'возвращается', 'возвращаемся', 'возвращаетесь', 'возвращаются'],
@@ -311,7 +311,7 @@ export const VERBS: Word[] = [
 
   // ===== Урок 29: неправильные глаголы =====
   v('v-decir', 'decir', ['говорить', 'сказать'], 29, {
-    forms: forms(['digo', 'dices', 'dice', 'decimos', 'dicen']),
+    forms: forms(['digo', 'dices', 'dice', 'decimos', 'decís', 'dicen']),
     transitive: true,
     objClasses: ['abstract'],
     gerund: 'diciendo',
@@ -320,7 +320,7 @@ export const VERBS: Word[] = [
   }),
 
   v('v-venir', 'venir', ['приходить', 'приезжать'], 29, {
-    forms: forms(['vengo', 'vienes', 'viene', 'venimos', 'vienen']),
+    forms: forms(['vengo', 'vienes', 'viene', 'venimos', 'venís', 'vienen']),
     withPrep: ['prep-de', 'prep-a'],
     gerund: 'viniendo',
     ruInf: 'приходить',
@@ -328,7 +328,7 @@ export const VERBS: Word[] = [
   }),
 
   v('v-poner', 'poner', ['класть', 'ставить'], 29, {
-    forms: forms(['pongo', 'pones', 'pone', 'ponemos', 'ponen']),
+    forms: forms(['pongo', 'pones', 'pone', 'ponemos', 'ponéis', 'ponen']),
     transitive: true,
     objClasses: ['thing'],
     ruInf: 'класть',
@@ -336,14 +336,14 @@ export const VERBS: Word[] = [
   }),
 
   v('v-dormir', 'dormir', ['спать'], 29, {
-    forms: forms(['duermo', 'duermes', 'duerme', 'dormimos', 'duermen']),
+    forms: forms(['duermo', 'duermes', 'duerme', 'dormimos', 'dormís', 'duermen']),
     gerund: 'durmiendo',
     ruInf: 'спать',
     ruForms: ['сплю', 'спишь', 'спит', 'спим', 'спите', 'спят'],
   }, { ruHint: 'o → ue: duermo' }),
 
   v('v-pedir', 'pedir', ['просить', 'заказывать'], 29, {
-    forms: forms(['pido', 'pides', 'pide', 'pedimos', 'piden']),
+    forms: forms(['pido', 'pides', 'pide', 'pedimos', 'pedís', 'piden']),
     transitive: true,
     objClasses: ['food', 'drink'],
     gerund: 'pidiendo',
@@ -352,14 +352,14 @@ export const VERBS: Word[] = [
   }, { ruHint: 'e → i: pido' }),
 
   v('v-seguir', 'seguir', ['следовать', 'продолжать'], 29, {
-    forms: forms(['sigo', 'sigues', 'sigue', 'seguimos', 'siguen']),
+    forms: forms(['sigo', 'sigues', 'sigue', 'seguimos', 'seguís', 'siguen']),
     gerund: 'siguiendo',
     ruInf: 'продолжать',
     ruForms: ['продолжаю', 'продолжаешь', 'продолжает', 'продолжаем', 'продолжаете', 'продолжают'],
   }),
 
   v('v-conocer', 'conocer', ['знать (кого-то), быть знакомым'], 29, {
-    forms: forms(['conozco', 'conoces', 'conoce', 'conocemos', 'conocen']),
+    forms: forms(['conozco', 'conoces', 'conoce', 'conocemos', 'conocéis', 'conocen']),
     transitive: true,
     ruInf: 'знать',
     ruForms: ['знаю', 'знаешь', 'знает', 'знаем', 'знаете', 'знают'],

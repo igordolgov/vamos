@@ -63,7 +63,7 @@ export function autoWordTip(word: Word): WordTip {
     const f = word.verb.forms
     const ending = word.es.endsWith('ar') ? '-ar' : word.es.endsWith('er') ? '-er' : '-ir'
     return {
-      why: `«${word.es}» (${word.ru[0]}). Настоящее время: yo ${f['1s']}, tú ${f['2s']}, él/ella ${f['3s']}, nosotros ${f['1p']}, ustedes ${f['3p']}.`,
+      why: `«${word.es}» (${word.ru[0]}). Настоящее время: yo ${f['1s']}, tú ${f['2s']}, él/ella ${f['3s']}, nosotros ${f['1p']}, vosotros ${f['2p']}, ustedes ${f['3p']}.`,
       hack: `Глаголы на ${ending} меняют только окончание — проговори все лица вслух, форма закрепится.`,
     }
   }
@@ -178,8 +178,9 @@ export function phraseStarKey(ex: Exercise): string | null {
 
 /**
  * Пометить упражнение «уже выучил»: фраза — по нормализованному
- * предложению, отдельное слово — по его id. Пометка не влияет на
- * счётчики ответов и «выученность» — только на частоту выпадания.
+ * предложению (в практике фраза встречается реже), отдельное слово —
+ * по его id (слово считается выученным — как кнопка «Уже знал»).
+ * Пометка не влияет на счётчики ответов.
  */
 export function starExercise(progress: Progress, ex: Exercise, now: number = Date.now()): void {
   const pkey = phraseStarKey(ex)
@@ -195,9 +196,9 @@ export function starExercise(progress: Progress, ex: Exercise, now: number = Dat
 
 /**
  * «Уже знал» из словаря: пользователь подтвердил знание слова
- * прямо на странице «Слова». Слово идёт в knownSet (статистика,
- * процент уроков), в практике попадается реже — как и пометка
- * из практики. Счётчики ответов не меняются.
+ * прямо на странице «Слова». Слово считается выученным — идёт
+ * в knownSet (статистика, процент уроков) и включается во фразы,
+ * как пройденное в уроках. Счётчики ответов не меняются.
  */
 export function starWord(progress: Progress, wordId: string, now: number = Date.now()): void {
   const wp = progress.words[wordId] ?? { correct: 0, wrong: 0 }
@@ -214,30 +215,25 @@ export function unstarWord(progress: Progress, wordId: string): void {
 /**
  * Пул слов для практики: сначала слова «в процессе» (correct > 0, но
  * ещё не выученные), затем новые слова по возрастанию урока, затем
- * уже известные — для повторения. Слова, отмеченные «уже выучил»
- * (star), из основных групп убраны — их немного в конце пула:
- * попадаются, но заметно реже (полностью не исчезают).
+ * уже известные — для повторения. Слова с пометкой «Уже знал» —
+ * выученные: они в knownSet и попадают в группу повторения наравне
+ * с остальными известными (а во фразы — как пройденные в уроках).
  */
 export function practicePool(progress: Progress, maxLesson = 32): Word[] {
   const known = knownSet(progress)
-  const isStarred = (w: Word) => !!progress.words[w.id]?.star
   const inProgress = ALL_WORDS.filter(
-    (w) => !known.has(w.id) && w.lesson <= maxLesson && progress.words[w.id]?.correct && !isStarred(w),
+    (w) => !known.has(w.id) && w.lesson <= maxLesson && progress.words[w.id]?.correct,
   )
   const fresh = ALL_WORDS.filter(
-    (w) => !known.has(w.id) && w.lesson <= maxLesson && !progress.words[w.id]?.correct && !isStarred(w),
+    (w) => !known.has(w.id) && w.lesson <= maxLesson && !progress.words[w.id]?.correct,
   ).sort((a, b) => a.lesson - b.lesson)
-  const review = ALL_WORDS.filter((w) => known.has(w.id) && !isStarred(w))
-  const starred = ALL_WORDS.filter((w) => isStarred(w))
+  const review = ALL_WORDS.filter((w) => known.has(w.id))
   // Приоритет: закрепление (40%), новые (40%), повторение (20%)
-  const pool: Word[] = [
+  return [
     ...inProgress.slice(0, 15),
     ...fresh.slice(0, 15),
     ...shuffle(review).slice(0, 10),
   ]
-  if (pool.length) return [...pool, ...shuffle(starred).slice(0, 2)]
-  // Всё остальное отмечено «уже выучил» — другого материала нет
-  return starred.length ? shuffle(starred).slice(0, 10) : fresh.slice(0, 10)
 }
 
 /** Направление теста-выбора для слова */

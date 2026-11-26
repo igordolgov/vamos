@@ -174,7 +174,7 @@ function ruVerbI(verb: Word, idx: number): string {
 }
 
 /** Лицо местоимения-подлежащего */
-function pronPerson(pron: Word): '1s' | '2s' | '3s' | '1p' | '3p' {
+function pronPerson(pron: Word): VerbPerson {
   return pron.pronoun?.person ?? '3s'
 }
 

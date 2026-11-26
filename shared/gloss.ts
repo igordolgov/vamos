@@ -21,7 +21,7 @@ export interface GlossEntry {
 }
 
 /** Индекс личной формы глагола в ruForms [я, ты, он/она, мы, вы, они] */
-const RU_FORM_INDEX: Record<VerbPerson, number> = { '1s': 0, '2s': 1, '3s': 2, '1p': 3, '3p': 5 }
+const RU_FORM_INDEX: Record<VerbPerson, number> = { '1s': 0, '2s': 1, '3s': 2, '1p': 3, '2p': 4, '3p': 5 }
 
 type IndexHit = { word: Word; person?: VerbPerson }
 

@@ -45,6 +45,15 @@ describe('Статистика', () => {
     expect(isWordKnown({ correct: 2, wrong: 5 })).toBe(true)
   })
 
+  it('isWordKnown: «Уже знал» = выучено без ответов', () => {
+    // пометка «Уже знал» делает слово выученным, даже если ответов не было
+    expect(isWordKnown({ correct: 0, wrong: 0, star: 1000 })).toBe(true)
+    // и остаётся выученным при неверных ответах
+    expect(isWordKnown({ correct: 1, wrong: 3, star: 1000 })).toBe(true)
+    // без пометки — по порогу, как раньше
+    expect(isWordKnown({ correct: 0, wrong: 0 })).toBe(false)
+  })
+
   it('прогресс по частям речи и урокам', () => {
     const p = withWords(['v-ser', 'p-yo'])
     const byPos = progressByPos(p)
