@@ -10,7 +10,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { getWord, ALL_WORDS } from '../../shared/data/words'
-import { TEMPLATES, allTemplates } from '../../shared/phrases/templates'
+import { TEMPLATES, allTemplates, BARE_OK_VERBS, MANNER_VERBS, PRONOUN_CONJ_VERBS } from '../../shared/phrases/templates'
 import {
   adjSemCompatible,
   verbObjCompatible,
@@ -441,5 +441,96 @@ describe('Наречия и отрицание', () => {
     const p2 = enumerateTemplate(t2, ALL, 0, 20_000).phrases
     expect(p2.some((p) => p.es === 'Ellos también trabajan')).toBe(true)
     for (const p of p2) expect(p.kind, p.es).not.toBe('neg')
+  })
+})
+
+describe('Переходный глагол требует дополнения', () => {
+  // «Tú no conoces bien» неполно: conocer (и все переходные, и модальные,
+  // и pensar) без объекта «повисает». Голые оси — только полный без
+  // дополнения набор: «Tú hablas bien», «Ya entiendo», «Nunca llegas»
+  const NEED_OBJ = new Set([
+    // переходные: инфинитивы и личные формы (в голых осях глагол — последнее слово)
+    'tener', 'tengo', 'tienes', 'tiene', 'tienen',
+    'hacer', 'hago', 'haces', 'hace', 'hacen',
+    'dar', 'doy', 'das', 'da', 'dan',
+    'ver', 'veo', 'ves', 've', 'ven',
+    'decir', 'digo', 'dices', 'dice', 'dicen',
+    'saber', 'sé', 'sabes', 'sabe', 'saben',
+    'querer', 'quiero', 'quieres', 'quiere', 'quieren',
+    'conocer', 'conozco', 'conoces', 'conoce', 'conocen',
+    'buscar', 'busco', 'buscas', 'busca', 'buscan',
+    'esperar', 'espero', 'esperas', 'espera', 'esperan',
+    'recordar', 'recuerdo', 'recuerdas', 'recuerda', 'recuerdan',
+    'poner', 'pongo', 'pones', 'pone', 'ponen',
+    'llevar', 'llevo', 'llevas', 'lleva', 'llevan',
+    'dejar', 'dejo', 'dejas', 'deja', 'dejan',
+    'pagar', 'pago', 'pagas', 'paga', 'pagar',
+    'pedir', 'pido', 'pides', 'pide', 'piden',
+    'seguir', 'sigo', 'sigues', 'sigue', 'siguen',
+    'abrir', 'abro', 'abres', 'abre', 'abren',
+    'cerrar', 'cierro', 'cierras', 'cierra', 'cierran',
+    'empezar', 'empiezo', 'empiezas', 'empieza', 'empiezan',
+    'terminar', 'termino', 'terminas', 'termina', 'terminan',
+    'usar', 'uso', 'usas', 'usa', 'usan',
+    'aprender', 'aprendo', 'aprendes', 'aprende', 'aprenden',
+    'ayudar', 'ayudo', 'ayudas', 'ayuda', 'ayudan',
+    'llamar', 'llamo', 'llamas', 'llama', 'llaman',
+    'creer', 'creo', 'crees', 'cree', 'creen',
+    // модальные: «Siempre puedo» / «Voy a poder» — тоже неполны
+    'poder', 'puedo', 'puedes', 'puede', 'pueden',
+    'necesitar', 'necesito', 'necesitas', 'necesita', 'necesitan',
+  ])
+
+  /** Шаблоны, где глагол/инфинитив стоит БЕЗ дополнения (последнее слово) */
+  const BARE_TEMPLATES = [
+    't-pron-v-adverb', 't-pron-v-adverb2', 't-pron-adv-no-v',
+    't-pron-tampoco-v', 't-pron-nunca-v', 't-pron-v-manner',
+    't-qw-cuando', 't-qw-porque', 't-qw-quien',
+    't-pron-modal-inf', 't-pron-tener-que-inf', 't-pron-ir-a-inf', 't-hay-que-inf',
+  ]
+
+  it('голые оси содержат только глаголы, полные без дополнения', () => {
+    for (const v of [...MANNER_VERBS, ...PRONOUN_CONJ_VERBS]) {
+      expect(BARE_OK_VERBS.some((b) => b.id === v.id), v.id).toBe(true)
+    }
+  })
+
+  it('ни в одном голом шаблоне нет переходного/модального глагола без объекта', () => {
+    for (const id of BARE_TEMPLATES) {
+      const t = TEMPLATES.find((x) => x.id === id)!
+      const { phrases } = enumerateTemplate(t, ALL, 0, 40_000)
+      expect(phrases.length, id).toBeGreaterThan(0)
+      for (const p of phrases) {
+        const last = p.es.replace(/[¿?¡!.]/g, '').trim().split(/\s+/).pop()!.toLowerCase()
+        expect(NEED_OBJ.has(last), `${id}: ${p.es}`).toBe(false)
+      }
+    }
+  })
+
+  it('«Tú hablas bien» есть, «Tú no conoces bien» — нет', () => {
+    const man = TEMPLATES.find((x) => x.id === 't-pron-v-manner')!
+    const phrases = enumerateTemplate(man, ALL, 0, 20_000).phrases
+    expect(phrases.some((p) => p.es === 'Tú hablas bien')).toBe(true)
+    expect(phrases.some((p) => p.es === 'Tú no conoces bien')).toBe(false)
+    expect(phrases.some((p) => p.es === 'Yo no veo bien')).toBe(false)
+  })
+
+  it('инфинитив после модального: «Quiero comer» есть, «Quiero conocer» — нет', () => {
+    const t = TEMPLATES.find((x) => x.id === 't-pron-modal-inf')!
+    const phrases = enumerateTemplate(t, ALL, 0, 20_000).phrases
+    expect(phrases.some((p) => p.es === 'Yo quiero comer')).toBe(true)
+    expect(phrases.some((p) => p.es === 'Yo quiero conocer')).toBe(false)
+    expect(phrases.some((p) => p.es === 'Yo puedo saber')).toBe(false)
+  })
+
+  it('ir a / tener que / hay que: «Voy a comer» есть, «Voy a poder» — нет', () => {
+    const irA = enumerateTemplate(TEMPLATES.find((x) => x.id === 't-pron-ir-a-inf')!, ALL, 0, 20_000).phrases
+    expect(irA.some((p) => p.es === 'Yo voy a comer')).toBe(true)
+    expect(irA.some((p) => p.es === 'Yo voy a poder')).toBe(false)
+    expect(irA.some((p) => p.es === 'Yo voy a conocer')).toBe(false)
+
+    const hayQue = enumerateTemplate(TEMPLATES.find((x) => x.id === 't-hay-que-inf')!, ALL, 0, 20_000).phrases
+    expect(hayQue.some((p) => p.es === 'Hay que trabajar')).toBe(true)
+    expect(hayQue.some((p) => p.es === 'Hay que saber')).toBe(false)
   })
 })

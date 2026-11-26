@@ -123,16 +123,46 @@ export const ESTAR_GERUND_VERBS: Word[] = [
  *  только действие: «puedo comer», но не «puedo poder», «quiero necesitar» */
 export const NON_MODAL_CONJ_VERBS: Word[] = CONJUGATED_VERBS.filter((v) => !v.verb?.modal)
 
-/** Глаголы в шаблонах с местоимением-подлежащим (наречия, вопросы):
- *  pasar исключён — «Они всегда происхожу» / «¿Quién pasas?» — абсурд */
-/** necesitar исключён: без дополнения «нуждаюсь» не звучит
- *  («Ты всегда нуждаешься», «¿Quién necesita?» — не генерируем) */
-export const PRONOUN_CONJ_VERBS: Word[] = CONJUGATED_VERBS.filter((v) => v.id !== 'v-pasar' && v.id !== 'v-necesitar')
+/**
+ * Глаголы, полные и без дополнения в нейтральном контексте: «Я работаю»,
+ * «Ya entiendo», «Nunca llegas», «Hay que comer», «¿Quién habla?».
+ *
+ * Переходные глаголы (tener, hacer, dar, ver, decir, saber, querer,
+ * conocer, buscar, esperar, poner, llevar, dejar, pagar, pedir…)
+ * без объекта «повисают в воздухе»: «Tú no conoces bien» — кого/что?
+ * (жалоба пользователя). Они допускаются только в осях с дополнением
+ * (verbObj, лицо с личным «a», язык, «no … nada») и в вопросе
+ * «¿Qué haces?», где вопросительное слово и есть дополнение.
+ *
+ * Модальные (poder/querer/necesitar — «Siempre puedo», «Voy a poder»)
+ * и pensar (требует «en …», иначе меняется смысл) тоже не звучат
+ * без дополнения — в «голых» осях их нет.
+ */
+const BARE_OK_IDS = new Set([
+  'v-hablar', 'v-comer', 'v-beber', 'v-vivir', 'v-trabajar', 'v-estudiar',
+  'v-leer', 'v-escribir', 'v-dormir', 'v-entender',
+  'v-ir', 'v-venir', 'v-llegar', 'v-salir', 'v-volver',
+])
 
-/** Глаголы обстоятельств образа действия: «работаю быстро», «сплю плохо» */
+/** Слова пула «полных без дополнения» глаголов (для шаблонов и тестов) */
+export const BARE_OK_VERBS: Word[] = [...BARE_OK_IDS].map(getWord)
+
+/**
+ * Глаголы «голых» осей с местоимением-подлежащим (наречия siempre/ya/
+ * también, отрицания ya no/tampoco/nunca, вопросы ¿Cuándo/¿Por qué/
+ * ¿Quién?): pasar исключён — «Они всегда происхожу» / «¿Quién pasas?»;
+ * necesitar — «нуждаюсь» без дополнения не звучит; остальные переходные
+ * тоже («Siempre conoces», «¿Quién tiene?» — неполны). Остаются только
+ * глаголы, полные без дополнения
+ */
+export const PRONOUN_CONJ_VERBS: Word[] = CONJUGATED_VERBS.filter((v) => BARE_OK_IDS.has(v.id))
+
+/** Глаголы обстоятельств образа действия: «работаю быстро», «сплю плохо».
+ *  Только полные без дополнения: conocer/ver/decir/hacer/recordar
+ *  переходные и требуют объекта — «Tú no conoces bien» не генерируем */
 export const MANNER_VERBS: Word[] = [
-  'v-hablar', 'v-comer', 'v-vivir', 'v-trabajar', 'v-estudiar', 'v-leer', 'v-escribir', 'v-beber',
-  'v-ir', 'v-dormir', 'v-entender', 'v-ver', 'v-decir', 'v-hacer', 'v-recordar', 'v-conocer',
+  'v-hablar', 'v-comer', 'v-vivir', 'v-trabajar', 'v-estudiar', 'v-leer',
+  'v-escribir', 'v-beber', 'v-ir', 'v-dormir', 'v-entender',
 ].map(getWord)
 
 /** Определители, корректные с hay: неопределённые и количество.
@@ -1153,8 +1183,9 @@ export const TEMPLATES: Template[] = [
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
       { kind: 'free', role: 'v', words: MODAL_VERBS },
-      // «puede comer» — да; «puede poder», «quiero necesitar» — нет
-      { kind: 'free', role: 'v2', words: NON_MODAL_CONJ_VERBS },
+      // «puede comer» — да; «puede poder», «quiero necesitar»,
+      // «quiero conocer» (без объекта висит) — нет
+      { kind: 'free', role: 'v2', words: BARE_OK_VERBS },
     ],
     variants: ['aff', 'neg', 'yesno'],
     render: (fill, kind) => {
@@ -1190,8 +1221,8 @@ export const TEMPLATES: Template[] = [
     requires: ['v-tener', 'cstr-tener-que'],
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
-      // «должен работать», но не «должен мочь»
-      { kind: 'free', role: 'v2', words: NON_MODAL_CONJ_VERBS },
+      // «должен работать», но не «должен мочь», «должен знать (кого?)»
+      { kind: 'free', role: 'v2', words: BARE_OK_VERBS },
     ],
     variants: ['aff', 'neg', 'yesno'],
     render: (fill, kind) => {
@@ -1220,8 +1251,9 @@ export const TEMPLATES: Template[] = [
     requires: ['v-ir', 'cstr-ir-a'],
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
-      // «буду изучать», но не «буду нуждаться» (без дополнения не звучит)
-      { kind: 'free', role: 'v2', words: CONJUGATED_VERBS.filter((v) => v.id !== 'v-necesitar') },
+      // «буду изучать», но не «буду мочь», «буду знать» — инфинитив
+      // без дополнения не звучит (переходные и модальные исключены)
+      { kind: 'free', role: 'v2', words: BARE_OK_VERBS },
     ],
     variants: ['aff', 'neg', 'yesno'],
     render: (fill, kind) => {
@@ -1248,7 +1280,8 @@ export const TEMPLATES: Template[] = [
     lesson: 26,
     group: 'модальные глаголы',
     requires: ['cstr-hay-que'],
-    units: [{ kind: 'free', role: 'v2', words: CONJUGATED_VERBS.filter((v) => v.id !== 'v-necesitar') }],
+    // «надо работать», но не «надо мочь», «надо узнать (что?)»
+    units: [{ kind: 'free', role: 'v2', words: BARE_OK_VERBS }],
     variants: ['aff', 'neg'],
     render: (fill, kind) => {
       const v2 = fill.v2 as Word
