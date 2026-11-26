@@ -47,6 +47,20 @@ describe('WordCard', () => {
     })
     expect(wrapper.text()).toContain('999')
   })
+
+  it('кнопка «Уже знал»: клик emits toggle-star, состояние — aria-pressed', async () => {
+    const wrapper = mount(WordCard, { props: { word: getWord('n-casa'), status: 'new' } })
+    const btn = wrapper.findAll('button').find((b) => b.text().includes('Уже знал'))
+    expect(btn, 'кнопка «Уже знал» есть на карточке').toBeTruthy()
+    expect(btn!.attributes('aria-pressed')).toBe('false')
+    await btn!.trigger('click')
+    expect(wrapper.emitted('toggle-star')).toHaveLength(1)
+    // помеченное состояние: aria-pressed=true, подсветка успеха
+    const starred = mount(WordCard, { props: { word: getWord('n-casa'), status: 'known', starred: true } })
+    const sBtn = starred.findAll('button').find((b) => b.text().includes('Уже знал'))!
+    expect(sBtn.attributes('aria-pressed')).toBe('true')
+    expect(sBtn.classes()).toContain('btn-success')
+  })
 })
 
 describe('StatRing', () => {
@@ -373,5 +387,71 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     expect(text).not.toContain('🎯')
     expect(text).toContain('💡')
     expect(text).toContain('ОБЩИЙ РАЗБОР ШАБЛОНА')
+  })
+
+  // ============================================================
+  // Перетаскивание собранных плиток до проверки: pointer-события.
+  // В jsdom нет геометрии — подменяем getBoundingClientRect на
+  // полосы по 100px (плитка k: left = k·100, ширина 90)
+  // ============================================================
+  const RECT = (k: number) => ({
+    left: k * 100, top: 0, right: k * 100 + 90, bottom: 40,
+    width: 90, height: 40, x: k * 100, y: 0, toJSON: () => ({}),
+  }) as DOMRect
+
+  it('перетаскивание плитки меняет порядок собранной фразы — неверный порядок исправляется', async () => {
+    const wrapper = mount(QuizBuild, {
+      props: { tiles: TILES, answerTiles: ANSWER, hint: 'Я хочу говорить' },
+    })
+    // собрали в неверном порядке: hablar Yo quiero
+    await tileBtn(wrapper, 'hablar').trigger('click')
+    await tileBtn(wrapper, 'Yo').trigger('click')
+    await tileBtn(wrapper, 'quiero').trigger('click')
+    const area = wrapper.find('[aria-label="Собранная фраза"]')
+    let built = area.findAll('button')
+    expect(built.map((b) => b.text())).toEqual(['hablar', 'Yo', 'quiero'])
+    built.forEach((b, k) => {
+      ;(b.element as HTMLElement).getBoundingClientRect = () => RECT(k)
+    })
+    // тащим «hablar» (позиция 0) на правую половину «quiero» (позиция 2)
+    await built[0]!.trigger('pointerdown', { clientX: 45, clientY: 20, pointerId: 1 })
+    await built[0]!.trigger('pointermove', { clientX: 250, clientY: 20, pointerId: 1 })
+    await built[0]!.trigger('pointerup', { pointerId: 1 })
+    built = area.findAll('button')
+    expect(built.map((b) => b.text())).toEqual(['Yo', 'quiero', 'hablar'])
+    // drag подавляет click после себя: плитка не вернулась в пул
+    await built[2]!.trigger('click')
+    expect(area.findAll('button')).toHaveLength(3)
+    // порядок теперь верный → «Проверить» даёт answered(true)
+    await checkBtn(wrapper).trigger('click')
+    expect(wrapper.emitted('answered')![0]).toEqual([true])
+  })
+
+  it('короткий тап (без движения) по-прежнему убирает слово в пул', async () => {
+    const wrapper = mount(QuizBuild, {
+      props: { tiles: TILES, answerTiles: ANSWER, hint: 'x' },
+    })
+    await tileBtn(wrapper, 'Yo').trigger('click')
+    await tileBtn(wrapper, 'quiero').trigger('click')
+    const area = wrapper.find('[aria-label="Собранная фраза"]')
+    const built = area.findAll('button')
+    built.forEach((b, k) => {
+      ;(b.element as HTMLElement).getBoundingClientRect = () => RECT(k)
+    })
+    // тап: pointerdown + движение меньше порога + pointerup + click
+    await built[0]!.trigger('pointerdown', { clientX: 45, clientY: 20, pointerId: 1 })
+    await built[0]!.trigger('pointermove', { clientX: 48, clientY: 21, pointerId: 1 })
+    await built[0]!.trigger('pointerup', { pointerId: 1 })
+    await built[0]!.trigger('click')
+    expect(area.findAll('button').map((b) => b.text())).toEqual(['quiero'])
+  })
+
+  it('плитки собранной фразы готовы к touch-перетаскиванию (touch-action: none)', async () => {
+    const wrapper = mount(QuizBuild, {
+      props: { tiles: TILES, answerTiles: ANSWER, hint: 'x' },
+    })
+    await tileBtn(wrapper, 'Yo').trigger('click')
+    const tile = wrapper.find('[aria-label="Собранная фраза"] button')
+    expect(tile.classes()).toContain('touch-none')
   })
 })

@@ -13,7 +13,7 @@
 import { computed, ref } from 'vue'
 import { emptyProgress, type Progress, type Word } from '#shared/types'
 import { evaluateAchievements, type Achievement } from '#shared/achievements'
-import { recordAnswer, starExercise } from '#shared/practice'
+import { recordAnswer, starExercise, starWord, unstarWord } from '#shared/practice'
 import type { Exercise } from '#shared/practice'
 import { touchStreak } from '#shared/streak'
 import { authHeaders } from './useAuth'
@@ -179,6 +179,22 @@ export function applyAnswer(ex: Exercise, correct: boolean): Word[] {
 }
 
 /**
+ * «Уже знал» из словаря: пометить или снять пометку у слова.
+ * Как и пометка из практики, не меняет счётчики ответов —
+ * только частоту выпадания и учёт в статистике.
+ */
+export function setWordStar(wordId: string, starred: boolean): void {
+  const now = Date.now()
+  const next: Progress = JSON.parse(JSON.stringify(progressState.value))
+  if (starred) starWord(next, wordId, now)
+  else unstarWord(next, wordId)
+  next.updatedAt = now
+  progressState.value = next
+  lsSet(next)
+  scheduleSync()
+}
+
+/**
  * «Уже выучил»: пометить слово/фразу упражнения — они будут
  * попадаться реже. Не меняет счётчики ответов и «выученность».
  */
@@ -255,6 +271,7 @@ export function useProgress() {
     resetProgress,
     flushSync,
     consumeToasts,
+    setWordStar,
   }
 }
 

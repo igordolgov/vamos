@@ -3,8 +3,9 @@
 // ============================================================
 
 import { describe, it, expect } from 'vitest'
-import { emptyProgress, KNOWN_THRESHOLD } from '../../shared/types'
-import { practicePool, wordChoiceExercise, buildExercise, audioExercise, makeExercise, recordAnswer, shuffle, starExercise, phraseStarKey, autoWordTip, type Exercise } from '../../shared/practice'
+import { emptyProgress, isWordKnown, KNOWN_THRESHOLD } from '../../shared/types'
+import { practicePool, wordChoiceExercise, buildExercise, audioExercise, makeExercise, recordAnswer, shuffle, starExercise, starWord, unstarWord, phraseStarKey, autoWordTip, type Exercise } from '../../shared/practice'
+import { knownSet } from '../../shared/stats'
 import { getWord, ALL_WORDS } from '../../shared/data/words'
 import { TEMPLATES } from '../../shared/phrases/templates'
 import { walkFills } from '../../shared/phrases/engine'
@@ -397,5 +398,53 @@ describe('Упражнение «Сборка фразы»: hay × comida (жа�
     expect(comidaExercises, 'в шаблоне есть упражнения с comida').toBeGreaterThan(0)
     expect(bareNeg, 'есть упражнение с ответом «No hay comida»').toBe(true)
     expect(bad, bad.join('; ')).toEqual([])
+  })
+})
+
+// ============================================================
+// «Уже знал» из словаря: пользователь отмечает слово прямо на
+// странице «Слова» — оно идёт в knownSet (статистика, процент
+// уроков) и попадается в практике реже, но не исчезает.
+// ============================================================
+describe('«Уже знал» из словаря (starWord)', () => {
+  it('starWord: пометка ставится даже у слова без статистики, слово входит в knownSet', () => {
+    const p = emptyProgress()
+    starWord(p, 'n-casa', 1000)
+    expect(p.words['n-casa']).toEqual({ correct: 0, wrong: 0, star: 1000 })
+    expect(knownSet(p).has('n-casa')).toBe(true)
+  })
+
+  it('помеченное не исчезает из практики: доступно, но не в основных группах', () => {
+    const p = emptyProgress()
+    starWord(p, 'n-casa')
+    const pool = practicePool(p)
+    // других слов в прогрессе нет — помеченное остаётся единственным материалом
+    expect(pool.some((w) => w.id === 'n-casa')).toBe(true)
+  })
+
+  it('unstarWord: снимает пометку, сохраняя счётчики и «выученность»', () => {
+    const p = withProgress({ 'v-ser': 2 })
+    p.words['v-ser']!.knownAt = 500
+    starWord(p, 'v-ser', 900)
+    unstarWord(p, 'v-ser')
+    const wp = p.words['v-ser']!
+    expect(wp.star).toBeUndefined()
+    expect(wp.correct).toBe(2)
+    expect(wp.knownAt).toBe(500)
+    expect(isWordKnown(wp)).toBe(true)
+    expect(knownSet(p).has('v-ser')).toBe(true) // выучено по счётчикам
+  })
+
+  it('unstarWord на слове без пометки и без прогресса — безвреден', () => {
+    const p = emptyProgress()
+    unstarWord(p, 'n-casa')
+    expect(p.words['n-casa']).toBeUndefined()
+  })
+
+  it('повторный starWord обновляет дату, счётчики не трогает', () => {
+    const p = withProgress({ 'v-hablar': 1 })
+    starWord(p, 'v-hablar', 100)
+    starWord(p, 'v-hablar', 200)
+    expect(p.words['v-hablar']).toEqual({ correct: 1, wrong: 0, star: 200 })
   })
 })

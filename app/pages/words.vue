@@ -15,7 +15,7 @@ import EmptyState from '~/components/EmptyState.vue'
 
 const t = useT()
 const locale = useLocale()
-const {progress, ensureLoaded} = useProgress()
+const {progress, ensureLoaded, setWordStar} = useProgress()
 onMounted(() => {
   void ensureLoaded()
 })
@@ -60,9 +60,19 @@ const cards = computed(() =>
         ? ('progress' as const)
         : ('new' as const)
     const opp = opportunityFor(progress.value, w.id)
-    return { word: w, status, unlock: opp ? opp.newPhrases : null }
+    return { word: w, status, unlock: opp ? opp.newPhrases : null, starred: !!wp?.star }
   }),
 )
+
+// «Уже знал» из словаря: пометка знания слова. Тост — обратная связь,
+// объясняющая эффект пометки (в практике слово будет попадаться реже)
+function toggleStar(id: string, starred: boolean) {
+  setWordStar(id, starred)
+  if (starred) {
+    const w = window as unknown as { __vamosToast?: (text: string, icon?: string) => void }
+    w.__vamosToast?.(t('practice.starToast'), '✨')
+  }
+}
 </script>
 
 <template lang="pug">
@@ -88,6 +98,8 @@ p(class="text-base-content/60 mb-2") {{ t('words.subtitle', { n: ALL_WORDS.lengt
     :word="card.word"
     :status="card.status"
     :unlock="card.unlock"
+    :starred="card.starred"
+    @toggle-star="toggleStar(card.word.id, !card.starred)"
   )
 
 // «Показать ещё» — когда фильтр находит больше карточек, чем показано

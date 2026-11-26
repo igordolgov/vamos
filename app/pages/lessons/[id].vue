@@ -14,7 +14,7 @@ import EmptyState from '~/components/EmptyState.vue'
 
 const route = useRoute()
 const t = useT()
-const {progress, ensureLoaded} = useProgress()
+const {progress, ensureLoaded, setWordStar} = useProgress()
 onMounted(() => {
   void ensureLoaded()
 })
@@ -36,9 +36,18 @@ const cards = computed(() =>
         ? ('progress' as const)
         : ('new' as const)
     const opp = opportunityFor(progress.value, w.id)
-    return { word: w, status, unlock: opp ? opp.newPhrases : null }
+    return { word: w, status, unlock: opp ? opp.newPhrases : null, starred: !!wp?.star }
   }),
 )
+
+// «Уже знал» из словаря: с тостом — как на странице «Слова»
+function toggleStar(id: string, starred: boolean) {
+  setWordStar(id, starred)
+  if (starred) {
+    const win = window as unknown as { __vamosToast?: (text: string, icon?: string) => void }
+    win.__vamosToast?.(t('practice.starToast'), '✨')
+  }
+}
 </script>
 
 <template lang="pug">
@@ -65,6 +74,8 @@ template(v-if="lesson")
       :word="card.word"
       :status="card.status"
       :unlock="card.unlock"
+      :starred="card.starred"
+      @toggle-star="toggleStar(card.word.id, !card.starred)"
     )
 
 EmptyState(v-else='' :text="t('words.empty')" icon="📚")

@@ -49,6 +49,7 @@ export const RU = {
   'words.known': 'выучено',
   'words.inProgress': 'в процессе',
   'words.new': 'новое',
+  'words.markKnown': 'Уже знал',
   'words.conjugation': 'Спряжение (yo, tú, usted, nosotros, ustedes)',
   'words.forms': 'Формы',
   'words.youLearn': 'Выучите это — откроется {n} {w}',

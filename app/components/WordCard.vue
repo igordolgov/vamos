@@ -1,7 +1,9 @@
 <script setup lang="ts">
 // ============================================================
 // WordCard.vue — карточка слова: испанское слово, перевод,
-// грамматические данные, статус и озвучка.
+// грамматические данные, статус и озвучка. Кнопка «Уже знал» —
+// пользователь подтверждает знание слова из словаря (в практику
+// оно дальше попадает заметно реже, в статистике — как выученное).
 // ============================================================
 import { computed } from 'vue'
 import type { Word } from '#shared/types'
@@ -16,7 +18,11 @@ const props = defineProps<{
   status?: 'known' | 'progress' | 'new'
   /** Сколько фраз откроет это слово (проекция) */
   unlock?: number | null
+  /** Слово уже помечено «Уже знал» — кнопка показывает состояние */
+  starred?: boolean
 }>()
+
+const emit = defineEmits<{ 'toggle-star': [] }>()
 
 const t = useT()
 const locale = useLocale()
@@ -80,6 +86,15 @@ const nounInfo = computed(() => {
         span.badge.badge-sm(:class="statusBadge") {{ statusText }}
         span.badge.badge-sm.badge-outline
           | {{ posLabel.emoji }} {{ posLabel[locale === 'es' ? 'es' : 'ru'] }}
+        // «Уже знал»: пометка знания слова прямо из словаря.
+        // Повторный клик снимает пометку (случайный клик не лишает контроля)
+        button.btn.btn-xs(
+          :class="starred ? 'btn-success btn-outline' : 'btn-ghost text-base-content/45'"
+          :aria-pressed="!!starred"
+          :aria-label="t('words.markKnown') + ': ' + word.es"
+          @click.stop="emit('toggle-star')"
+        )
+          | ✨ {{ t('words.markKnown') }}
 
     // Перевод
     p(class="text-base-content/80") {{ word.ru.join(', ') }}

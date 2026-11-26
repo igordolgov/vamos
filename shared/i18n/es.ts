@@ -48,6 +48,7 @@ export const ES: Dict = {
   'words.known': 'aprendida',
   'words.inProgress': 'en progreso',
   'words.new': 'nueva',
+  'words.markKnown': 'Ya lo sabía',
   'words.conjugation': 'Conjugación (yo, tú, usted, nosotros, ustedes)',
   'words.forms': 'Formas',
   'words.youLearn': 'La aprendes — se abre {n} {w}',

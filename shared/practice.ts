@@ -190,6 +190,24 @@ export function starExercise(progress: Progress, ex: Exercise, now: number = Dat
 }
 
 /**
+ * «Уже знал» из словаря: пользователь подтвердил знание слова
+ * прямо на странице «Слова». Слово идёт в knownSet (статистика,
+ * процент уроков), в практике попадается реже — как и пометка
+ * из практики. Счётчики ответов не меняются.
+ */
+export function starWord(progress: Progress, wordId: string, now: number = Date.now()): void {
+  const wp = progress.words[wordId] ?? { correct: 0, wrong: 0 }
+  progress.words[wordId] = { ...wp, star: now }
+}
+
+/** Снять пометку «уже знал»: счётчики и «выученность» сохраняются */
+export function unstarWord(progress: Progress, wordId: string): void {
+  const wp = progress.words[wordId]
+  if (!wp?.star) return
+  progress.words[wordId] = { correct: wp.correct, wrong: wp.wrong, knownAt: wp.knownAt }
+}
+
+/**
  * Пул слов для практики: сначала слова «в процессе» (correct > 0, но
  * ещё не выученные), затем новые слова по возрастанию урока, затем
  * уже известные — для повторения. Слова, отмеченные «уже выучил»
