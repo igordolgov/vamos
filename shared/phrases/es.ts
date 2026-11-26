@@ -130,7 +130,11 @@ export function questionMark(s: string): string {
   return `¿${s}?`
 }
 
-/** Заглавная первая буква */
+/** Заглавная первая буква (для начала предложения).
+ *  Первая БУКВА, а не первый символ: «(конкретный) учитель…» →
+ *  «(Конкретный) учитель…» (русские подсказки артикля начинаются со скобки) */
 export function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1)
+  const i = s.search(/\p{L}/u)
+  if (i < 0) return s
+  return s.slice(0, i) + s.charAt(i).toUpperCase() + s.slice(i + 1)
 }

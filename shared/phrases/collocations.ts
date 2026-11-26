@@ -129,6 +129,12 @@ export const ADJ_NOUN_DENY: Record<string, readonly string[]> = {
   'a-verde': ['n-pelicula', 'n-foto'],
   'a-azul': ['n-pelicula', 'n-foto'],
   'a-amarillo': ['n-pelicula', 'n-foto'],
+  // размер не описывает вещество/блюдо целиком: «маленькая соль»,
+  // «маленькое мясо» — не генерируем (жалоба пользователя)
+  'a-pequeno': ['n-sal', 'n-carne'],
+  // температура не описывает стекло и раму: «горячее окно» — не генерируем
+  'a-caliente': ['n-ventana'],
+  'a-frio': ['n-ventana'],
 }
 
 /** Прилагательное семантически сочетается с существительным? */

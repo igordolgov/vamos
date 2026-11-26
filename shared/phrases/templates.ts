@@ -11,7 +11,7 @@ import type { GramNumber, VerbPerson, Word } from '../types'
 import { getWord } from '../data/words'
 import { ALL_WORDS, wordsByPos } from '../data/words'
 import { capitalize, conjugate, gerundOf, joinPrepNP } from './es'
-import { ruAdjForNoun, ruAdjForm, ruDetForm, ruGustarForm, ruNounForm, ruNounPhrase } from './ru'
+import { ruAdjForNoun, ruAdjForm, ruArticleHint, ruDetForm, ruGustarForm, ruHintCaseFor, ruLocWithHint, ruNounForm, ruNounPhrase } from './ru'
 import { ruAccusative, ruAdjGenitive, ruDetGenitive, ruGenitive } from './ru-morph'
 import { initEngine, npEs, npNumber, npRu, verbPrepRuKey, adjCompatible } from './engine'
 import { NEG_BEFORE_ADVERB_RU, TENER_NOUN_IDS, TENER_PLURAL_IDS, adjPersonCompatible, verbObjAllowedNouns } from './collocations'
@@ -66,6 +66,9 @@ export const PREP_VERBS: Word[] = wordsByPos('verb').filter((v) => !!v.verb?.wit
 
 /** Существительные по классам */
 export const PERSON_NOUNS: Word[] = ALL_WORDS.filter((w) => w.nounClass === 'person' || w.nounClass === 'family')
+/** Люди для сер-профессий: без собирательных — «Она — семья», «Сестра — семья»
+ *  не генерируем (familia — не профессия и не качество, жалоба пользователя) */
+export const PROF_NOUNS: Word[] = PERSON_NOUNS.filter((w) => w.id !== 'n-familia')
 export const THING_NOUNS: Word[] = ALL_WORDS.filter(
   (w) => w.nounClass === 'thing' || w.nounClass === 'food' || w.nounClass === 'drink' || w.nounClass === 'abstract' || w.nounClass === 'language',
 )
@@ -122,7 +125,9 @@ export const NON_MODAL_CONJ_VERBS: Word[] = CONJUGATED_VERBS.filter((v) => !v.ve
 
 /** Глаголы в шаблонах с местоимением-подлежащим (наречия, вопросы):
  *  pasar исключён — «Они всегда происхожу» / «¿Quién pasas?» — абсурд */
-export const PRONOUN_CONJ_VERBS: Word[] = CONJUGATED_VERBS.filter((v) => v.id !== 'v-pasar')
+/** necesitar исключён: без дополнения «нуждаюсь» не звучит
+ *  («Ты всегда нуждаешься», «¿Quién necesita?» — не генерируем) */
+export const PRONOUN_CONJ_VERBS: Word[] = CONJUGATED_VERBS.filter((v) => v.id !== 'v-pasar' && v.id !== 'v-necesitar')
 
 /** Глаголы обстоятельств образа действия: «работаю быстро», «сплю плохо» */
 export const MANNER_VERBS: Word[] = [
@@ -173,6 +178,42 @@ function ruVerbI(verb: Word, idx: number): string {
   return verb.verb?.ruForms?.[idx] ?? (verb.verb?.ruInf ?? verb.ru[0] ?? verb.es)
 }
 
+/** Русские формы «глагол + прямое дополнение»: estudiar с объектом —
+ *  «изучаю», без объекта — «учусь» (жалоба: «Они не учатся русский язык») */
+const RU_OBJ_FORMS: Record<string, string[]> = {
+  'v-estudiar': ['изучаю', 'изучаешь', 'изучает', 'изучаем', 'изучаете', 'изучают'],
+}
+
+/** Форма русского глагола с прямым дополнением по индексу */
+function ruVerbObjI(verb: Word, idx: number): string {
+  return RU_OBJ_FORMS[verb.id]?.[idx] ?? ruVerbI(verb, idx)
+}
+
+/** Форма русского глагола с прямым дополнением для местоимения */
+function ruVerbObjP(verb: Word, pron: Word): string {
+  return ruVerbObjI(verb, ruIndexFor(pron))
+}
+
+/** Русский предлог при прямом дополнении: «платить ЗА хлеб» —
+ *  по-русски pagar требует «за», по-испански дополнение голое */
+const RU_OBJ_PREP: Record<string, string> = { 'v-pagar': 'за' }
+
+/** Дополнение с глагольным предлогом: «за хлеб» для pagar */
+function ruObjNP(verb: Word, np: string): string {
+  const prep = RU_OBJ_PREP[verb.id]
+  return prep ? `${prep} ${np}` : np
+}
+
+/** «нужен/нужна/нужно/нужны» по роду/числу существительного
+ *  (necesitar + NP: «Necesito una cama» → «Мне нужна кровать»);
+ *  с количеством всегда «нужно»: «нужно много хлеба» */
+function ruNecesoForm(noun: Word, num: 'sg' | 'pl', quantity: boolean): string {
+  if (quantity) return 'нужно'
+  if (num === 'pl' || noun.ruPluralOnly) return 'нужны'
+  const g = noun.ruGender ?? 'm'
+  return g === 'f' ? 'нужна' : g === 'n' ? 'нужно' : 'нужен'
+}
+
 /** Лицо местоимения-подлежащего */
 function pronPerson(pron: Word): VerbPerson {
   return pron.pronoun?.person ?? '3s'
@@ -208,7 +249,7 @@ function ruShortFor(adj: Word, pron: Word): string {
 /** Русская именная группа в винительном падеже (вижу курицу).
  *  Прилагательное и определитель согласуются и в падеже: дешёвую музыку,
  *  мою машину; м.р./с.р./мн.ч. неодушевлённых совпадают с именительным. */
-export function npRuAcc(fill: Fill, role: string): string {
+export function npRuAcc(fill: Fill, role: string, articleHint = false): string {
   const noun = fill[role + '#noun'] as Word
   const det = fill[role + '#det'] as Word | null
   const adj = fill[role + '#adj'] as Word | null
@@ -219,6 +260,12 @@ export function npRuAcc(fill: Fill, role: string): string {
   const num = noun.ruPluralOnly ? 'pl' : numRaw
   const g = noun.ruGender ?? 'm'
   const parts: string[] = []
+  // подсказка артикля на месте артикля: «вижу (какую-то) учительницу»;
+  // hint с ведущим пробелом — обрезаем (join(' ') сам ставит пробелы)
+  if (articleHint) {
+    const hint = ruArticleHint(noun, det, numRaw, 'acc')
+    if (hint) parts.push(hint.trim())
+  }
   if (det && !isArticle && !isQuantity) parts.push(ruDetForm(det, g, num, 'acc'))
   if (adj && !isQuantity) {
     const masc = adj.ruByClass?.[noun.nounClass ?? 'thing'] ?? (adj.ru[0] ?? adj.adj!.m)
@@ -284,7 +331,7 @@ export const TEMPLATES: Template[] = [
         anchorRole: 's',
         anchors: SUBJECT_PRONOUNS,
         depRole: 'n',
-        deps: PERSON_NOUNS,
+        deps: PROF_NOUNS,
         compat: (a, d) => !a.pronoun?.impliedGender || a.pronoun.impliedGender === d.gender,
       },
     ],
@@ -347,12 +394,12 @@ export const TEMPLATES: Template[] = [
       {
         kind: 'npDep',
         role: 's',
-        nouns: PERSON_NOUNS,
+        nouns: PROF_NOUNS,
         number: 'sg',
         detSet: 'subject',
         bareAuto: false,
         depRole: 'n',
-        deps: PERSON_NOUNS,
+        deps: PROF_NOUNS,
         compat: (noun, dep) => noun.gender === dep.gender && noun.id !== dep.id,
       },
     ],
@@ -366,7 +413,7 @@ export const TEMPLATES: Template[] = [
       return capitalize(`${np} ${verb} ${n.es}`)
     },
     ru: (fill, kind) => {
-      const np = npRu(fill, 's')
+      const np = npRu(fill, 's', { articleHint: true })
       const n = fill.n as Word
       const core = `${capitalize(np)} — ${n.ru[0]}`
       if (kind === 'neg') return `${capitalize(np)} не ${n.ru[0]}`
@@ -406,7 +453,7 @@ export const TEMPLATES: Template[] = [
       return capitalize(`${np} ${verb} ${adjForm}`)
     },
     ru: (fill, kind) => {
-      const np = npRu(fill, 's')
+      const np = npRu(fill, 's', { articleHint: true })
       // прилагательное целиком, согласованное с существительным
       // (раньше здесь был split(' ')[0] — он резал «очень вкусное» и ломался
       //  на пояснениях в скобках: «Молоко — дорогой»)
@@ -444,7 +491,13 @@ export const TEMPLATES: Template[] = [
     ru: (fill, kind) => {
       const p = fill.s as Word
       const noun = fill['o#noun'] as Word
-      const loc = noun.ruCases?.en ?? `в ${ruNounPhrase(noun)}`
+      const detO = fill['o#det'] as Word | null
+      // «en casa» — без артикля; «en una escuela» → «в (какой-то) школе».
+      // Для casa ES всегда голая форма — подсказка не нужна
+      const loc = ruLocWithHint(
+        noun.ruCases?.en ?? `в ${ruNounPhrase(noun)}`,
+        noun.id === 'n-casa' ? '' : ruArticleHint(noun, detO, 'sg', ruHintCaseFor('en')),
+      )
       const core = `${capitalize(ruPron(p))} ${loc}`
       if (kind === 'neg') return `${capitalize(ruPron(p))} не ${loc}`
       return kind === 'yesno' ? `${capitalize(ruPron(p))} ${loc}?` : core
@@ -498,9 +551,14 @@ export const TEMPLATES: Template[] = [
       return capitalize(`${np} ${verb} en ${place}`)
     },
     ru: (fill, kind) => {
-      const np = npRu(fill, 's')
+      const np = npRu(fill, 's', { articleHint: true })
       const noun = fill['o#noun'] as Word
-      const loc = noun.ruCases?.en ?? `в ${ruNounPhrase(noun)}`
+      const detO = fill['o#det'] as Word | null
+      // casa — ES всегда голая форма («en casa»), подсказки нет
+      const loc = ruLocWithHint(
+        noun.ruCases?.en ?? `в ${ruNounPhrase(noun)}`,
+        noun.id === 'n-casa' ? '' : ruArticleHint(noun, detO, 'sg', ruHintCaseFor('en')),
+      )
       const core = `${capitalize(np)} ${loc}`
       if (kind === 'neg') return `${capitalize(np)} не ${loc}`
       return kind === 'yesno' ? `${capitalize(np)} ${loc}?` : core
@@ -553,6 +611,9 @@ export const TEMPLATES: Template[] = [
       const gen = ruTenerGenitive(noun, det, null)
       // «У меня есть…» / «У меня нет…»
       if (kind === 'neg') return `У ${p.pronoun?.ruGen} нет ${gen}`
+      // tener — детерминированная пара ES/RU (tip урока 5): un у счётных
+      // и голая форма у массы — БЕЗ выбора (определённый артикль и
+      // количество запрещены), поэтому подсказка артикля не нужна
       if (kind === 'yesno') return `У ${p.pronoun?.ruGen} есть ${npRu(fill, 'o')}?`
       return `У ${p.pronoun?.ruGen} есть ${npRu(fill, 'o')}`
     },
@@ -625,8 +686,8 @@ export const TEMPLATES: Template[] = [
     ru: (fill, kind) => {
       const noun = fill['o#noun'] as Word
       const det = fill['o#det'] as Word | null
-      const np = npRu(fill, 'o')
-      // «мало/много» уже согласуются внутри npRu
+      const np = npRu(fill, 'o', { articleHint: true })
+      // «мало/много» уже согласуются внутри npRu; un/una → «(какой-то)»
       return kind === 'neg' ? capitalize(`нет ${ruGenitive(noun)}`) : capitalize(`есть ${np}`)
     },
   },
@@ -660,10 +721,14 @@ export const TEMPLATES: Template[] = [
     ru: (fill, kind) => {
       const placeN = fill['o#noun'] as Word
       const thingN = fill['s#noun'] as Word
-      const loc = placeN.ruCases?.en ?? `в ${ruNounPhrase(placeN)}`
+      const detP = fill['o#det'] as Word | null
+      const loc = ruLocWithHint(
+        placeN.ruCases?.en ?? `в ${ruNounPhrase(placeN)}`,
+        placeN.id === 'n-casa' ? '' : ruArticleHint(placeN, detP, 'sg', ruHintCaseFor('en')),
+      )
       return kind === 'neg'
         ? capitalize(`${loc} нет ${ruGenitive(thingN)}`)
-        : capitalize(`${loc} есть ${ruNounPhrase(thingN)}`)
+        : capitalize(`${loc} есть ${npRu(fill, 's', { articleHint: true })}`)
     },
   },
 
@@ -733,10 +798,20 @@ export const TEMPLATES: Template[] = [
         if (kind === 'yesno') return `У ${p.pronoun?.ruGen} есть ${npNom}?`
         return `У ${p.pronoun?.ruGen} есть ${npNom}`
       }
-      const np = npRuAcc(fill, 'o')
-      const core = `${capitalize(ruPron(p))} ${ruVerbP(v, p)} ${np}`
-      if (kind === 'neg') return `${capitalize(ruPron(p))} не ${ruVerbP(v, p)} ${np}`
-      return kind === 'yesno' ? `${capitalize(ruPron(p))} ${ruVerbP(v, p)} ${np}?` : core
+      // necesitar → «Мне нужна машина» (не «Я нуждаюсь машина»)
+      if (v.id === 'v-necesitar') {
+        const det = fill['o#det'] as Word | null
+        const noun = fill['o#noun'] as Word
+        const need = ruNecesoForm(noun, npNumber(fill, 'o'), !!det?.det?.quantity)
+        const np = npRu(fill, 'o', { articleHint: true })
+        const dat = capitalize(p.pronoun?.ruDat ?? '')
+        if (kind === 'neg') return `${dat} не ${need} ${np}`
+        return kind === 'yesno' ? `${dat} ${need} ${np}?` : `${dat} ${need} ${np}`
+      }
+      const np = ruObjNP(v, npRuAcc(fill, 'o', true))
+      const core = `${capitalize(ruPron(p))} ${ruVerbObjP(v, p)} ${np}`
+      if (kind === 'neg') return `${capitalize(ruPron(p))} не ${ruVerbObjP(v, p)} ${np}`
+      return kind === 'yesno' ? `${capitalize(ruPron(p))} ${ruVerbObjP(v, p)} ${np}?` : core
     },
   },
   {
@@ -761,7 +836,6 @@ export const TEMPLATES: Template[] = [
     ru: (fill, kind) => {
       const p = fill.s as Word
       const v = fill.v as Word
-      const np = npRuAcc(fill, 'o')
       if (v.id === 'v-tener') {
         const det = fill['o#det'] as Word | null
         const adj = fill['o#adj'] as Word | null
@@ -772,9 +846,20 @@ export const TEMPLATES: Template[] = [
         if (kind === 'yesno') return `У ${p.pronoun?.ruGen} есть ${npNom}?`
         return `У ${p.pronoun?.ruGen} есть ${npNom}`
       }
-      if (kind === 'neg') return `${capitalize(ruPron(p))} не ${ruVerbP(v, p)} ${np}`
-      if (kind === 'yesno') return `${capitalize(ruPron(p))} ${ruVerbP(v, p)} ${np}?`
-      return `${capitalize(ruPron(p))} ${ruVerbP(v, p)} ${np}`
+      // necesitar → «Мне нужна маленькая кровать»
+      if (v.id === 'v-necesitar') {
+        const det = fill['o#det'] as Word | null
+        const noun = fill['o#noun'] as Word
+        const need = ruNecesoForm(noun, npNumber(fill, 'o'), !!det?.det?.quantity)
+        const np = npRu(fill, 'o', { articleHint: true })
+        const dat = capitalize(p.pronoun?.ruDat ?? '')
+        if (kind === 'neg') return `${dat} не ${need} ${np}`
+        return kind === 'yesno' ? `${dat} ${need} ${np}?` : `${dat} ${need} ${np}`
+      }
+      const np = ruObjNP(v, npRuAcc(fill, 'o', true))
+      if (kind === 'neg') return `${capitalize(ruPron(p))} не ${ruVerbObjP(v, p)} ${np}`
+      if (kind === 'yesno') return `${capitalize(ruPron(p))} ${ruVerbObjP(v, p)} ${np}?`
+      return `${capitalize(ruPron(p))} ${ruVerbObjP(v, p)} ${np}`
     },
   },
   {
@@ -808,8 +893,12 @@ export const TEMPLATES: Template[] = [
       const p = fill.s as Word
       const v = fill.v as Word
       const noun = fill['o#noun'] as Word
+      const detO = fill['o#det'] as Word | null
       const ruCaseKey = PERSON_VERB_RU_CASE[v.id] ?? 'a'
-      const ruNoun = noun.ruCases?.[ruCaseKey] ?? ruAccusative(noun)
+      // подсказка артикля: «Veo a una maestra» → «вижу (какую-то) учительницу»
+      const hint = ruArticleHint(noun, detO, 'sg', ruHintCaseFor(ruCaseKey))
+      const caseForm = noun.ruCases?.[ruCaseKey] ?? ruAccusative(noun)
+      const ruNoun = hint ? `${hint.trim()} ${caseForm}` : caseForm
       const ruCore = `${capitalize(ruPron(p))} ${ruVerbP(v, p)} ${ruNoun}`
       if (kind === 'neg') return `${capitalize(ruPron(p))} не ${ruVerbP(v, p)} ${ruNoun}`
       return kind === 'yesno' ? `${ruCore}?` : ruCore
@@ -851,9 +940,9 @@ export const TEMPLATES: Template[] = [
       const lang = fill['o#noun'] as Word
       // hablar/saber → «по-испански», aprender/estudiar → «испанский»
       const langRu = v.id === 'v-hablar' || v.id === 'v-saber' ? ruLanguageAdverb(lang) : ruAccusative(lang)
-      if (kind === 'neg') return `${capitalize(ruPron(p))} не ${ruVerbP(v, p)} ${langRu}`
-      if (kind === 'yesno') return `${capitalize(ruPron(p))} ${ruVerbP(v, p)} ${langRu}?`
-      return `${capitalize(ruPron(p))} ${ruVerbP(v, p)} ${langRu}`
+      if (kind === 'neg') return `${capitalize(ruPron(p))} не ${ruVerbObjP(v, p)} ${langRu}`
+      if (kind === 'yesno') return `${capitalize(ruPron(p))} ${ruVerbObjP(v, p)} ${langRu}?`
+      return `${capitalize(ruPron(p))} ${ruVerbObjP(v, p)} ${langRu}`
     },
   },
   {
@@ -875,7 +964,9 @@ export const TEMPLATES: Template[] = [
     ru: (fill) => {
       const p = fill.s as Word
       const v = fill.v as Word
-      return `${capitalize(ruPron(p))} ничего не ${ruVerbP(v, p)}`
+      // necesitar: «No necesito nada» → «Мне ничего не нужно»
+      if (v.id === 'v-necesitar') return `${capitalize(p.pronoun?.ruDat ?? '')} ничего не нужно`
+      return `${capitalize(ruPron(p))} ничего не ${ruVerbObjP(v, p)}`
     },
   },
 
@@ -889,7 +980,9 @@ export const TEMPLATES: Template[] = [
     requires: [],
     units: [
       { kind: 'np', role: 's', nouns: PERSON_NOUNS, number: 'any', detSet: 'subject', bareAuto: false, withAdj: false },
-      { kind: 'verbObj', verbRole: 'v', verbs: TRANSITIVE_VERBS, nounRole: 'o', nouns: THING_NOUNS, number: 'sg', detSet: 'object', bareAuto: true, withAdj: false },
+      // necesitar исключён: дательного падежа подлежащего во мн.ч. нет
+      // («Дочкам нужна вода» не собрать — «Дочери нужна вода» не восстановить)
+      { kind: 'verbObj', verbRole: 'v', verbs: TRANSITIVE_VERBS.filter((x) => x.id !== 'v-necesitar'), nounRole: 'o', nouns: THING_NOUNS, number: 'sg', detSet: 'object', bareAuto: true, withAdj: false },
     ],
     variants: ['aff', 'neg', 'yesno'],
     render: (fill, kind) => {
@@ -902,11 +995,11 @@ export const TEMPLATES: Template[] = [
       return capitalize(`${np} ${verb} ${npO}`)
     },
     ru: (fill, kind) => {
-      const np = npRu(fill, 's')
+      const np = npRu(fill, 's', { articleHint: true })
       const v = fill.v as Word
       const subj = fill['s#noun'] as Word
-      const ruForm = npNumber(fill, 's') === 'pl' ? ruVerbI(v, 5) : ruVerbI(v, 2)
-      const npO = npRuAcc(fill, 'o')
+      const ruForm = npNumber(fill, 's') === 'pl' ? ruVerbObjI(v, 5) : ruVerbObjI(v, 2)
+      const npO = ruObjNP(v, npRuAcc(fill, 'o', true))
       if (v.id === 'v-tener') {
         const det = fill['o#det'] as Word | null
         const noun = fill['o#noun'] as Word
@@ -927,7 +1020,8 @@ export const TEMPLATES: Template[] = [
     requires: [],
     units: [
       { kind: 'np', role: 's', nouns: PERSON_NOUNS, number: 'sg', detSet: 'subject', bareAuto: false, withAdj: false },
-      { kind: 'verbObj', verbRole: 'v', verbs: TRANSITIVE_VERBS, nounRole: 'o', nouns: THING_NOUNS, number: 'sg', detSet: 'object', bareAuto: true, withAdj: true },
+      // necesitar исключён — как в t-noun-v-do (нет дат. падежа подлежащего)
+      { kind: 'verbObj', verbRole: 'v', verbs: TRANSITIVE_VERBS.filter((x) => x.id !== 'v-necesitar'), nounRole: 'o', nouns: THING_NOUNS, number: 'sg', detSet: 'object', bareAuto: true, withAdj: true },
     ],
     variants: ['aff', 'neg', 'yesno'],
     render: (fill, kind) => {
@@ -940,10 +1034,10 @@ export const TEMPLATES: Template[] = [
       return capitalize(`${np} ${verb} ${npO}`)
     },
     ru: (fill, kind) => {
-      const np = npRu(fill, 's')
+      const np = npRu(fill, 's', { articleHint: true })
       const v = fill.v as Word
-      const npO = npRuAcc(fill, 'o')
-      const ruForm = ruVerbI(v, 2)
+      const npO = ruObjNP(v, npRuAcc(fill, 'o', true))
+      const ruForm = ruVerbObjI(v, 2)
       if (v.id === 'v-tener') {
         const subj = fill['s#noun'] as Word
         const det = fill['o#det'] as Word | null
@@ -982,11 +1076,14 @@ export const TEMPLATES: Template[] = [
       return capitalize(`${np} ${verb} ${npO}`)
     },
     ru: (fill, kind) => {
-      const np = npRu(fill, 's')
+      const np = npRu(fill, 's', { articleHint: true })
       const v = fill.v as Word
       const noun = fill['o#noun'] as Word
+      const detO = fill['o#det'] as Word | null
       const ruCaseKey = PERSON_VERB_RU_CASE[v.id] ?? 'a'
-      const ruNoun = noun.ruCases?.[ruCaseKey] ?? ruAccusative(noun)
+      const hint = ruArticleHint(noun, detO, 'sg', ruHintCaseFor(ruCaseKey))
+      const caseForm = noun.ruCases?.[ruCaseKey] ?? ruAccusative(noun)
+      const ruNoun = hint ? `${hint.trim()} ${caseForm}` : caseForm
       const ruForm = ruVerbI(v, 2)
       if (kind === 'neg') return `${capitalize(np)} не ${ruForm} ${ruNoun}`
       if (kind === 'yesno') return `${capitalize(np)} ${ruForm} ${ruNoun}?`
@@ -1025,9 +1122,14 @@ export const TEMPLATES: Template[] = [
       const v = fill.v as Word
       const prep = fill.prep as Word
       const noun = fill['o#noun'] as Word
-      // Русская падежная форма по предлогу (с учётом pensar en → «о»)
+      const detO = fill['o#det'] as Word | null
+      // Русская падежная форма по предлогу (с учётом pensar en → «о»);
+      // «en una escuela» → «в (какой-то) школе»
       const ruKey = verbPrepRuKey(v.id, prep.id)
-      const ruNoun = noun.ruCases?.[ruKey as import('../types').RuCaseKey] ?? `? ${noun.ru[0] ?? noun.es}`
+      const ruNoun = ruLocWithHint(
+        noun.ruCases?.[ruKey as import('../types').RuCaseKey] ?? `? ${noun.ru[0] ?? noun.es}`,
+        ruArticleHint(noun, detO, 'sg', ruHintCaseFor(ruKey)),
+      )
       // estar → без глагола: «Я в школе»
       if (v.id === 'v-estar') {
         if (kind === 'neg') return `${capitalize(ruPron(p))} не ${ruNoun}`
@@ -1118,7 +1220,8 @@ export const TEMPLATES: Template[] = [
     requires: ['v-ir', 'cstr-ir-a'],
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
-      { kind: 'free', role: 'v2', words: CONJUGATED_VERBS },
+      // «буду изучать», но не «буду нуждаться» (без дополнения не звучит)
+      { kind: 'free', role: 'v2', words: CONJUGATED_VERBS.filter((v) => v.id !== 'v-necesitar') },
     ],
     variants: ['aff', 'neg', 'yesno'],
     render: (fill, kind) => {
@@ -1145,7 +1248,7 @@ export const TEMPLATES: Template[] = [
     lesson: 26,
     group: 'модальные глаголы',
     requires: ['cstr-hay-que'],
-    units: [{ kind: 'free', role: 'v2', words: CONJUGATED_VERBS }],
+    units: [{ kind: 'free', role: 'v2', words: CONJUGATED_VERBS.filter((v) => v.id !== 'v-necesitar') }],
     variants: ['aff', 'neg'],
     render: (fill, kind) => {
       const v2 = fill.v2 as Word
@@ -1455,9 +1558,10 @@ export const TEMPLATES: Template[] = [
     ru: (fill, kind) => {
       const p = fill.s as Word
       const v = fill.v as Word
-      const np = npRuAcc(fill, 'o')
-      // estar + герундий ≈ русское настоящее: «Я (сейчас) ем хлеб»
-      const form = ruVerbP(v, p)
+      const np = ruObjNP(v, npRuAcc(fill, 'o', true))
+      // estar + герундий ≈ русское настоящее: «Я (сейчас) ем хлеб»;
+      // estudiar — «изучаю»: «Я сейчас изучаю слово» (не «учусь слово»)
+      const form = ruVerbObjP(v, p)
       if (kind === 'neg') return `${capitalize(ruPron(p))} не ${form} ${np}`
       if (kind === 'yesno') return `${capitalize(ruPron(p))} ${form} ${np}?`
       return `${capitalize(ruPron(p))} ${form} ${np}`
@@ -1492,7 +1596,8 @@ export const TEMPLATES: Template[] = [
   // ==========================================================
   // ВОПРОСЫ С ВОПРОСИТЕЛЬНЫМИ СЛОВАМИ
   // ==========================================================
-  qwTemplate('t-qw-que', 'qw-que', 'что', TRANSITIVE_VERBS),
+  // pagar исключён: «¿Qué pagas?» без дополнения не звучит
+  qwTemplate('t-qw-que', 'qw-que', 'что', TRANSITIVE_VERBS.filter((v) => v.id !== 'v-pagar')),
   qwTemplate('t-qw-donde', 'qw-donde', 'где', PLACE_ADV_VERBS),
   qwTemplate('t-qw-cuando', 'qw-cuando', 'когда', PRONOUN_CONJ_VERBS),
   qwTemplate('t-qw-porque', 'qw-por-que', 'почему', PRONOUN_CONJ_VERBS),
@@ -1560,7 +1665,9 @@ export const TEMPLATES: Template[] = [
       const g = noun.ruGender ?? 'm'
       // plural-only русские переводы: «Какие деньги?», «Какие часы?»
       const num = noun.ruPluralOnly ? 'pl' : 'sg'
-      const q = ruAdjForm('какой', g, num)
+      // «¿Cuál es el carro?» — выбор из конкретных предметов: «Которая машина?»;
+      // для абстрактного («¿Cuál es la respuesta?») — «Какой ответ?»
+      const q = ruAdjForm(noun.nounClass === 'abstract' ? 'какой' : 'который', g, num)
       return capitalize(`${q} ${npRu(fill, 'o')}?`)
     },
   },
@@ -1608,7 +1715,7 @@ function ioDoTemplate(id: string, verbId: string): Template {
       const io = fill.io as Word
       const v = fill.v as Word
       const subj = ioSubjectFor(io)
-      const np = npRuAcc(fill, 'o')
+      const np = npRuAcc(fill, 'o', true)
       const verbRu = ruVerbI(v, subj.ruIdx)
       const ioRu = io.ru[0] ?? ''
       // Вопрос с подразумеваемым «я» — предложение действия: «Дать ему книгу?»
@@ -1664,7 +1771,11 @@ function qwTemplate(id: string, qwId: string, ruQw: string, verbs: Word[]): Temp
       const v = fill.v as Word
       // estar → «Где ты?» (в русском без глагола)
       if (v.id === 'v-estar') return `${capitalize(ruQw)} ты?`
-      return `${capitalize(ruQw)} ты ${ruVerbI(v, 1)}?`
+      // necesitar → «Что тебе нужно?» (не «Что ты нуждаешься?»)
+      if (v.id === 'v-necesitar') return `${capitalize(ruQw)} тебе нужно?`
+      // «¿Qué estudias?» — вопрос про дополнение: «Что ты изучаешь?»
+      const form = qwId === 'qw-que' ? ruVerbObjI(v, 1) : ruVerbI(v, 1)
+      return `${capitalize(ruQw)} ты ${form}?`
     },
   }
 }

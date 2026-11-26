@@ -119,10 +119,12 @@ export function ruGenitive(noun: Word): string {
   return baseWord + 'а'
 }
 
-/** К, Г, Х, Ж, Ш, Щ, Ч — окончания «и» вместо «ы» */
+/** К, Г, Х, Ж, Ш, Щ, Ч — окончания «и» вместо «ы».
+ *  Ц не входит: после «ц» в окончаниях пишется «ы»
+ *  (учительницы, улицы — не «учительници», «улици»; жалоба пользователя) */
 function isHardConsK(stem: string): boolean {
   const last = stem.slice(-1)
-  return 'кгхжшщчц'.includes(last)
+  return 'кгхжшщч'.includes(last)
 }
 
 /**

@@ -1130,13 +1130,16 @@ export function npEs(fill: Fill, role: string): string {
   })
 }
 
-/** Русская именная группа по заполнению np-юнита */
-export function npRu(fill: Fill, role: string): string {
+/** Русская именная группа по заполнению np-юнита.
+ *  opts.articleHint — подсказка артикля в промпте: «(какой-то) маленький хлеб»
+ *  (el/la → «конкретный», un/una → «какой-то» — жалобa: промпт не отличает
+ *  «El maestro quiere un pan pequeño» от «Un maestro quiere el pan pequeño») */
+export function npRu(fill: Fill, role: string, opts: { articleHint?: boolean } = {}): string {
   const noun = fill[`${role}#noun`] as Word
   const det = fill[`${role}#det`] as Word | null
   const adj = fill[`${role}#adj`] as Word | null
   const num = (fill[`${role}#num`] as GramNumber) ?? 'sg'
-  return ruNounPhrase(noun, { number: num, det: det ?? undefined, adj: adj ?? undefined })
+  return ruNounPhrase(noun, { number: num, det: det ?? undefined, adj: adj ?? undefined, hint: opts.articleHint })
 }
 
 /** Число np-юнита из заполнения */

@@ -45,10 +45,10 @@ for f in glob.glob('.qa-tmp/qa-phrases-*.txt'):
     except Exception:
         pass
 all_text = '\n'.join(texts)
-bad = re.compile(r'большые|плохые|какие |дорогие \(|молоки|una? (leche|azúcar|sal|arroz|comida|agua)|leches|azúcares|arroces|чёрный фильм|чёрное фото|— дорогой|— очень')
+bad = re.compile(r'большые|плохые|какие |дорогие \(|молоки|una? (leche|azúcar|sal|arroz|comida|agua)|leches|azúcares|arroces|чёрный фильм|чёрное фото|— дорогой|— очень|учительници|улици|нужда(?:юсь|ешься|ется|емся|етесь|утся) [а-яё]|уч(?:ится|атся|усь|ишься) [а-яё]+(?:ый|ого|ому|ым|ом) язык|(?:пла(?:чу|тишь|тит|тим|тите|тят)) (?!за)[а-яё]|— семья|не семья|маленьк[а-яе]+ (соль|мясо)|(горяч|холодн)[а-яе]+ окно|^\s*Какая машина\?')
 hits = sorted(set(bad.findall(all_text)) | {m.group(0) for m in bad.finditer(all_text)})
 print('ЗАПРЕЩЁННОЕ:', hits if hits else 'чисто')
-good = [s for s in ['Te doy leche', 'Te doy la leche', 'Молоко — дорогое', 'большие', 'плохие'] if s in all_text]
+good = [s for s in ['Te doy leche', 'Te doy la leche', 'большие', 'плохие', '(какой-то)', '(Конкретный)', 'учительницы', 'платят за', 'Что тебе нужно', 'Которая машина'] if s in all_text]
 print('ПОЗИТИВНЫЕ ПРИМЕРЫ:', good)
 es_lines = [l for l in all_text.split('\n') if re.match(r'^[¿?]?[A-ZÁÉÍÓÚÑa-záéíóúñ]', l) and not l.startswith(('¡Vamos','RU','ES'))]
 print('всего испанских строк видно:', len(es_lines))

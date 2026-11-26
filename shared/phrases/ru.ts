@@ -103,13 +103,16 @@ export function ruNounForm(noun: Word, number: GramNumber): string {
 }
 
 /**
- * Русская именная группа: [определитель] [прилагательное] [существительное].
+ * Русская именная группа: [подсказка артикля] [определитель] [прилагательное] [существительное].
  * Артикли в русском переводе не передаются (у русского нет артиклей).
  * «много/мало» требуют родительного падежа: много работы.
+ * opts.hint — подсказка в скобках на месте артикля: «(какой-то) маленький хлеб»
+ * (el/la → «конкретный», un/una → «какой-то») — иначе промпт «Учитель хочет
+ * маленький хлеб» отвечает и «El maestro…», и «Un maestro…» (жалоба пользователя).
  */
 export function ruNounPhrase(
   noun: Word,
-  opts: { number?: GramNumber; det?: Word; adj?: Word } = {},
+  opts: { number?: GramNumber; det?: Word; adj?: Word; hint?: boolean } = {},
 ): string {
   const number = opts.number ?? 'sg'
   const { gender, number: ruNum } = ruAgreement(noun, number)
@@ -118,6 +121,13 @@ export function ruNounPhrase(
   const det = opts.det
   const isQuantity = !!det?.det?.quantity
   const isArticle = !!det?.det?.definite || !!det?.det?.indefinite
+
+  if (opts.hint) {
+    const hint = ruArticleHint(noun, det, number)
+    // hint с ведущим пробелом — для вставки внутрь «в (какой-то) школе»;
+    // здесь parts.join(' ') сам ставит пробел — обрезаем
+    if (hint) parts.push(hint.trim())
+  }
 
   if (det && !isArticle) {
     parts.push(ruDetForm(det, gender, ruNum))
@@ -147,6 +157,73 @@ export function ruAdjForNoun(noun: Word, adj: Word, number: GramNumber = 'sg'): 
 /** Форма глагола «нравиться» в русском: нравится / нравятся */
 export function ruGustarForm(noun: Word, number: GramNumber): string {
   return number === 'pl' ? 'нравятся' : 'нравится'
+}
+
+// ============================================================
+// Подсказка артикля в русском промпте
+// ============================================================
+// Русский не передаёт el/un — один и тот же промпт «Учитель хочет маленький
+// хлеб» отвечает и «El maestro quiere un pan pequeño», и «Un maestro quiere
+// el pan pequeño» (жалоба пользователя). На месте артикля ставим подсказку:
+// el/la → «(конкретный)», un/una → «(какой-то)». Форма согласуется с
+// существительным и падежом: «вижу (какую-то) учительницу».
+
+type HintCase = 'nom' | 'acc' | 'gen' | 'dat' | 'instr' | 'prep'
+
+const HINT_DEF: Record<'m' | 'f' | 'n' | 'pl', Record<HintCase, string>> = {
+  m: { nom: 'конкретный', acc: 'конкретный', gen: 'конкретного', dat: 'конкретному', instr: 'конкретным', prep: 'конкретном' },
+  f: { nom: 'конкретная', acc: 'конкретную', gen: 'конкретной', dat: 'конкретной', instr: 'конкретной', prep: 'конкретной' },
+  n: { nom: 'конкретное', acc: 'конкретное', gen: 'конкретного', dat: 'конкретному', instr: 'конкретным', prep: 'конкретном' },
+  pl: { nom: 'конкретные', acc: 'конкретные', gen: 'конкретных', dat: 'конкретным', instr: 'конкретными', prep: 'конкретных' },
+}
+
+const HINT_INDEF: Record<'m' | 'f' | 'n' | 'pl', Record<HintCase, string>> = {
+  m: { nom: 'какой-то', acc: 'какой-то', gen: 'какого-то', dat: 'какому-то', instr: 'каким-то', prep: 'каком-то' },
+  f: { nom: 'какая-то', acc: 'какую-то', gen: 'какой-то', dat: 'какой-то', instr: 'какой-то', prep: 'какой-то' },
+  n: { nom: 'какое-то', acc: 'какое-то', gen: 'какого-то', dat: 'какому-то', instr: 'каким-то', prep: 'каком-то' },
+  pl: { nom: 'какие-то', acc: 'какие-то', gen: 'каких-то', dat: 'каким-то', instr: 'какими-то', prep: 'каких-то' },
+}
+
+/**
+ * Подсказка артикля: el/la → «(конкретный)», un/una → «(какой-то)».
+ * Возвращает строку с ведущим пробелом или '' — не артикль (мой/этот/
+ * много видны в переводе сами). caseForm — падежный ключ русской фразы.
+ */
+export function ruArticleHint(
+  noun: Word,
+  det: Word | null | undefined,
+  number: GramNumber,
+  caseForm: HintCase = 'nom',
+): string {
+  if (!det?.det) return ''
+  const isDef = !!det.det.definite
+  if (!isDef && !det.det.indefinite) return ''
+  const key = noun.ruPluralOnly || number === 'pl' ? 'pl' : (noun.ruGender ?? 'm')
+  const table = isDef ? HINT_DEF : HINT_INDEF
+  return ` (${table[key][caseForm]})`
+}
+
+/** Ключ падежа русской падежной аннотации → падеж подсказки артикля */
+export function ruHintCaseFor(caseKey: string): HintCase {
+  switch (caseKey) {
+    case 'a': return 'acc'
+    case 'de': case 'desde': case 'hasta': case 'sin': case 'para': return 'gen'
+    case 'dat': return 'dat'
+    case 'con': return 'instr'
+    case 'en': case 'sobre': return 'prep'
+    default: return 'nom'
+  }
+}
+
+/**
+ * Вставить подсказку в русскую падежную форму с предлогом:
+ * «в школе» + « (какая-то)» → «в (какая-то) школе».
+ */
+export function ruLocWithHint(loc: string, hint: string): string {
+  if (!hint) return loc
+  const i = loc.indexOf(' ')
+  if (i < 0) return loc + hint
+  return loc.slice(0, i) + hint + ' ' + loc.slice(i + 1)
 }
 
 /** Заглавная первая буква (для начала русского предложения) */
