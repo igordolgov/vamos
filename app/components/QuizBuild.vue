@@ -21,13 +21,17 @@
 // ============================================================
 import { computed, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
+import { speakEs } from '~/composables/useSpeech'
 import type { WordTip } from '#shared/data/word-tips'
 import { targetedHint } from '#shared/phrases/diff-hint'
 import { splitRuPrompt } from '#shared/phrases/ru'
+import type { PartOfSpeech } from '#shared/types'
 
 const props = defineProps<{
   tiles: string[]
   answerTiles: string[]
+  /** Роль каждой плитки (строка → часть речи): цвет плитки — по роли */
+  tileWords?: Record<string, PartOfSpeech>
   hint: string
   /** Поэтапный режим: stages[k] — кандидаты для k-го слова ответа.
    *  Пусто/не задано — обычный режим, весь пул сразу */
@@ -69,12 +73,34 @@ const currentStage = computed(() => props.stages?.[stagePicked.value.length] ?? 
  *  слова не перепрыгивают */
 const TILE = 'btn normal-case h-10 px-3 leading-none text-base sm:text-lg'
 
+// ============================================================
+// Цветовое кодирование: плитка окрашена по РОЛИ слова —
+// глагол красный, существительное синее, предлог/артикль серый,
+// местоимение янтарное, наречие зелёное (.word-tile--* в main.css).
+// Так фраза учит структуре: кто? → что делает? → что/где.
+// ============================================================
+const POS_COLOR: Partial<Record<PartOfSpeech, string>> = {
+  verb: 'verb',
+  noun: 'noun',
+  preposition: 'prep',
+  determiner: 'prep',
+  pronoun: 'pronoun',
+  adverb: 'adverb',
+}
+
+/** Цветовой класс плитки по её роли (или '' — базовая) */
+function posClass(tile: string): string {
+  const pos = props.tileWords?.[tile.toLowerCase()]
+  const color = pos ? POS_COLOR[pos] : undefined
+  return color ? `word-tile--${color}` : ''
+}
+
 /** Класс плитки ПУЛА: после проверки весь пул невидим (место держится
  *  за фидбек); в обычном режиме выбранная плитка тоже невидима — пустое
  *  место её размера. В поэтапном режиме выбранные плитки пул не
  *  покидают: шаг сменился — весь набор сменился, прятать нечего */
-function poolTileClass(i: number): string {
-  const base = `${TILE} btn-outline`
+function poolTileClass(i: number, tile?: string): string {
+  const base = `${TILE} btn-outline word-tile ${posClass(tile ?? props.tiles[i] ?? '')}`
   if (staged.value) {
     return revealed.value ? `${base} invisible pointer-events-none` : base
   }
@@ -209,14 +235,20 @@ const builtWords = computed<string[]>(() =>
 const built = computed(() => builtWords.value.join(' '))
 
 /** Класс плитки в собранной фразе (та же пилюля): до проверки —
- *  обычная; после НЕверной проверки — подсветка позиций: зелёная
- *  плитка стоит на своём месте, красная — не на своём */
+ *  цвет по роли слова (глагол красный, сущ. синее…; без роли —
+ *  базовая btn-primary); после НЕверной проверки — подсветка позиций:
+ *  зелёная плитка стоит на своём месте, красная — не на своём */
 function builtClass(pos: number): string {
-  const base = TILE
-  if (!revealed.value) return `${base} btn-primary`
   const word = builtWords.value[pos] ?? ''
+  const base = `${TILE} word-tile`
+  if (!revealed.value) return `${base} ${posClass(word) || 'btn-primary'}`
   const expected = props.answerTiles[pos]?.toLowerCase()
   return `${base} ${word.toLowerCase() === expected ? 'btn-success' : 'btn-error'}`
+}
+
+/** Озвучить собранную фразу целиком — учим интонацию, а не только слова */
+function speakAnswer() {
+  void speakEs(props.answerTiles.join(' '))
 }
 
 /** Верно, если собран полный ответ без учёта регистра — точный или
@@ -324,7 +356,7 @@ const hintParts = computed(() => splitRuPrompt(props.hint ?? ''))
         button(
           v-for="(tile, i) in currentStage"
           :key="stagePicked.length + '-' + i"
-          :class="poolTileClass(i)"
+          :class="poolTileClass(i, tile)"
           :disabled="revealed"
           @click="pick(i)"
         )
@@ -339,6 +371,14 @@ const hintParts = computed(() => splitRuPrompt(props.hint ?? ''))
           template(v-else)
             p.text-base.font-semibold.text-error(class="sm:text-lg") ✗ {{ t('practice.answerWas') }}
             p.text-xl.font-bold.text-base-content(class="sm:text-2xl") {{ answerTiles.join(' ') }}
+
+    // «Послушать целиком»: после проверки — интонация целой фразы,
+    // а не отдельных слов (только ручной запуск — без автоозвучки).
+    // btn-ghost: не пересекается со селектором плиток пула (.btn-outline)
+    .w-full.flex.justify-center(v-if="revealed")
+      button.btn.btn-ghost.btn-sm.gap-1(@click="speakAnswer()" :aria-label="t('practice.listenAll')")
+        span(aria-hidden="true") 🔊
+        | {{ t('practice.listenAll') }}
 
     // Объяснение ошибки: сначала — целевая подсказка про конкретную
     // ошибку (🎯 артикль, le/les, предлог, форма глагола…), если она

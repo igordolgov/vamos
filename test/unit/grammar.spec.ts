@@ -245,12 +245,14 @@ describe('Русская морфология', () => {
     expect(ruDetForm(getWord('p-ese'), 'f', 'sg')).toBe('та')
   })
 
-  it('«Ellos hacen música barata» → «Они делают дешёвую музыку»', () => {
+  it('«Ellos hacen música barata» → «Они делают (вообще) дешёвую музыку»', () => {
     const t = TEMPLATES.find((x) => x.id === 't-pron-v-do-adj')!
     const known = new Set(['p-ellos', 'v-hacer', 'n-musica', 'a-barato'])
     const { phrases } = enumerateTemplate(t, known, 0, 100)
     const rus = phrases.map((p) => p.ru)
-    expect(rus).toContain('Они делают дешёвую музыку')
+    // hacer есть и в estar+герундии → маркер «(вообще)» отличает
+    // «hacen» от «están haciendo»
+    expect(rus).toContain('Они делают (вообще) дешёвую музыку')
     expect(rus.some((r) => /дешёвая музык/.test(r))).toBe(false)
   })
 

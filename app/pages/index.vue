@@ -13,10 +13,12 @@ import {
   progressByPos,
   progressByLessons,
   opportunities,
+  inProgressWords,
 } from '#shared/stats'
 import { currentStreak } from '#shared/streak'
 import { WORD_COUNT } from '#shared/data/words'
 import { LESSONS } from '#shared/data/lessons'
+import { phrasesWord, pluralRu } from '#shared/i18n/plural'
 import { ACHIEVEMENTS } from '#shared/achievements'
 import StatRing from '~/components/StatRing.vue'
 import StreakWidget from '~/components/StreakWidget.vue'
@@ -38,6 +40,15 @@ const streak = computed(() => currentStreak(progress.value))
 const answers = computed(() => progress.value.answers.correct)
 const posProgress = computed(() => progressByPos(progress.value))
 const opps = computed(() => opportunities(progress.value, 3))
+
+// «Ты уже можешь сказать N фраз» — динамически от выученных слов
+const phrasesYou = computed(() => phrases.value.known.toLocaleString('ru-RU'))
+const phrasesYouWord = computed(() => phrasesWord(phrases.value.known, locale.value))
+
+// «Повторить сегодня»: слова, начатые, но ещё не выученные —
+// их повторение закрывает хвосты уроков
+const reviewCount = computed(() => inProgressWords(progress.value).length)
+const reviewWord = computed(() => pluralRu(reviewCount.value, ['слово', 'слова', 'слов']))
 
 // Первый непройденный урок (кнопка «Продолжить учёбу»): первый урок,
 // где есть невыученные слова — а не всегда урок 1; если выучено всё,
@@ -64,10 +75,19 @@ section.hero.bg-base-100.rounded-2xl.shadow-sm.border.border-base-300.mb-2
       p.mt-1(class="text-base-content/60")
         | {{ t('dash.stats.wordsTotal', { n: WORD_COUNT }) }} ·
         | {{ t('dash.stats.phrasesTotal', { n: phrases.total.toLocaleString('ru-RU') }) }}
+      // Личный счётчик: сколько фраз ТЫ уже можешь сказать от выученных слов
+      p(class="mt-0.5 font-semibold text-secondary")
+        | {{ t('dash.stats.phrasesYou', { n: phrasesYou, w: phrasesYouWord }) }}
       NuxtLink.btn.btn-primary.mt-1.btn-sm(class="lg:btn-md" :to="`/lessons/${nextLesson.number}`") {{ t('dash.continue') }}
 
     .flex.gap-3.mt-2(class="lg:mt-0")
       StreakWidget(:streak="streak")
+
+// Повторение: слова «в процессе» — карточка только когда есть что повторять
+NuxtLink.card.bg-base-100.shadow-sm.border.border-base-300.mb-2.block(to="/practice" v-if="reviewCount > 0")
+  .card-body(class="p-3 sm:p-4 flex-row items-center justify-between gap-2")
+    h2.card-title.text-base 📌 {{ t('dash.review', { n: reviewCount, w: reviewWord }) }}
+    span.btn.btn-primary.btn-sm {{ t('dash.reviewStart') }}
 
 // Статистика: кольца (на десктопе — все 11 в один ряд)
 section.card.bg-base-100.shadow-sm.border.border-base-300.mb-2

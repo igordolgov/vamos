@@ -132,4 +132,35 @@ export const CONSTRUCTIONS: Word[] = [
     pattern: 'gerund',
     ru: 'estar + герундий: Estoy comiendo — Я (сейчас) ем',
   }),
+  // --- Спасательные фразы (готовые «скажите так», без грамматических терминов) ---
+  cstr('cstr-dame', 'dame', ['дай'], 33, {
+    pattern: 'fixed',
+    ru: 'Попроси нужное: Dame el teléfono — Дай телефон',
+    fixedEs: 'Dame el teléfono, por favor',
+    fixedRu: 'Дай телефон, пожалуйста',
+  }),
+  cstr('cstr-dime', 'dime', ['скажи'], 33, {
+    pattern: 'fixed',
+    ru: 'Попроси сказать: Dime la verdad — Скажи правду',
+    fixedEs: 'Dime la verdad',
+    fixedRu: 'Скажи правду',
+  }),
+  cstr('cstr-mira', 'mira', ['посмотри'], 33, {
+    pattern: 'fixed',
+    ru: 'Направь внимание: Mira la ventana — Посмотри в окно',
+    fixedEs: 'Mira la ventana',
+    fixedRu: 'Посмотри в окно',
+  }),
+  cstr('cstr-oye', 'oye', ['послушай'], 33, {
+    pattern: 'fixed',
+    ru: 'Начни разговор: Oye, ¿qué pasa? — Послушай, что происходит?',
+    fixedEs: 'Oye, ¿qué pasa?',
+    fixedRu: 'Послушай, что происходит?',
+  }),
+  cstr('cstr-espera', 'espera', ['подожди'], 33, {
+    pattern: 'fixed',
+    ru: 'Останови момент: Espera aquí — Подожди здесь',
+    fixedEs: 'Espera aquí',
+    fixedRu: 'Подожди здесь',
+  }),
 ]

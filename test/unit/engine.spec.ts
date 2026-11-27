@@ -105,7 +105,7 @@ describe('Испанский рендеринг', () => {
     const { phrases } = enumerateTemplate(t('t-pron-v-person'), ALL, 0, 300)
     const withA = phrases.filter((p) => p.es.includes(' a '))
     expect(withA.length).toBeGreaterThan(0)
-    const verbPrep = enumerateTemplate(t('t-pron-v-prep-np'), ALL, 0, 3000).phrases
+    const verbPrep = enumerateTemplate(t('t-pron-v-prep-np'), ALL, 0, 30000).phrases
     expect(verbPrep.some((p) => p.es.includes(' al '))).toBe(true)
     expect(verbPrep.some((p) => p.es.includes(' del '))).toBe(true)
   })
@@ -143,7 +143,9 @@ describe('Русский рендеринг', () => {
   const t = (id: string) => TEMPLATES.find((x) => x.id === id)!
 
   it('tener: «У меня есть…» и родительный в отрицании', () => {
-    const { phrases } = enumerateTemplate(t('t-pron-tener-noun'), ALL, 0, 500)
+    // окно 2000: ось определителей разрослась (mi/este/tu/su/nuestro) —
+    // время/стол могли уйти за 500 первых фраз
+    const { phrases } = enumerateTemplate(t('t-pron-tener-noun'), ALL, 0, 2000)
     expect(phrases.some((p) => p.ru.startsWith('У меня есть'))).toBe(true)
     expect(phrases.some((p) => p.ru.startsWith('У меня нет '))).toBe(true)
     // винительный/родительный: «У меня нет стола», не «нет стол»
@@ -377,7 +379,7 @@ describe('Артикли: правила употребления', () => {
         if (kind !== 'neg') return
         const es = tpl.render(fill, kind)
         if (/no (tengo|tienes|tiene|tenemos|tienen)\b/.test(es)) negs.push({ es, ru: tpl.ru(fill, kind) })
-      }, { maxLeaves: 250_000 })
+      }, { maxLeaves: 3_000_000 })
       expect(negs.length, id).toBeGreaterThan(0)
       for (const { es, ru } of negs) {
         expect(es.toLowerCase(), `${id}: ${es} — ${ru}`).not.toMatch(/no (tengo|tienes|tiene|tenemos|tienen) (el|la|los|las|mucho|mucha|poco|poca)\b/)
@@ -386,9 +388,9 @@ describe('Артикли: правила употребления', () => {
     // «La hija no tiene tiempo» существует (дочь = подлежащее-существительное)
     const tpl = TEMPLATES.find((x) => x.id === 't-noun-v-do')!
     const esAll: string[] = []
-    walkFills(tpl, ALL, (fill, kind) => esAll.push(tpl.render(fill, kind)), { maxLeaves: 250_000 })
+    walkFills(tpl, ALL, (fill, kind) => esAll.push(tpl.render(fill, kind)), { maxLeaves: 3_000_000 })
     expect(esAll.some((es) => /la hija no tiene tiempo/i.test(es))).toBe(true)
-  })
+  }, 180_000)
 
   it('предлоги: голая форма только у sin/casa и «sobre + тема»', () => {
     const t = TEMPLATES.find((x) => x.id === 't-pron-v-prep-np')!

@@ -151,15 +151,16 @@ describe('мой/этот сами делают предмет известны�
     expect(ruArticleHint(w('n-libro'), null, 'sg')).toBe('')
   })
 
-  it('«Yo busco mi teléfono» → «Я ищу мой телефон» без «(…)»', () => {
+  it('«Yo busco mi teléfono» → «Я ищу (вообще) мой телефон» — без подсказки артикля', () => {
     const t = T('t-pron-v-do')
     const fill = {
       s: w('p-yo'), v: w('v-buscar'),
       'o#noun': w('n-telefono'), 'o#num': 'sg', 'o#det': w('p-mi'), 'o#adj': null,
     } as unknown as Fill
     expect(t.render(fill, 'aff')).toBe('Yo busco mi teléfono')
-    expect(t.ru(fill, 'aff')).toBe('Я ищу мой телефон')
-    expect(t.ru(fill, 'aff')).not.toMatch(/\(/)
+    // «(вообще)» — маркер простого времени (у buscar есть и форма
+    // «estar buscando»); ПОДСКАЗКИ артикля нет — «мой» виден в переводе
+    expect(t.ru(fill, 'aff')).toBe('Я ищу (вообще) мой телефон')
   })
 
   it('«Yo conozco a esta mujer» → «Я знаю эту женщину» без «(…)»', () => {
@@ -170,6 +171,7 @@ describe('мой/этот сами делают предмет известны�
     } as unknown as Fill
     expect(t.render(fill, 'aff')).toBe('Yo conozco a esta mujer')
     expect(t.ru(fill, 'aff')).toBe('Я знаю эту женщину')
+    // у conocer нет герундийной пары — маркера времени нет
     expect(t.ru(fill, 'aff')).not.toMatch(/\(/)
   })
 

@@ -162,4 +162,8 @@ export const LESSON_WORDS: string[][] = [
     'cstr-acabar-de', 'cstr-hace-tiempo', 'cstr-estar-gerundio',
     'n-espanol', 'n-ruso', 'n-ingles',
   ],
+  // 33. Спасательные фразы: попросить и остановить — dame, dime, mira, oye, espera
+  [
+    'cstr-dame', 'cstr-dime', 'cstr-mira', 'cstr-oye', 'cstr-espera',
+  ],
 ]

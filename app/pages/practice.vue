@@ -8,11 +8,13 @@
 import { computed, onMounted, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
 import { speakEs, unlockSpeech } from '~/composables/useSpeech'
-import { useProgress, applyAnswer, markAlreadyKnown } from '~/composables/useProgress'
+import { useProgress, applyAnswer, markAlreadyKnown, likeExercise, dislikeExercise } from '~/composables/useProgress'
 import { makeExercise, type Exercise, type ExerciseKind } from '#shared/practice'
 import { knownWordsCount } from '#shared/stats'
 import QuizChoice from '~/components/QuizChoice.vue'
 import QuizBuild from '~/components/QuizBuild.vue'
+import QuizActive from '~/components/QuizActive.vue'
+import MicCompare from '~/components/MicCompare.vue'
 import SessionResult from '~/components/SessionResult.vue'
 import SpeakButton from '~/components/SpeakButton.vue'
 
@@ -32,6 +34,10 @@ const mode = ref<'menu' | 'session' | 'result'>('menu')
 const kind = ref<ExerciseKind | 'mixed'>('choice')
 const current = ref<Exercise | null>(null)
 const index = ref(0)
+/** Монотонный счётчик упражнений: ключ компонента — каждое новое
+ *  упражнение перемонтируется с чистым состоянием (даже при пропуске
+ *  фразы через 👎, когда index не меняется) */
+const seq = ref(0)
 const correctCount = ref(0)
 const wrongCount = ref(0)
 const newWords = ref<Array<{ es: string; ru: string[] }>>([])
@@ -45,6 +51,33 @@ function pickKind(): ExerciseKind {
   if (kind.value !== 'mixed') return kind.value
   const types: ExerciseKind[] = ['choice', 'build', 'audio']
   return types[Math.floor(Math.random() * types.length)]
+}
+
+// ============================================================
+// «Нравится» / «Не нравится» — реакция на фразу в «Сборке фразы».
+// 👍 — фраза в личной коллекции и будет показываться чаще;
+// 👎 — фраза вообще больше не показывается (сразу к следующей).
+// Счётчики сессии при этом не трогаются — это не ответ.
+// ============================================================
+function likeCurrent() {
+  if (!current.value) return
+  const key = likeExercise(current.value)
+  if (key) {
+    const w = window as unknown as { __vamosToast?: (text: string, icon?: string) => void }
+    w.__vamosToast?.(t('practice.likeToast'), '❤️')
+  }
+}
+
+function dislikeCurrent() {
+  if (!current.value) return
+  const key = dislikeExercise(current.value)
+  if (key) {
+    const w = window as unknown as { __vamosToast?: (text: string, icon?: string) => void }
+    w.__vamosToast?.(t('practice.dislikeToast'), '🙈')
+    // скрытая фраза больше не нужна — сразу к следующей
+    lastSignature = null
+    nextExercise()
+  }
 }
 
 // Поэтапная сборка («Слова по шагам»): усложнённый режим — плитки
@@ -90,6 +123,7 @@ let lastSignature: string | null = null
 
 function exerciseSignature(ex: Exercise): string {
   if (ex.kind === 'build') return 'b:' + (ex.answerTiles ?? []).join(' ').toLowerCase()
+  if (ex.kind === 'active') return 'a:' + (ex.questionRu ?? '')
   return 'q:' + (ex.questionEs ?? '') + '|' + (ex.questionRu ?? '')
 }
 
@@ -105,6 +139,7 @@ function generateUnique(chosen: ExerciseKind): Exercise | null {
 
 function nextExercise() {
   lastCorrect.value = null
+  seq.value++
   const chosen = pickKind()
   current.value = generateUnique(chosen)
   // Страховка: если выбранный тип не собрался (например, в миксе попалась
@@ -196,12 +231,11 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
 
 // Меню выбора типа упражнения: клик по карточке сразу запускает
 // сессию. Стеклянные квадратные карточки (.glass-card в main.css):
-// на мобильном 2 колонки с квадратом 1:1, от sm — ряд из 4,
-// ширина ограничена (max-w-2xl), чтобы карточки оставались
-// соразмерными на широких экранах
+// на мобильном 2 колонки с квадратом 1:1, от sm — 3, от lg — 5,
+// ширина ограничена (max-w-3xl)
 div.mb-2(v-if="mode === 'menu'")
   h2.card-title.text-lg.mb-2(class="sm:text-xl") {{ t('practice.source') }}
-  .grid.grid-cols-2.w-full.max-w-2xl(class="gap-2.5 sm:gap-3 sm:grid-cols-4 mx-auto")
+  .grid.grid-cols-2.w-full.max-w-3xl(class="gap-2.5 sm:gap-3 sm:grid-cols-3 lg:grid-cols-5 mx-auto")
     button.glass-card.glass-card--success(type="button" @click="startWith('choice')")
       span.glass-card-icon(aria-hidden="true") ✅
       span.glass-card-label {{ t('practice.choice') }}
@@ -214,6 +248,9 @@ div.mb-2(v-if="mode === 'menu'")
     button.glass-card.glass-card--primary(type="button" @click="startWith('mixed')")
       span.glass-card-icon(aria-hidden="true") 🎲
       span.glass-card-label {{ t('practice.mixed') }}
+    button.glass-card(type="button" @click="startWith('active')")
+      span.glass-card-icon(aria-hidden="true") ⌨️
+      span.glass-card-label {{ t('practice.active') }}
 
   // Поэтапный режим «Сборки фразы»: усложнение по переключателю.
   // Плитки показываются не все сразу, а шаг за шагом — верное слово
@@ -231,25 +268,42 @@ div.mb-2(v-if="mode === 'menu'")
   @touchstart.passive="onTouchStart"
   @touchend.passive="onTouchEnd"
 )
-  // Одна строка: прогресс слева, «Уже выучил» в центре, счёт справа —
-  // экономит вертикальное место, чтобы сессия помещалась на один экран
-  // (учитывая верхнюю/нижнюю панели мобильного браузера)
+  // Одна строка: прогресс слева, реакция на фразу в центре, счёт справа —
+  // экономит вертикальное место, чтобы сессия помещалась на один экран.
+  // В «Сборке фразы» центр — две кнопки 👍/👎 (личная коллекция / скрыть),
+  // в остальных режимах — прежняя кнопка «Уже выучил» и счёт ✓/✗
   .flex.items-center.justify-between.mb-2(class="gap-1")
     p(class="text-sm text-base-content/60 shrink-0") {{ t('practice.progress', { n: index + 1, total: SESSION_LENGTH }) }}
-    button.btn.btn-md.border-primary(
-      class="h-7 min-h-0 text-base-content/50"
-      @click="markKnown()"
-    )
-      span.text-sm ✨
-      | {{ t('practice.alreadyKnown') }}
-    p.text-sm(class="shrink-0")
+    .flex.items-center.gap-1(v-if="current?.kind === 'build' && current.answerTiles")
+      button.btn.btn-md.border-success(
+        class="h-7 min-h-0"
+        :title="t('practice.like')"
+        :aria-label="t('practice.like')"
+        @click="likeCurrent()"
+      )
+        span 👍
+      button.btn.btn-md.border-error(
+        class="h-7 min-h-0"
+        :title="t('practice.dislike')"
+        :aria-label="t('practice.dislike')"
+        @click="dislikeCurrent()"
+      )
+        span 👎
+    template(v-else)
+      button.btn.btn-md.border-primary(
+        class="h-7 min-h-0 text-base-content/50"
+        @click="markKnown()"
+      )
+        span.text-sm ✨
+        | {{ t('practice.alreadyKnown') }}
+    p.text-sm(class="shrink-0" v-if="current?.kind !== 'build'")
       span(class="font-bold text-success") {{ correctCount }} ✓
       span(class="ml-2 font-bold text-error") {{ wrongCount }} ✗
 
   template(v-if="current")
     QuizChoice(
       v-if="current.kind === 'choice'"
-      :key="index"
+      :key="seq"
       :question-es="current.questionEs"
       :question-ru="current.questionRu"
       :options="current.options"
@@ -262,13 +316,26 @@ div.mb-2(v-if="mode === 'menu'")
 
     QuizBuild(
       v-else-if="current.kind === 'build'"
-      :key="index"
+      :key="seq"
       :tiles="current.tiles ?? []"
       :answer-tiles="current.answerTiles ?? []"
+      :tile-words="current.tileWords"
       :stages="current.stages"
       :alt-answers="current.altAnswers"
       :hint="current.hint ?? ''"
       :tip="current.tip"
+      @answered="onAnswered"
+      @next="goNext"
+    )
+
+    // Активный перевод (RU → ES): вспомнить слово и ввести
+    QuizActive(
+      v-else-if="current.kind === 'active'"
+      :key="seq"
+      :question-ru="current.questionRu ?? ''"
+      :type-answer="current.typeAnswer ?? ''"
+      :alt-type-answers="current.altTypeAnswers"
+      :explanation="current.explanation"
       @answered="onAnswered"
       @next="goNext"
     )
@@ -302,8 +369,11 @@ div.mb-2(v-if="mode === 'menu'")
               span.text-2xl.font-bold.text-primary {{ current.speak }}
               SpeakButton(:text="current.speak")
 
+          // Микрофон: записать себя и сравнить с эталоном
+          MicCompare(v-if="lastCorrect !== null && current.speak" :reference="current.speak")
+
       QuizChoice(
-        :key="'audio-' + index"
+        :key="'audio-' + seq"
         :options="current.options"
         :answer-index="current.answerIndex"
         :tip="current.tip"

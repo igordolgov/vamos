@@ -242,15 +242,81 @@ export function splitRuPrompt(prompt: string): RuPromptPart[] {
   return parts
 }
 
+// ============================================================
+// Определители-местоимения (мой/этот) в косвенных падежах.
+// Падежная форма с предлогом хранится готовой строкой
+// (noun.ruCases: «в школе», «с мамой»); «мой/этот» вставляются
+// внутрь неё согласуемой формой: «в моей школе», «с моей мамой».
+// ============================================================
+
+/** Русский падеж по ключу предлога (общий с подсказками артикля) */
+export type RuDetCase = 'acc' | 'gen' | 'dat' | 'instr' | 'prep'
+
 /**
- * Вставить подсказку в русскую падежную форму с предлогом:
- * «в школе» + « (какая-то)» → «в (какая-то) школе».
+ * Форма определителя-местоимения (мой/этот/наш…) в падеже.
+ * Возвращает '' — слово не определитель-местоимение или падежных
+ * форм нет (тогда вставка не делается — остаётся базовая строка).
+ * Одушевлённые (папа, мама): винительный м.р./мн.ч. — форма родительного
+ * («вижу МОЕГО папу», «вижу МОИХ родителей»); ж.р. — «мою» (accF).
  */
-export function ruLocWithHint(loc: string, hint: string): string {
-  if (!hint) return loc
-  const i = loc.indexOf(' ')
-  if (i < 0) return loc + hint
-  return loc.slice(0, i) + hint + ' ' + loc.slice(i + 1)
+export function ruDetCaseForm(
+  det: Word | null | undefined,
+  noun: Word,
+  ruKey: string,
+): string {
+  const role = det?.pronoun?.role
+  if (!det || (role !== 'possessive' && role !== 'demonstrative')) return ''
+  const key = ruHintCaseFor(ruKey) // 'a' → acc, 'de' → gen, 'con' → instr…
+  const cases = det.ruDetCases
+  const gender = noun.ruGender ?? 'm'
+  if (key === 'acc') {
+    const ru = det.ruDet
+    if (!ru) return ''
+    const animate = noun.nounClass === 'person' || noun.nounClass === 'family'
+    if (gender === 'f') return ru.accF
+    if (animate) return cases?.gen?.m ?? ru.m
+    return ru.m
+  }
+  const table = cases?.[key as 'gen']
+  if (!table) return ''
+  return gender === 'f' ? table.f : table.m
+}
+
+/** Предлог в начале падежной формы (в школе, с мамой) — вставляем
+ *  определитель сразу после него; без предлога («маме») — перед словом */
+const RU_PREP_RE = /^(в|во|на|с|со|без|для|о|об|обо|из|до|к|ко|у|по|от|при|про)\s+/
+
+/** Вставить форму определителя внутрь падежной формы с предлогом */
+function ruInsertDet(loc: string, form: string): string {
+  const m = loc.match(RU_PREP_RE)
+  if (m) return `${m[1]} ${form} ${loc.slice(m[0].length)}`
+  return `${form} ${loc}`
+}
+
+/**
+ * Русская падежная форма существительного с определителем:
+ * «в школе» + mi → «в моей школе»; артикль → подсказка
+ * «в (известной) школе»; без определителя — базовая строка.
+ * base — готовая падежная форма (noun.ruCases[ключ] или запасная).
+ */
+export function ruNounCaseWithDet(
+  noun: Word,
+  det: Word | null | undefined,
+  ruKey: string,
+  base: string,
+): string {
+  const role = det?.pronoun?.role
+  if (role === 'possessive' || role === 'demonstrative') {
+    const form = ruDetCaseForm(det, noun, ruKey)
+    // без падежных форм определитель в косвенном падеже не вставляем:
+    // «в школе» без «моей» лучше, чем «в мою школе»
+    return form ? ruInsertDet(base, form) : base
+  }
+  // артикль → подсказка на месте артикля: после предлога
+  // («в (какой-то) школе») или перед словом без предлога
+  // («вижу (какую-то) учительницу»)
+  const hint = ruArticleHint(noun, det, 'sg', ruHintCaseFor(ruKey))
+  return hint ? ruInsertDet(base, hint.trim()) : base
 }
 
 /** Заглавная первая буква (для начала русского предложения) */

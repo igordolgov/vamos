@@ -13,7 +13,7 @@
 import { computed, ref } from 'vue'
 import { emptyProgress, type Progress, type Word } from '#shared/types'
 import { evaluateAchievements, type Achievement } from '#shared/achievements'
-import { recordAnswer, starExercise, starWord, unstarWord } from '#shared/practice'
+import { recordAnswer, starExercise, starWord, unstarWord, likePhrase, hidePhrase } from '#shared/practice'
 import type { Exercise } from '#shared/practice'
 import { touchStreak } from '#shared/streak'
 import { authHeaders } from './useAuth'
@@ -95,6 +95,18 @@ export function mergeProgress(local: Progress, remote: Progress): Progress {
     if (!merged.starredPhrases) merged.starredPhrases = {}
     const l = merged.starredPhrases[key]
     if (l === undefined || at < l) merged.starredPhrases[key] = at
+  }
+  // Личная коллекция («нравится») и скрытые («не нравится»):
+  // объединяем, оставляя раннюю дату
+  for (const [key, at] of Object.entries(remote.likedPhrases ?? {})) {
+    if (!merged.likedPhrases) merged.likedPhrases = {}
+    const l = merged.likedPhrases[key]
+    if (l === undefined || at < l) merged.likedPhrases[key] = at
+  }
+  for (const [key, at] of Object.entries(remote.hiddenPhrases ?? {})) {
+    if (!merged.hiddenPhrases) merged.hiddenPhrases = {}
+    const l = merged.hiddenPhrases[key]
+    if (l === undefined || at < l) merged.hiddenPhrases[key] = at
   }
   // Счётчики ответов: берём максимум (консервативно, без двойного счёта)
   merged.answers.correct = Math.max(local.answers.correct, remote.answers.correct)
@@ -210,6 +222,37 @@ export function markAlreadyKnown(ex: Exercise): void {
   scheduleSync()
 }
 
+/**
+ * «Нравится»: добавить фразу упражнения в личную коллекцию.
+ * Возвращает ключ фразы (или null — не фразовое упражнение).
+ * Не меняет счётчики ответов и серию дней.
+ */
+export function likeExercise(ex: Exercise): string | null {
+  const next: Progress = JSON.parse(JSON.stringify(progressState.value))
+  const key = likePhrase(next, ex, Date.now())
+  if (!key) return null
+  next.updatedAt = Date.now()
+  progressState.value = next
+  lsSet(next)
+  scheduleSync()
+  return key
+}
+
+/**
+ * «Не нравится»: скрыть фразу упражнения из практики.
+ * Возвращает ключ фразы (или null). Счётчики не меняются.
+ */
+export function dislikeExercise(ex: Exercise): string | null {
+  const next: Progress = JSON.parse(JSON.stringify(progressState.value))
+  const key = hidePhrase(next, ex, Date.now())
+  if (!key) return null
+  next.updatedAt = Date.now()
+  progressState.value = next
+  lsSet(next)
+  scheduleSync()
+  return key
+}
+
 /** Сохранить настройки в прогресс (и синхронизировать) */
 export function setProgressSetting(
   key: 'locale' | 'theme' | 'fontSize' | 'stagedBuild',
@@ -273,6 +316,8 @@ export function useProgress() {
     flushSync,
     consumeToasts,
     setWordStar,
+    likeExercise,
+    dislikeExercise,
   }
 }
 

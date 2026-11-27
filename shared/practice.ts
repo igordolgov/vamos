@@ -93,7 +93,7 @@ function phraseTip(templateId: string): WordTip {
   return PHRASE_TIPS[templateId] ?? autoPhraseTip()
 }
 
-export type ExerciseKind = 'choice' | 'build' | 'audio'
+export type ExerciseKind = 'choice' | 'build' | 'audio' | 'active'
 
 /** Одно упражнение */
 export interface Exercise {
@@ -112,6 +112,10 @@ export interface Exercise {
   tiles?: string[]
   /** Правильный порядок плиток */
   answerTiles?: string[]
+  /** Роль слова для каждой плитки (нижний регистр плитки → часть речи):
+   *  цветовое кодирование «Сборки фразы» — глаголы красные,
+   *  существительные синие, предлоги/артикли серые (учит структуре) */
+  tileWords?: Record<string, PartOfSpeech>
   /** Поэтапный режим («Слова по шагам»): stages[k] — набор плиток-кандидатов
    *  для выбора k-го слова ответа: верное слово + похожие отвлекающие.
    *  Слова фразы целиком не видны — собирать приходится шаг за шагом */
@@ -134,6 +138,10 @@ export interface Exercise {
    *  Позволяет объяснить, почему выбранный вариант неверен
    *  («где» — это «dónde») */
   optionNotes?: Record<string, string>
+  /** Активный перевод (RU → ES): каноничный ответ для ввода (нижний регистр) */
+  typeAnswer?: string
+  /** Допустимые варианты написания (esAlt): «teléfono» без ударения не считаем ошибкой */
+  altTypeAnswers?: string[]
 }
 
 /** Перемешать массив (Fisher–Yates) */
@@ -212,6 +220,62 @@ export function unstarWord(progress: Progress, wordId: string): void {
   progress.words[wordId] = { correct: wp.correct, wrong: wp.wrong, knownAt: wp.knownAt }
 }
 
+// ============================================================
+// «Нравится» / «не нравится» — личная реакция на фразу:
+// 👍 — фраза в коллекции, в практике встречается ЧАЩЕ;
+// 👎 — фраза вообще больше не показывается.
+// ============================================================
+
+/** Добавить фразу в личную коллекцию («нравится»): показывать чаще */
+export function likePhrase(progress: Progress, ex: Exercise, now: number = Date.now()): string | null {
+  const pkey = phraseStarKey(ex)
+  if (!pkey) return null
+  progress.likedPhrases = { ...(progress.likedPhrases ?? {}), [pkey]: now }
+  // лайк снимает дизлайк: фаза «не нравится» → «нравится» возможна
+  if (progress.hiddenPhrases?.[pkey]) {
+    const hidden = { ...progress.hiddenPhrases }
+    delete hidden[pkey]
+    progress.hiddenPhrases = hidden
+  }
+  return pkey
+}
+
+/** Скрыть фразу («не нравится»): вообще не показывать в практике */
+export function hidePhrase(progress: Progress, ex: Exercise, now: number = Date.now()): string | null {
+  const pkey = phraseStarKey(ex)
+  if (!pkey) return null
+  progress.hiddenPhrases = { ...(progress.hiddenPhrases ?? {}), [pkey]: now }
+  // дизлайк снимает лайк (взаимоисключающие реакции)
+  if (progress.likedPhrases?.[pkey]) {
+    const liked = { ...progress.likedPhrases }
+    delete liked[pkey]
+    progress.likedPhrases = liked
+  }
+  return pkey
+}
+
+/** Нормализация испанского ввода для «Активного перевода»:
+ *  нижний регистр, без ¿?¡!., диакритики и лишних пробелов —
+ *  «telefono» = «teléfono» (клавиатура без ударений не ошибка) */
+export function normalizeTyped(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[¿?¡!.]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
+ * Слово пригодно для «Активного перевода» (RU → ES вводом):
+ * конструкции-формулы («estar + герундий») вводить нельзя —
+ * это описание конструкции, а не испанское слово.
+ */
+export function typeableWord(w: Word): boolean {
+  return !w.es.includes('+')
+}
+
 /**
  * Пул слов для практики: сначала слова «в процессе» (correct > 0, но
  * ещё не выученные), затем новые слова по возрастанию урока, затем
@@ -219,7 +283,7 @@ export function unstarWord(progress: Progress, wordId: string): void {
  * выученные: они в knownSet и попадают в группу повторения наравне
  * с остальными известными (а во фразы — как пройденные в уроках).
  */
-export function practicePool(progress: Progress, maxLesson = 32): Word[] {
+export function practicePool(progress: Progress, maxLesson = LESSONS.length): Word[] {
   const known = knownSet(progress)
   const inProgress = ALL_WORDS.filter(
     (w) => !known.has(w.id) && w.lesson <= maxLesson && progress.words[w.id]?.correct,
@@ -548,24 +612,60 @@ export function buildStages(
   })
 }
 
+/**
+ * Роль слова для каждой плитки (цветовое кодирование «Сборки фразы»).
+ * Ключ — плитка в нижнем регистре, значение — часть речи. Слова фразы
+ * берём из заполнения (форма слова → слово, каждое слово один раз),
+ * отвлекающие — по индексу форм всего словаря (формIndex).
+ * Возвращает undefined, если ни одна плитка не распознана.
+ */
+function tilePosMap(
+  answerTiles: string[],
+  distractors: string[],
+  fill: Fill,
+): Record<string, PartOfSpeech> | undefined {
+  const map: Record<string, PartOfSpeech> = {}
+  const claimed = new Set<string>()
+  const fillWords = Object.values(fill).filter(
+    (v): v is Word => !!v && typeof v === 'object' && 'id' in v,
+  )
+  const resolve = (tile: string): Word | undefined => {
+    const key = tile.toLowerCase()
+    const free = fillWords.find((w) => !claimed.has(w.id) && wordForms(w).includes(key))
+    if (free) {
+      claimed.add(free.id)
+      return free
+    }
+    return formIndex().get(key)?.[0]
+  }
+  for (const tile of [...answerTiles, ...distractors]) {
+    const key = tile.toLowerCase()
+    if (map[key]) continue
+    const w = resolve(tile)
+    if (w) map[key] = w.pos
+  }
+  return Object.keys(map).length ? map : undefined
+}
+
 /** Упражнение «сборка фразы из плиток» */
 export function buildExercise(
   fill: Fill,
   templateId: string,
   kind: 'aff' | 'neg' | 'yesno' | 'qw',
   rand: () => number = Math.random,
-  maxLesson: number = 32,
+  maxLesson: number = LESSONS.length,
   known?: Set<string>,
   staged = false,
 ): Exercise {
   const t = allTemplates().find((t) => t.id === templateId)!
   const es = t.render(fill, kind)
   const answerTiles = stripPunct(es)
+  const distractors = buildDistractors(answerTiles, maxLesson, rand, known)
   // Плитки в нижнем регистре: заглавная первая буква выдавала бы,
   // с какого слова начинается фраза. Сравнение ответа в QuizBuild
   // идёт в toLowerCase, поэтому проверка не зависит от регистра.
   const tiles = shuffle(
-    [...answerTiles, ...buildDistractors(answerTiles, maxLesson, rand, known)].map(
+    [...answerTiles, ...distractors].map(
       (w) => w.toLowerCase(),
     ),
     rand,
@@ -575,12 +675,14 @@ export function buildExercise(
     .map((w) => w.id)
   const altAnswers = pronounDroppedVariants(fill, answerTiles)
   const stages = staged ? buildStages(answerTiles, fill, maxLesson, rand, known) : undefined
+  const tileWords = tilePosMap(answerTiles, distractors, fill)
   return {
     kind: 'build',
     questionRu: t.ru(fill, kind),
     tiles,
     answerTiles,
     ...(stages ? { stages } : {}),
+    ...(tileWords ? { tileWords } : {}),
     altAnswers: altAnswers.length ? altAnswers : undefined,
     hint: t.ru(fill, kind),
     options: [],
@@ -633,6 +735,24 @@ export function lessonPool(lesson: number): Word[] {
   return ALL_WORDS.filter((w) => w.lesson === lesson)
 }
 
+/** Упражнение «активный перевод» (RU → ES): вспомнить и ВВЕСТИ слово */
+export function activeExercise(word: Word, rand: () => number = Math.random): Exercise {
+  // Артикли: перевод-маркер («(ж.р.)») двусмысленен — берём понятный ruHint
+  const questionRu = word.pos === 'determiner' ? (word.ruHint ?? word.ru[0]!) : word.ru[0]!
+  const alts = (word.esAlt ?? []).map((s) => s.toLowerCase())
+  return {
+    kind: 'active',
+    questionRu,
+    options: [],
+    answerIndex: -1,
+    typeAnswer: word.es.toLowerCase(),
+    ...(alts.length ? { altTypeAnswers: alts } : {}),
+    wordIds: [word.id],
+    explanation: `${word.es} — ${word.ru.join(', ')}`,
+    tip: WORD_TIPS[word.id] ?? autoWordTip(word),
+  }
+}
+
 /**
  * Пул практики: слова урока (если задан и не пуст) или общий пул.
  * В режиме урока слова, которых не хватает до «выучено» (1 верный
@@ -665,6 +785,10 @@ export interface MakeExerciseOpts {
   staged?: boolean
 }
 
+/** Скрытое/коллекционное заполнение шаблона для генератора упражнений */
+type FillPick = { fill: Fill; templateId: string; variant: 'aff' | 'neg' | 'yesno' | 'qw' }
+type FillPickLimit = FillPick & { limit: number }
+
 /**
  * Сгенерировать случайное упражнение заданного типа.
  * Для «choice» направление ES→RU / RU→ES чередуется случайно.
@@ -690,6 +814,16 @@ export function makeExercise(
   if (kind === 'audio') {
     return audioExercise(word, ALL_WORDS, rand, frontier, known)
   }
+  if (kind === 'active') {
+    // Вводить можно не всё: формулы-конструкции («estar + герундий»)
+    // исключаем; за несколько попыток ищем пригодное слово пула
+    let word2 = word
+    for (let i = 0; i < 6 && !typeableWord(word2); i++) {
+      word2 = pool[Math.floor(rand() * pool.length)]!
+    }
+    if (!typeableWord(word2)) return null
+    return activeExercise(word2, rand)
+  }
   // build — только фразы. ОБЩАЯ ПРАКТИКА: разрешаем не только «выученные»
   // слова (knownSet, 2+ верных ответа), а весь материал до текущего уровня
   // (максимального урока пула): у новичка выученных слов нет, и «Сборка
@@ -700,13 +834,16 @@ export function makeExercise(
   //
   // Фразы, отмеченные «уже выучил», пропускаем: пробуем другие заполнения
   // шаблона, а отмеченную держим как запасную (если другого материала нет).
-  //
-  // ПРАКТИКА ПО УРОКУ — другой принцип: во фразах только слова, которые
-  // пользователь УЖЕ ИЗУЧИЛ (knownSet). Иначе в закрепление урока 1
-  // попадают неизученные слова из других уроков. Если изученных слов
-  // мало (первые уроки) — сборки нет совсем: practice.vue откатывается
-  // на тест-выбор по словам этого урока.
+  // Приоритет: 👍 «нравится» (личная коллекция — показывать чаще) →
+  // нейтральная → «уже выучил» (запас). 👎 «не нравится» — НЕ показываем
+  // вовсе: заполнение с такой фразой пропускаем без запасной.
+  // ПРАКТИКА ПО УРОКУ — во фразах только слова, которые пользователь
+  // УЖЕ ИЗУЧИЛ (knownSet). Иначе в закрепление урока 1 попадают неизученные
+  // слова из других уроков. Если изученных слов мало (первые уроки) —
+  // сборки нет совсем: practice.vue откатывается на тест-выбор по словам.
   const starredPhrases = progress.starredPhrases ?? {}
+  const likedPhrases = progress.likedPhrases ?? {}
+  const hiddenPhrases = progress.hiddenPhrases ?? {}
   if (opts.lesson && opts.lesson > 0) {
     if (known.size === 0) return null
     const templates = allTemplates().filter((t) => countTemplate(t, known) > 0)
@@ -714,23 +851,34 @@ export function makeExercise(
     const knownMaxLesson = ALL_WORDS.filter((w) => known.has(w.id)).reduce(
       (m, w) => Math.max(m, w.lesson), 0,
     )
-    let fallback: { fill: Fill; templateId: string; variant: 'aff' | 'neg' | 'yesno' | 'qw' } | null = null
+    let neutral: FillPick | null = null
+    let starred: FillPick | null = null
+    let liked: FillPick | null = null
     for (let i = 0; i < 10; i++) {
       const t = templates[Math.floor(rand() * templates.length)]
       const fill = sampleFill(t, known, rand)
       if (!fill) continue
       const kind2 = t.variants[Math.floor(rand() * t.variants.length)]
-      if (!fallback && starredPhrases[normalizePhraseKey(t.render(fill, kind2))]) {
-        fallback = { fill, templateId: t.id, variant: kind2 }
+      const key = normalizePhraseKey(t.render(fill, kind2))
+      // 👎 — фраза скрыта: даже в запас не берём
+      if (hiddenPhrases[key]) continue
+      if (likedPhrases[key]) {
+        if (!liked) liked = { fill, templateId: t.id, variant: kind2 }
         continue
       }
-      return buildExercise(fill, t.id, kind2, rand, Math.max(knownMaxLesson, opts.lesson), known, opts.staged === true)
+      if (starredPhrases[key]) {
+        if (!starred) starred = { fill, templateId: t.id, variant: kind2 }
+        continue
+      }
+      if (!neutral) neutral = { fill, templateId: t.id, variant: kind2 }
     }
-    return fallback
-      ? buildExercise(fallback.fill, fallback.templateId, fallback.variant, rand, Math.max(knownMaxLesson, opts.lesson), known, opts.staged === true)
+    const picked = liked ?? neutral ?? starred
+    return picked
+      ? buildExercise(picked.fill, picked.templateId, picked.variant, rand, Math.max(knownMaxLesson, opts.lesson), known, opts.staged === true)
       : null
   }
-  let fallback: { fill: Fill; templateId: string; variant: 'aff' | 'neg' | 'yesno' | 'qw'; limit: number } | null = null
+  let fallback: FillPickLimit | null = null
+  let likedFallback: FillPickLimit | null = null
   for (let limit = frontier; limit <= LESSONS.length; limit++) {
     // Неизученные вопросительные слова не открываются расширением
     // уровня: qw-шаблоны и их слова — только после изучения
@@ -748,15 +896,25 @@ export function makeExercise(
       const fill = sampleFill(t, allowed, rand)
       if (!fill) continue
       const kind2 = t.variants[Math.floor(rand() * t.variants.length)]
-      if (!fallback && starredPhrases[normalizePhraseKey(t.render(fill, kind2))]) {
+      const key = normalizePhraseKey(t.render(fill, kind2))
+      // 👎 — скрытая фраза не показывается вовсе
+      if (hiddenPhrases[key]) continue
+      // 👍 — коллекция: показываем сразу, это приоритет
+      if (likedPhrases[key]) {
+        if (!likedFallback) likedFallback = { fill, templateId: t.id, variant: kind2, limit }
+        continue
+      }
+      if (!fallback && starredPhrases[key]) {
         fallback = { fill, templateId: t.id, variant: kind2, limit }
         continue
       }
+      // нейтральная фраза — обычный путь (лучше запасной «уже выучил»)
       return buildExercise(fill, t.id, kind2, rand, limit, known, opts.staged === true)
     }
   }
-  return fallback
-    ? buildExercise(fallback.fill, fallback.templateId, fallback.variant, rand, fallback.limit, known, opts.staged === true)
+  const picked = likedFallback ?? fallback
+  return picked
+    ? buildExercise(picked.fill, picked.templateId, picked.variant, rand, picked.limit, known, opts.staged === true)
     : null
 }
 

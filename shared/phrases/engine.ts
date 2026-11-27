@@ -38,10 +38,25 @@ export function detWords(set: 'subject' | 'object'): Word[] {
   return ids.map((id) => getWord(id))
 }
 
-/** Совместимо ли определитель с существительным (род/число/семантика) */
+/**
+ * Совместимо ли определитель с существительным (род/число/семантика).
+ * Притяжательные и указательные (mi, tu, su, nuestro, este, ese) —
+ * местоимения-определители БЕЗ поля det: они согласуются формами
+ * mi/mis, este/esta/estos/estas (рендер их умеет — detFormsOf),
+ * поэтому совместимы с любым существительным в любом числе.
+ * Без этого правила фразы «mi casa», «este libro» не генерировались:
+ * detCompatible возвращала false для всех слов без det.det.
+ */
 export function detCompatible(det: Word, noun: Word, number: GramNumber): boolean {
   const d = det.det
-  if (!d) return false
+  if (!d) {
+    const role = det.pronoun?.role
+    if (role !== 'possessive' && role !== 'demonstrative') return false
+    // «en casa»/«a casa» шаблоны рендерят идиоматично (без артикля, «дома»):
+    // определитель mi/este всё равно потерялся бы в испанской фразе —
+    // для casa их не генерируем (артикли сохраняют прежнее поведение)
+    return noun.id !== 'n-casa'
+  }
   if (d.number && d.number !== number) return false
   if (d.gender && d.gender !== (noun.articleGender ?? noun.gender)) return false
   // «много/мало» — только неисчисляемое: много работы, но не «много двери».
@@ -203,7 +218,12 @@ const QUANTITY_OBJ_VERBS = new Set(['v-comer', 'v-beber', 'v-querer', 'v-necesit
 function objDetsForVerb(verb: Word, detSet: 'subject' | 'object' | 'none'): Word[] {
   if (detSet === 'none') return []
   const dets = detWords(detSet)
-  if (verb.id === 'v-tener') return dets.filter((d) => !d.det?.quantity && !d.det?.definite)
+  // tener — детерминированная пара ES/RU (жалоба «La hija no tiene poco
+  // tiempo»): «много/мало», определённый артикль и мой/этот с ним не
+  // сочетаем («no tengo mi tiempo» ↔ «нет моего времени» — угадайка)
+  if (verb.id === 'v-tener') {
+    return dets.filter((d) => !d.det?.quantity && !d.det?.definite && !d.pronoun?.role)
+  }
   if (QUANTITY_OBJ_VERBS.has(verb.id)) return dets
   return dets.filter((d) => !d.det?.quantity)
 }

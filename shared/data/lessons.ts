@@ -58,6 +58,7 @@ export const LESSONS: Lesson[] = [
   { number: 30, titleRu: 'Дополнения: lo, la, todo', titleEs: 'Los complementos', hintRu: 'lo veo, algo, nada, todo...' },
   { number: 31, titleRu: 'Абстрактные понятия', titleEs: 'Ideas', hintRu: 'vida, mundo, pregunta, verdad...' },
   { number: 32, titleRu: 'Конструкции и языки', titleEs: 'Construcciones e idiomas', hintRu: 'acabar de, hace... + español, ruso...', unlocksFrom: 'Урок 32: «¿Hablas español?»' },
+  { number: 33, titleRu: 'Спасательные фразы', titleEs: 'Frases de rescate', hintRu: 'dame, dime, mira, oye, espera — попроси и останови' },
 ]
 
 /** Метаданные урока по номеру */

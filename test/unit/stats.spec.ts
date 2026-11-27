@@ -61,7 +61,7 @@ describe('Статистика', () => {
     expect(verbs.known).toBe(1)
     expect(verbs.total).toBeGreaterThan(40)
     const byLessons = progressByLessons(p)
-    expect(byLessons.length).toBe(32)
+    expect(byLessons.length).toBe(33) // 32 урока + урок 33 «Спасательные фразы»
     expect(byLessons[0].total).toBe(12) // местоимения + ser/estar/no
   })
 

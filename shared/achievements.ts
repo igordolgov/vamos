@@ -30,6 +30,10 @@ export interface AchievementContext {
   answersCorrect: number
   streak: number
   lessonsDone: number
+  /** Сколько фраз собрано на практике (Σ practiced по всем фразам) */
+  phrasesPracticed: number
+  /** Есть фраза, собранная без ошибок с первого раза */
+  phraseFirstTry: boolean
 }
 
 /** Все достижения приложения */
@@ -79,7 +83,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: '👑',
     titleRu: 'Весь словарь',
     titleEs: 'Diccionario completo',
-    descRu: 'Выучите все 313 слов',
+    descRu: 'Выучите весь словарь',
     check: (c) => c.wordsKnown >= ALL_WORDS.length,
   },
   {
@@ -113,6 +117,22 @@ export const ACHIEVEMENTS: Achievement[] = [
     titleEs: 'Cien mil frases',
     descRu: 'Открыть 100 000 фраз',
     check: (c) => c.phrasesKnown >= 100000,
+  },
+  {
+    id: 'phrases-said-100',
+    icon: '🗣️',
+    titleRu: 'Сказал 100 фраз',
+    titleEs: 'Cien frases dichas',
+    descRu: 'Собрать 100 фраз на практике',
+    check: (c) => c.phrasesPracticed >= 100,
+  },
+  {
+    id: 'phrase-first-try',
+    icon: '🥇',
+    titleRu: 'С первого раза',
+    titleEs: 'A la primera',
+    descRu: 'Собрать фразу без ошибок с первого раза',
+    check: (c) => c.phraseFirstTry,
   },
   {
     id: 'streak-3',
@@ -202,6 +222,13 @@ export const ACHIEVEMENTS: Achievement[] = [
 export function achievementContext(progress: Progress): AchievementContext {
   const known = knownSet(progress)
   const lessons = progressByLessons(progress)
+  // Речевые счётчики: сколько фраз собрано и есть ли «без ошибок с первого раза»
+  let phrasesPracticed = 0
+  let phraseFirstTry = false
+  for (const pp of Object.values(progress.phrases)) {
+    phrasesPracticed += pp.practiced
+    if (pp.practiced === 1 && pp.correct === 1) phraseFirstTry = true
+  }
   return {
     known,
     wordsKnown: known.size,
@@ -209,6 +236,8 @@ export function achievementContext(progress: Progress): AchievementContext {
     answersCorrect: progress.answers.correct,
     streak: currentStreak(progress),
     lessonsDone: lessons.filter((l) => l.ratio >= 1).length,
+    phrasesPracticed,
+    phraseFirstTry,
   }
 }
 
