@@ -343,15 +343,15 @@ div.mb-2(v-if="mode === 'menu'")
       )
         span 🔊
     template(v-else)
-      button.btn.btn-md.border-primary(
-        class="h-7 min-h-0 text-base-content/50"
+      button.btn.btn-md(
+        class="h-7 min-h-0 text-base-content/70"
         @click="markKnown()"
       )
         span.text-sm ✨
         | {{ t('practice.alreadyKnown') }}
-    p.text-sm(class="shrink-0" v-if="current?.kind !== 'build'")
-      span(class="font-bold text-success") {{ correctCount }} ✓
-      span(class="ml-2 font-bold text-error") {{ wrongCount }} ✗
+    //- p.text-sm(class="shrink-0" v-if="current?.kind !== 'build'")
+    //-   span(class="font-bold text-success") {{ correctCount }} ✓
+    //-   span(class="ml-2 font-bold text-error") {{ wrongCount }} ✗
 
   template(v-if="current")
     QuizChoice(
@@ -418,13 +418,13 @@ div.mb-2(v-if="mode === 'menu'")
 
           // Написание услышанного — после ответа: звук и буквы вместе.
           // Зона зарезервирована (min-h-9), чтобы карточка не прыгала
-          .min-h-9.flex.items-center.justify-center.gap-2
+          .min-h-9.flex.items-center.justify-center.gap-4.mt-2
             .animate-feedback.flex.items-center.gap-2(v-if="lastCorrect !== null && current.speak")
               span.text-2xl.font-bold.text-primary {{ current.speak }}
               SpeakButton(:text="current.speak")
 
-          // Микрофон: записать себя и сравнить с эталоном
-          MicCompare(v-if="lastCorrect !== null && current.speak" :reference="current.speak")
+            // Микрофон: записать себя и сравнить с эталоном
+            MicCompare(v-if="lastCorrect !== null && current.speak" :reference="current.speak")
 
       QuizChoice(
         :key="'audio-' + seq"
