@@ -56,6 +56,7 @@ export const ADJECTIVES: Word[] = [
   a('a-rico', 'rico', ['вкусный', 'богатый'], 16, regA('rico'), false, {
     // Для еды — «вкусный», для людей/вещей — «богатый»
     ruByClass: { person: 'богатый', family: 'богатый', thing: 'богатый', place: 'богатый' },
+    ruHint: 'О еде — «вкусный» (¡está rico!), о людях и вещах — «богатый»',
   }),
   a('a-pobre', 'pobre', ['бедный'], 16, invA('pobre', 'pobres')),
   a('a-famoso', 'famoso', ['знаменитый'], 16, regA('famoso')),

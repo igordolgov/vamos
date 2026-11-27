@@ -5,7 +5,7 @@
 // Режим закрепления урока: /practice?lesson=N — пул только из
 // слов этого урока (кнопка «Практика» на странице урока).
 // ============================================================
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useT } from '~/composables/useI18n'
 import { speakEs, unlockSpeech } from '~/composables/useSpeech'
 import { useProgress, applyAnswer, markAlreadyKnown, likeExercise, dislikeExercise } from '~/composables/useProgress'
@@ -19,10 +19,15 @@ import SessionResult from '~/components/SessionResult.vue'
 import SpeakButton from '~/components/SpeakButton.vue'
 
 const route = useRoute()
+const router = useRouter()
 const t = useT()
 const {progress, ensureLoaded, setProgressSetting} = useProgress()
 onMounted(() => {
   void ensureLoaded()
+  // Перезагрузка внутри сессии: ?mode=… в URL остался, а состояние сессии
+  // потеряно — возвращаемся в меню и чистим URL (иначе меню не увидеть:
+  // watcher не сработает, а mode-состояние пустое)
+  if (route.query.mode) void router.replace({ query: { ...route.query, mode: undefined } })
 })
 
 // ============================================================
@@ -99,6 +104,10 @@ const lessonFilter = computed(() => {
 function startWith(k: ExerciseKind | 'mixed') {
   kind.value = k
   startSession()
+  // Сессия получает свой шаг истории (?mode=build): жест «назад» и
+  // повторный клик по «Практике» в нижней панели возвращают в меню
+  // выбора источника, а не покидают раздел (см. watch ниже)
+  void router.push({ query: { ...route.query, mode: k } }).catch(() => {})
 }
 
 function startSession() {
@@ -112,6 +121,29 @@ function startSession() {
   newWords.value = []
   mode.value = 'session'
   nextExercise()
+}
+
+// ============================================================
+// Выход из сессии в меню без потери «предыдущего раздела»:
+// жест «назад» стирает ?mode из URL, повторный клик по «Практике»
+// нижней панели ведёт на /practice без ?mode — в обоих случаях
+// возвращаемся в меню выбора источника
+// ============================================================
+watch(
+  () => route.query.mode,
+  (m) => {
+    if (!m && mode.value !== 'menu') {
+      mode.value = 'menu'
+      index.value = 0
+      current.value = null
+    }
+  },
+)
+
+/** Итоги → меню: чистим ?mode из URL (не оставляем шаг истории) */
+function finishToMenu() {
+  mode.value = 'menu'
+  if (route.query.mode) void router.replace({ query: { ...route.query, mode: undefined } })
 }
 
 // ============================================================
@@ -183,6 +215,14 @@ function speakAudio() {
   if (current.value?.speak) speakEs(current.value.speak)
 }
 
+/** «Послушать целиком» в «Сборке фразы»: кнопка в шапке рядом с 👍/👎 —
+ *  после проверки, интонация целой фразы (а не отдельных слов).
+ *  Раньше отдельная строка в карточке — на мобильном съедала экран */
+function speakBuilt() {
+  const tiles = current.value?.answerTiles
+  if (tiles?.length) void speakEs(tiles.join(' '))
+}
+
 /** «Уже выучил»: пометить слово/фразу — будут попадаться реже,
  *  и сразу показать следующее упражнение (без подсчёта в сессию) */
 function markKnown() {
@@ -222,7 +262,9 @@ function onTouchEnd(e: TouchEvent) {
 </script>
 
 <template lang="pug">
-h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
+// Заголовок — только в меню и в итогах: в сессии он съедает пол-экрана
+// на мобильном, а контекст и так есть в строке «Вопрос N из 10»
+h1.text-2xl.font-bold.text-primary(v-if="mode !== 'session'") {{ t('practice.title') }}
 
 // Баннер режима закрепления урока
 .alert.mb-2(v-if="lessonFilter" class="bg-primary/10 py-2 border border-primary/40")
@@ -230,8 +272,9 @@ h1.text-2xl.font-bold.text-primary {{ t('practice.title') }}
   NuxtLink.btn.btn-ghost.btn-xs(to="/practice") {{ t('practice.lessonAll') }}
 
 // Меню выбора типа упражнения: клик по карточке сразу запускает
-// сессию. Стеклянные квадратные карточки (.glass-card в main.css):
-// на мобильном 2 колонки с квадратом 1:1, от sm — 3, от lg — 5,
+// сессию. Стеклянные карточки (.glass-card в main.css):
+// на мобильном 2 колонки, пропорция 5:3 (ниже квадрата — меню
+// помещается на экран), от sm — 3, от lg — 5,
 // ширина ограничена (max-w-3xl)
 div.mb-2(v-if="mode === 'menu'")
   h2.card-title.text-lg.mb-2(class="sm:text-xl") {{ t('practice.source') }}
@@ -270,8 +313,10 @@ div.mb-2(v-if="mode === 'menu'")
 )
   // Одна строка: прогресс слева, реакция на фразу в центре, счёт справа —
   // экономит вертикальное место, чтобы сессия помещалась на один экран.
-  // В «Сборке фразы» центр — две кнопки 👍/👎 (личная коллекция / скрыть),
-  // в остальных режимах — прежняя кнопка «Уже выучил» и счёт ✓/✗
+  // В «Сборке фразы» центр — кнопки 👍/👎 (личная коллекция / скрыть),
+  // после проверки рядом 🔊 «Послушать целиком» (переехало из карточки:
+  // экономит строку на мобильном); в остальных режимах — прежняя
+  // кнопка «Уже выучил» и счёт ✓/✗
   .flex.items-center.justify-between.mb-2(class="gap-1")
     p(class="text-sm text-base-content/60 shrink-0") {{ t('practice.progress', { n: index + 1, total: SESSION_LENGTH }) }}
     .flex.items-center.gap-1(v-if="current?.kind === 'build' && current.answerTiles")
@@ -289,6 +334,14 @@ div.mb-2(v-if="mode === 'menu'")
         @click="dislikeCurrent()"
       )
         span 👎
+      button.btn.btn-md.border-primary(
+        v-if="lastCorrect !== null"
+        class="h-7 min-h-0"
+        :title="t('practice.listenAll')"
+        :aria-label="t('practice.listenAll')"
+        @click="speakBuilt()"
+      )
+        span 🔊
     template(v-else)
       button.btn.btn-md.border-primary(
         class="h-7 min-h-0 text-base-content/50"
@@ -340,13 +393,14 @@ div.mb-2(v-if="mode === 'menu'")
       @next="goNext"
     )
 
-    // Аудио: озвучка + выбор перевода
+    // Аудио: озвучка + выбор перевода. Компактная карточка — на мобильном
+    // нужно уместить вместе с вариантами и микрофоном
     template(v-else-if="current.kind === 'audio'")
       .card.bg-base-100.shadow-lg.border.border-base-300.w-full.mb-2
-        .card-body.p-4.items-center
+        .card-body.p-3.items-center(class="gap-1.5")
           p(class="text-sm text-base-content/60") {{ t('practice.listen') }}
           // Белая иконка на зелёном: рупор + две звуковые волны
-          button.btn.btn-circle.btn-lg.btn-success(@click="speakAudio()" :aria-label="t('practice.listen')")
+          button.btn.btn-circle.btn-md.btn-success(@click="speakAudio()" :aria-label="t('practice.listen')")
             svg(
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -355,7 +409,7 @@ div.mb-2(v-if="mode === 'menu'")
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="w-10 h-10 text-white"
+              class="w-7 h-7 text-white"
               aria-hidden="true"
             )
               path(d="M11 5 6 9H2v6h4l5 4V5Z")
@@ -363,8 +417,8 @@ div.mb-2(v-if="mode === 'menu'")
               path(d="M19.07 4.93a10 10 0 0 1 0 14.14")
 
           // Написание услышанного — после ответа: звук и буквы вместе.
-          // Зона зарезервирована (min-h-10), чтобы карточка не прыгала
-          .min-h-10.flex.items-center.justify-center.gap-2
+          // Зона зарезервирована (min-h-9), чтобы карточка не прыгала
+          .min-h-9.flex.items-center.justify-center.gap-2
             .animate-feedback.flex.items-center.gap-2(v-if="lastCorrect !== null && current.speak")
               span.text-2xl.font-bold.text-primary {{ current.speak }}
               SpeakButton(:text="current.speak")
@@ -389,6 +443,6 @@ SessionResult(
   :wrong="wrongCount"
   :new-words="newWords"
   @again="startSession"
-  @finish="mode = 'menu'"
+  @finish="finishToMenu"
 )
 </template>

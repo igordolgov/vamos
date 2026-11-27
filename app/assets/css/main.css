@@ -153,7 +153,8 @@ body {
 
 /* ============================================================
    Практика — стеклянные карточки «источника слов».
-   Мобильный: 2 колонки, каждая карточка — квадрат (1:1).
+   Мобильный: 2 колонки, карточка НЕЖЕ КВАДРАТА (5:3) — меню
+   целиком помещается на экран вместе с переключателем режима.
    Стекло: полупрозрачная подложка с backdrop-blur, диагональный
    блик (::before — «отражение света на стекле») и световая
    нижняя кромка (::after — «отражение от поверхности»).
@@ -162,14 +163,14 @@ body {
    ============================================================ */
 .glass-card {
   position: relative;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 5 / 3;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
-  padding: 0.6rem 0.5rem;
+  gap: 0.25rem;
+  padding: 0.45rem 0.5rem;
   border-radius: 1.15rem;
   overflow: hidden;
   cursor: pointer;
@@ -234,18 +235,34 @@ body {
 }
 
 .glass-card-icon {
-  font-size: 3rem;
+  font-size: 2.25rem;
   line-height: 1;
   filter: drop-shadow(0 3px 5px rgba(70, 40, 20, 0.22));
 }
 
 .glass-card-label {
-  padding-top: 6px;
-  font-size: 0.9rem;
+  padding-top: 2px;
+  font-size: 0.85rem;
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.2;
   text-align: center;
   color: color-mix(in srgb, var(--color-base-content) 88%, transparent);
+}
+
+/* Десктоп: колонок больше и карточки уже — возвращаем квадрат */
+@media (min-width: 640px) {
+  .glass-card {
+    aspect-ratio: 1 / 1;
+    gap: 0.45rem;
+    padding: 0.6rem 0.5rem;
+  }
+  .glass-card-icon {
+    font-size: 3rem;
+  }
+  .glass-card-label {
+    padding-top: 6px;
+    font-size: 0.9rem;
+  }
 }
 
 /* Блик — «отражение света на стекле»: широкая диагональная

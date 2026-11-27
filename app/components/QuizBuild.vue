@@ -16,12 +16,11 @@
 //
 // Плитки — компактные (маленькие паддинги, стандартное скругление
 // кнопок DaisyUI — пилюли читаются хуже). Зона сборки изначально
-// держит ДВЕ строки плиток (min-h-[102px]): фраза дорастает с одной
-// строки до двух без сдвига кнопки — карточка не меняет размер.
+// держит ДВЕ строки плиток (min-h-[94px] на мобильном): фраза дорастает
+// с одной строки до двух без сдвига кнопки — карточка не меняет размер.
 // ============================================================
 import { computed, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
-import { speakEs } from '~/composables/useSpeech'
 import type { WordTip } from '#shared/data/word-tips'
 import { targetedHint } from '#shared/phrases/diff-hint'
 import { splitRuPrompt } from '#shared/phrases/ru'
@@ -64,14 +63,14 @@ const currentStage = computed(() => props.stages?.[stagePicked.value.length] ?? 
 
 /** Единый класс плитки-слова: компактная, со стандартным скруглением
  *  кнопок DaisyUI (rounded-field) — полные пилюли нечитабельны.
- *  Фиксированная высота h-10 (40px) при шрифте 16px (18px на sm+) —
- *  без зависимости от line-height и без растяжения по flex-stretch.
- *  Две строки плиток + перенос gap-1 (4px) + паддинг зоны сборки p-2
- *  (16px) + границы 2px = 102px — ровно резерв зоны сборки
- *  min-h-[102px]: кнопка не сдвигается никогда. Выбранная (и после
+ *  Фиксированная высота h-9 (36px) при шрифте 16px на мобильном
+ *  (18px/h-10 на sm+) — без зависимости от line-height и без растяжения
+ *  по flex-stretch. Две строки плиток + перенос gap-1 (4px) + паддинг
+ *  зоны сборки p-2 (16px) + границы 2px = 94px — ровно резерв зоны
+ *  сборки min-h-[94px]: кнопка не сдвигается никогда. Выбранная (и после
  *  проверки — вся пул) плитка остаётся пустым местом своего размера —
  *  слова не перепрыгивают */
-const TILE = 'btn normal-case h-10 px-3 leading-none text-base sm:text-lg'
+const TILE = 'btn normal-case h-9 px-2.5 leading-none text-base sm:h-10 sm:px-3 sm:text-lg'
 
 // ============================================================
 // Цветовое кодирование: плитка окрашена по РОЛИ слова —
@@ -246,10 +245,7 @@ function builtClass(pos: number): string {
   return `${base} ${word.toLowerCase() === expected ? 'btn-success' : 'btn-error'}`
 }
 
-/** Озвучить собранную фразу целиком — учим интонацию, а не только слова */
-function speakAnswer() {
-  void speakEs(props.answerTiles.join(' '))
-}
+/** Озвучка собранной фразы — в шапке сессии (practice.vue, speakBuilt) */
 
 /** Верно, если собран полный ответ без учёта регистра — точный или
  *  без подлежащего-местоимения, когда форма глагола однозначна.
@@ -299,15 +295,16 @@ const hintParts = computed(() => splitRuPrompt(props.hint ?? ''))
         ) {{ p.text }}
 
     // Собранная фраза: зона заранее держит ДВЕ строки плиток.
-    // Расчёт резерва: 2 строки × 40px + перенос 4px + паддинг p-2 (16px)
-    // + границы зоны 2px = 102px — фраза дорастает с 1 строки до 2 без
-    // сдвига «Проверить/Дальше», карточка не меняет размер.
+    // Расчёт резерва на мобильном: 2 строки × 36px + перенос 4px + паддинг
+    // p-2 (16px) + границы зоны 2px = 94px (на sm+ плитки h-10 → 102px) —
+    // фраза дорастает с 1 строки до 2 без сдвига «Проверить/Дальше»,
+    // карточка не меняет размер.
     // touch-none на плитках: вертикальное движение пальца — это
     // перетаскивание, а не прокрутка страницы (тащим в обе стороны).
     // Ключ = позиция: при перестановке DOM-узлы остаются на местах
     // (меняется содержимое) — pointer-capture перетаскивания не рвётся
     .border.border-dashed.border-base-300.rounded-2xl.p-2.flex.flex-wrap.gap-1.items-center(
-      class="bg-base-200/50 min-h-[102px]"
+      class="bg-base-200/50 min-h-[94px] sm:min-h-[102px]"
       aria-label="Собранная фраза"
       ref="buildZone"
     )
@@ -372,28 +369,23 @@ const hintParts = computed(() => splitRuPrompt(props.hint ?? ''))
             p.text-base.font-semibold.text-error(class="sm:text-lg") ✗ {{ t('practice.answerWas') }}
             p.text-xl.font-bold.text-base-content(class="sm:text-2xl") {{ answerTiles.join(' ') }}
 
-    // «Послушать целиком»: после проверки — интонация целой фразы,
-    // а не отдельных слов (только ручной запуск — без автоозвучки).
-    // btn-ghost: не пересекается со селектором плиток пула (.btn-outline)
-    .w-full.flex.justify-center(v-if="revealed")
-      button.btn.btn-ghost.btn-sm.gap-1(@click="speakAnswer()" :aria-label="t('practice.listenAll')")
-        span(aria-hidden="true") 🔊
-        | {{ t('practice.listenAll') }}
+    // «Послушать целиком» переехало в шапку сессии (рядом с 👍/👎) —
+    // экономит строку на мобильном (см. practice.vue, speakBuilt())
 
     // Объяснение ошибки: сначала — целевая подсказка про конкретную
     // ошибку (🎯 артикль, le/les, предлог, форма глагола…), если она
     // однозначная; иначе — общий разбор шаблона (почему путают +
     // лайфхак + пример)
     .w-full(v-if="revealed && !isCorrect")
-      .rounded-xl.text-left(class="p-2.5 bg-warning/10 border border-warning/30")
+      .rounded-xl.text-left(class="p-2 bg-warning/10 border border-warning/30")
         p.text-sm(class="leading-snug" v-if="focusHint")
           | 🎯 {{ focusHint }}
         template(v-else-if="tip")
           p.text-sm(class="leading-snug")
             | 💡 <b>{{ t('practice.tipWhy') }}:</b> {{ tip.why }}
-          p.text-sm.mt-1(class="leading-snug")
+          p.text-sm(class="mt-0.5 leading-snug")
             | 🧠 <b>{{ t('practice.tipHack') }}:</b> {{ tip.hack }}
-          p.text-sm.mt-1(class="leading-snug" v-if="tip.ex")
+          p.text-sm(class="mt-0.5 leading-snug" v-if="tip.ex")
             | 💬 <b>{{ t('practice.tipEx') }}:</b> «{{ tip.ex.es }}» — {{ tip.ex.ru }}
 
     // Кнопка: до проверки — «Проверить», после — «Дальше» (на том же месте).

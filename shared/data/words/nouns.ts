@@ -191,7 +191,10 @@ export const NOUNS: Word[] = withRuMeta([
   n('n-arroz', 'arroz', 'm', 'arroces', ['рис'], 10, 'food'),
   n('n-fruta', 'fruta', 'f', 'frutas', ['фрукт', 'фрукты'], 10, 'food'),
   n('n-manzana', 'manzana', 'f', 'manzanas', ['яблоко'], 10, 'food'),
-  n('n-platano', 'plátano', 'm', 'plátanos', ['банан'], 10, 'food'),
+  n('n-platano', 'plátano', 'm', 'plátanos', ['банан'], 10, 'food', {
+    esAlt: ['banana', 'banano'],
+    ruHint: 'В Латинской Америке чаще banana / banano (plátano — крупный зелёный)',
+  }),
   n('n-tomate', 'tomate', 'm', 'tomates', ['помидор'], 10, 'food'),
   n('n-cafe', 'café', 'm', 'cafés', ['кофе'], 10, 'drink'),
   n('n-cerveza', 'cerveza', 'f', 'cervezas', ['пиво'], 10, 'drink'),
@@ -202,7 +205,10 @@ export const NOUNS: Word[] = withRuMeta([
 
   // ===== Урок 11: вещи I =====
   n('n-libro', 'libro', 'm', 'libros', ['книга'], 11, 'thing'),
-  n('n-telefono', 'teléfono', 'm', 'teléfonos', ['телефон'], 11, 'thing'),
+  n('n-telefono', 'teléfono', 'm', 'teléfonos', ['телефон'], 11, 'thing', {
+    esAlt: ['celular'],
+    ruHint: 'Мобильный телефон — celular',
+  }),
   n('n-computadora', 'computadora', 'f', 'computadoras', ['компьютер'], 11, 'thing', {
     esAlt: ['computador'],
     ruHint: 'В Латинской Америке — computadora (в Испании — ordenador)',
@@ -224,7 +230,10 @@ export const NOUNS: Word[] = withRuMeta([
   n('n-carta', 'carta', 'f', 'cartas', ['письмо'], 12, 'thing'),
   n('n-papel', 'papel', 'm', 'papeles', ['бумага'], 12, 'thing'),
   n('n-lapiz', 'lápiz', 'm', 'lápices', ['карандаш'], 12, 'thing'),
-  n('n-pluma', 'pluma', 'f', 'plumas', ['ручка'], 12, 'thing', { esAlt: ['bolígrafo'] }),
+  n('n-pluma', 'pluma', 'f', 'plumas', ['ручка'], 12, 'thing', {
+    esAlt: ['bolígrafo'],
+    ruHint: 'В Латинской Америке — pluma (в Испании — bolígrafo)',
+  }),
   n('n-carro', 'carro', 'm', 'carros', ['машина'], 12, 'thing', {
     esAlt: ['auto'],
     ruHint: 'В Латинской Америке — carro / auto (в Испании — coche)',

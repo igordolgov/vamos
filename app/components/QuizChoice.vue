@@ -60,24 +60,27 @@ function btnClass(index: number): string {
 
 <template lang="pug">
 .card.bg-base-100.shadow-lg.border.border-base-300.w-full
-  .card-body(class="gap-3 sm:gap-4 p-3 sm:p-4")
-    // Вопрос
+  .card-body(class="gap-2 sm:gap-4 p-3 sm:p-4")
+    // Вопрос (на мобильном чуть меньше — карточка должна уместиться
+    // на экране вместе с вариантами и фидбеком)
     .text-center
-      p.text-3xl.font-bold.mb-2(class="text-base-content/60" v-if="questionRu") {{ questionRu }}
+      p.text-2xl.font-bold.mb-1(class="sm:text-3xl sm:mb-2 text-base-content/60" v-if="questionRu") {{ questionRu }}
       .flex.items-center.justify-center.gap-2(v-if="questionEs")
-        h2.text-3xl.font-bold.text-primary {{ questionEs }}
+        h2.text-2xl.font-bold.text-primary(class="sm:text-3xl") {{ questionEs }}
         SpeakButton(:text="questionEs")
 
-    // Варианты — 2 колонки (и на мобильных, и на десктопе)
+    // Варианты — 2 колонки (и на мобильных, и на десктопе);
+    // компактные на мобильном (py-1.5/text-base), на sm+ — крупнее
     .grid.grid-cols-2(class="gap-1.5 sm:gap-2")
-      button.btn.justify-start.text-left.h-auto.py-3.normal-case(
+      button.btn.justify-start.text-left.normal-case(
+        class="py-1.5 sm:py-3 h-auto"
         v-for="(option, i) in options"
         :key="i"
         :class="btnClass(i)"
         :disabled="revealed && i !== answerIndex && i !== selected"
         @click="choose(i)"
       )
-        span.text-lg {{ option }}
+        span.text-base(class="sm:text-lg") {{ option }}
         // Значок всегда в DOM (невидимым плейсхолдером): ширина правой
         // части кнопки постоянна → перенос строк не меняется при ответе
         span.ml-auto(v-if="revealed && i === answerIndex") ✓
@@ -87,9 +90,9 @@ function btnClass(index: number): string {
     // Результат и «Дальше» — зарезервированная зона постоянной высоты:
     // существует до ответа (пустая), поэтому карточка не растёт и кнопка
     // не сдвигается при появлении результата. Подпись «Верный ответ:»
-    // и сам ответ — на отдельных строках; min-h-24 (6rem) держит
+    // и сам ответ — на отдельных строках; min-h-20 (5rem) держит
     // подпись + две строки длинного ответа (максимум 43 символа)
-    .min-h-24.flex.items-center.justify-center
+    .min-h-20.flex.items-center.justify-center
       div.text-center.animate-feedback(v-if="revealed")
         template(v-if="isCorrect")
           p.text-2xl.font-bold.text-success ✓ {{ t('practice.correct') }}
@@ -103,12 +106,12 @@ function btnClass(index: number): string {
     // пример употребления. Появляется только при неверном ответе —
     // карточка вырастает один раз, всё объяснение читается до «Дальше»
     .w-full(v-if="revealed && !isCorrect && tip")
-      .rounded-xl.text-left(class="p-2.5 bg-warning/10 border border-warning/30")
+      .rounded-xl.text-left(class="p-2 bg-warning/10 border border-warning/30")
         p.text-sm(class="leading-snug")
           | 💡 <b>{{ t('practice.tipWhy') }}:</b> {{ tip.why }}
-        p.text-sm.mt-1(class="leading-snug")
+        p.text-sm(class="mt-0.5 leading-snug")
           | 🧠 <b>{{ t('practice.tipHack') }}:</b> {{ tip.hack }}
-        p.text-sm.mt-1(class="leading-snug" v-if="tip.ex")
+        p.text-sm(class="mt-0.5 leading-snug" v-if="tip.ex")
           | 💬 <b>{{ t('practice.tipEx') }}:</b> «{{ tip.ex.es }}» — {{ tip.ex.ru }}
 
     button.btn.btn-primary.text-lg(

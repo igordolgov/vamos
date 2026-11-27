@@ -167,7 +167,7 @@ describe('QuizChoice', () => {
       props: { questionEs: 'casa', options: ['дом', 'еда', 'книга', 'ночь'], answerIndex: 0 },
     })
     // зона фидбека существует и до ответа (пустая, постоянной высоты)
-    expect(wrapper.find('.min-h-24').exists()).toBe(true)
+    expect(wrapper.find('.min-h-20').exists()).toBe(true)
     expect(wrapper.find('.animate-feedback').exists()).toBe(false)
     // «Дальше» уже в DOM (держит своё место), но невидима до ответа
     const next = wrapper.findAll('button').at(-1)!
@@ -223,12 +223,14 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     expect(area.exists()).toBe(true)
     expect(area.classes()).toContain('rounded-2xl')
     // плитки — компактные, со стандартным скруглением DaisyUI
-    // (НЕ пилюли rounded-full — их трудно читать), высота 40px
-    // (две строки = ровно резерв 102px), паддинги меньше btn-lg
+    // (НЕ пилюли rounded-full — их трудно читать), высота 36px на
+    // мобильном / 40px на sm+ (две строки = ровно резерв 94/102px),
+    // паддинги меньше btn-lg
     const tile = area.findAll('button')[0]!
     expect(tile.classes()).not.toContain('rounded-full')
-    expect(tile.classes()).toContain('h-10')
-    expect(tile.classes()).toContain('px-3')
+    expect(tile.classes()).toContain('h-9')
+    expect(tile.classes()).toContain('sm:h-10')
+    expect(tile.classes()).toContain('px-2.5')
     expect(tile.classes()).not.toContain('btn-lg')
     await checkBtn(wrapper).trigger('click')
     expect(wrapper.emitted('answered')![0]).toEqual([true])

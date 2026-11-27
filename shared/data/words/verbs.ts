@@ -263,13 +263,13 @@ export const VERBS: Word[] = [
     ruForms: ['происхожу', 'происходишь', 'происходит', 'происходим', 'происходите', 'происходят'],
   }, { ruHint: '¿Qué pasa? — Что происходит?' }),
 
-  v('v-creer', 'creer', ['считать', 'верить'], 28, {
+  v('v-creer', 'creer', ['считать (полагать)', 'верить'], 28, {
     transitive: true,
     objClasses: ['abstract'],
     gerund: 'creyendo',
-    ruInf: 'считать',
+    ruInf: 'считать (полагать)',
     ruForms: ['считаю', 'считаешь', 'считает', 'считаем', 'считаете', 'считают'],
-  }),
+  }, { ruHint: 'Считать = ПОЛАГАТЬ: Creo que sí — «Думаю (считаю), что да». Счёт — другой глагол (contar: cuenta hasta diez — считай до десяти)' }),
 
   v('v-pensar', 'pensar', ['думать'], 28, {
     forms: forms(['pienso', 'piensas', 'piensa', 'pensamos', 'pensáis', 'piensan']),
