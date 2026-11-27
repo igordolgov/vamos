@@ -400,7 +400,10 @@ div.mb-2(v-if="mode === 'menu'")
         .card-body.p-3.items-center(class="gap-1.5")
           //- p(class="text-sm text-base-content/60") {{ t('practice.listen') }}
           // Белая иконка на зелёном: рупор + две звуковые волны
-          button.btn.btn-circle.btn-md.btn-success(@click="speakAudio()" :aria-label="t('practice.listen')")
+          button.btn.btn-circle.btn-md.btn-success(
+            @click="speakAudio()" :aria-label="t('practice.listen')"
+            v-if="lastCorrect == null && current.speak"
+            )
             svg(
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
