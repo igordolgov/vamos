@@ -86,7 +86,7 @@ export const RU = {
   'practice.likeToast': 'В коллекции — фраза будет попадаться чаще',
   'practice.dislikeToast': 'Хорошо — эта фраза больше не будет показываться',
   'practice.listenAll': 'Послушать целиком',
-  'practice.mic': 'Записать себя',
+  'practice.mic': 'Записать',
   'practice.micStop': 'Стоп',
   'practice.micPlayRef': 'Эталон',
   'practice.micPlayMine': 'Моя запись',
