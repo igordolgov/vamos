@@ -299,11 +299,11 @@ div.mb-2(v-if="mode === 'menu'")
   // Плитки показываются не все сразу, а шаг за шагом — верное слово
   // среди похожих (вопросительные с вопросительными, формы глагола
   // с формами того же глагола)
-  .flex.flex-col.items-center.gap-1.mt-1.mb-2(class="max-w-2xl mx-auto")
+  .flex.flex-col.items-center.gap-1.mt-1.mb-2(class="mx-auto max-w-2xl")
     label.flex.items-center.gap-2.cursor-pointer.select-none
       input.toggle.toggle-sm.toggle-primary(type="checkbox" :checked="stagedBuild" @change="toggleStaged($event)")
       span.text-sm.font-medium {{ t('practice.staged') }}
-    p.text-xs.text-center(class="text-base-content/50 max-w-md") {{ t('practice.stagedHint') }}
+    p.text-xs.text-center(class="max-w-md text-base-content/50") {{ t('practice.stagedHint') }}
 
 // Сессия: свайп после ответа листает к следующему упражнению
 .max-w-xl.mx-auto(
@@ -398,7 +398,7 @@ div.mb-2(v-if="mode === 'menu'")
     template(v-else-if="current.kind === 'audio'")
       .card.bg-base-100.shadow-lg.border.border-base-300.w-full.mb-2
         .card-body.p-3.items-center(class="gap-1.5")
-          p(class="text-sm text-base-content/60") {{ t('practice.listen') }}
+          //- p(class="text-sm text-base-content/60") {{ t('practice.listen') }}
           // Белая иконка на зелёном: рупор + две звуковые волны
           button.btn.btn-circle.btn-md.btn-success(@click="speakAudio()" :aria-label="t('practice.listen')")
             svg(

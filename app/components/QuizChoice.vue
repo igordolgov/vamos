@@ -64,7 +64,7 @@ function btnClass(index: number): string {
     // Вопрос (на мобильном чуть меньше — карточка должна уместиться
     // на экране вместе с вариантами и фидбеком)
     .text-center
-      p.text-2xl.font-bold.mb-1(class="sm:text-3xl sm:mb-2 text-base-content/60" v-if="questionRu") {{ questionRu }}
+      p.text-2xl.font-bold.mb-1(class="sm:mb-2 text-base-content/60 sm:text-3xl" v-if="questionRu") {{ questionRu }}
       .flex.items-center.justify-center.gap-2(v-if="questionEs")
         h2.text-2xl.font-bold.text-primary(class="sm:text-3xl") {{ questionEs }}
         SpeakButton(:text="questionEs")
@@ -73,7 +73,7 @@ function btnClass(index: number): string {
     // компактные на мобильном (py-1.5/text-base), на sm+ — крупнее
     .grid.grid-cols-2(class="gap-1.5 sm:gap-2")
       button.btn.justify-start.text-left.normal-case(
-        class="py-1.5 sm:py-3 h-auto"
+        class="p-1.5 sm:py-3 h-auto"
         v-for="(option, i) in options"
         :key="i"
         :class="btnClass(i)"
@@ -92,21 +92,21 @@ function btnClass(index: number): string {
     // не сдвигается при появлении результата. Подпись «Верный ответ:»
     // и сам ответ — на отдельных строках; min-h-20 (5rem) держит
     // подпись + две строки длинного ответа (максимум 43 символа)
-    .min-h-20.flex.items-center.justify-center
+    .min-h-10.flex.items-center.justify-center
       div.text-center.animate-feedback(v-if="revealed")
         template(v-if="isCorrect")
           p.text-2xl.font-bold.text-success ✓ {{ t('practice.correct') }}
         template(v-else)
-          p.text-base.font-semibold.text-error(class="sm:text-lg") ✗ {{ t('practice.answerWas') }}
-          p.text-xl.font-bold.text-base-content(class="sm:text-2xl") {{ options[answerIndex] }}
+          //- p.text-base.font-semibold.text-error(class="sm:text-lg") ✗ {{ t('practice.answerWas') }}
+          //- p.text-xl.font-bold.text-base-content(class="sm:text-2xl") {{ options[answerIndex] }}
           // Почему выбранный вариант неверен: что он на самом деле означает
-          p.text-sm(class="mt-0.5 text-error/70" v-if="pickedNote") {{ pickedNote }}
+          p.text-lg.font-semibold(class="mt-0.5 text-error" v-if="pickedNote") {{ pickedNote }}
 
     // Объяснение ошибки: почему легко путать и лайфхак запоминания,
     // пример употребления. Появляется только при неверном ответе —
     // карточка вырастает один раз, всё объяснение читается до «Дальше»
     .w-full(v-if="revealed && !isCorrect && tip")
-      .rounded-xl.text-left(class="p-2 bg-warning/10 border border-warning/30")
+      .rounded-xl.text-left(class="bg-warning/10 p-2 border border-warning/30")
         p.text-sm(class="leading-snug")
           | 💡 <b>{{ t('practice.tipWhy') }}:</b> {{ tip.why }}
         p.text-sm(class="mt-0.5 leading-snug")

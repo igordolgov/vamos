@@ -113,12 +113,13 @@ onBeforeUnmount(() => {
       | {{ recording ? t('practice.micStop') : t('practice.mic') }}
     // Сравнение: после первой записи
     template(v-if="recordingUrl")
-      button.btn.btn-sm.btn-outline(@click="playReference()")
-        span(aria-hidden="true") 🔊
-        | {{ t('practice.micPlayRef') }}
-      button.btn.btn-sm.btn-outline(@click="playMine()")
-        span(aria-hidden="true") ▶
-        | {{ t('practice.micPlayMine') }}
-  p(class="text-xs text-base-content/50 mt-1 text-center" v-if="denied")
+      div
+        button.btn.btn-sm.btn-outline.mr-2(@click="playReference()")
+          span(aria-hidden="true") 🔊
+          | {{ t('practice.micPlayRef') }}
+        button.btn.btn-sm.btn-outline(@click="playMine()")
+          span(aria-hidden="true") ▶
+          | {{ t('practice.micPlayMine') }}
+  p(class="mt-1 text-xs text-base-content/50 text-center" v-if="denied")
     | {{ t('practice.micUnavailable') }}
 </template>
