@@ -1132,7 +1132,7 @@ export function npEs(fill: Fill, role: string): string {
 
 /** Русская именная группа по заполнению np-юнита.
  *  opts.articleHint — подсказка артикля в промпте: «(какой-то) маленький хлеб»
- *  (el/la → «конкретный», un/una → «какой-то» — жалобa: промпт не отличает
+ *  (el/la → «известный», un/una → «какой-то» — жалобa: промпт не отличает
  *  «El maestro quiere un pan pequeño» от «Un maestro quiere el pan pequeño») */
 export function npRu(fill: Fill, role: string, opts: { articleHint?: boolean } = {}): string {
   const noun = fill[`${role}#noun`] as Word

@@ -85,10 +85,10 @@ describe('le/les — получатель (dar, escribir, decir)', () => {
     walkFills(t, KNOWN, (fill, kind) => {
       if (kind === 'aff') phrases.push(t.ru(fill, kind))
     }, { maxLeaves: 30_000 })
-    // счётное всегда с артиклем: un → «(какую-то)», el → «(конкретную)»
+    // счётное всегда с артиклем: un → «(какую-то)», el → «(известную)»
     // (подсказки артиклей — «Le doy un libro» ↔ «Le doy el libro» различимы)
     expect(phrases).toContain('Я даю ему (какую-то) книгу')
-    expect(phrases).toContain('Я даю ему (конкретную) книгу')
+    expect(phrases).toContain('Я даю ему (известную) книгу')
     expect(phrases).toContain('Ты даёшь мне (какую-то) книгу')
     expect(phrases.some((p) => p.startsWith('Вы даёте нам '))).toBe(true)
     // без мусора и незаполненных мест
@@ -115,7 +115,7 @@ describe('le/les — получатель (dar, escribir, decir)', () => {
     walkFills(decir, KNOWN, (fill, kind) => {
       if (kind === 'aff') phrases.push(decir.ru(fill, kind))
     }, { maxLeaves: 30_000 })
-    // verdad — счётное, всегда с артиклем → подсказка «(конкретную)/(какую-то)»
+    // verdad — счётное, всегда с артиклем → подсказка «(известную)/(какую-то)»
     expect(phrases.some((p) => /^Я говорю ему .*правду$/.test(p))).toBe(true)
     for (const p of phrases) {
       expect(p).toMatch(/^(Я|Ты|Вы) (не )?(говорю|говоришь|говорит|говорим|говорите)/)

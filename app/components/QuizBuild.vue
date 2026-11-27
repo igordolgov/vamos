@@ -23,6 +23,7 @@ import { computed, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
 import type { WordTip } from '#shared/data/word-tips'
 import { targetedHint } from '#shared/phrases/diff-hint'
+import { splitRuPrompt } from '#shared/phrases/ru'
 
 const props = defineProps<{
   tiles: string[]
@@ -243,14 +244,27 @@ const focusHint = computed<string | null>(() => {
   if (!revealed.value || isCorrect.value) return null
   return targetedHint(builtWords.value, props.answerTiles, props.altAnswers)
 })
+
+// ============================================================
+// Подсказки в скобках («(известный)», «(какой-то)») — серым обычным
+// шрифтом: это служебные метки артикля, а не слова для сборки.
+// В обеих темах приглушённый цвет различим, но не спорит с заданием.
+// ============================================================
+const hintParts = computed(() => splitRuPrompt(props.hint ?? ''))
 </script>
 
 <template lang="pug">
 .card.bg-base-100.shadow-lg.border.border-base-300.w-full
   .card-body(class="gap-2 sm:gap-3 p-3 sm:p-4")
-    // Подсказка-перевод (задание)
+    // Подсказка-перевод (задание). Части в скобках — подсказки артикля:
+    // серый нежирный шрифт (span-части), задание — жирным целиком
     .text-center
-      h2.text-xl.font-bold.text-base-content(class="sm:text-2xl") {{ hint }}
+      h2.text-xl.font-bold.text-base-content(class="sm:text-2xl")
+        span(
+          v-for="(p, i) in hintParts"
+          :key="i"
+          :class="p.hint ? 'font-normal text-base-content/50' : ''"
+        ) {{ p.text }}
 
     // Собранная фраза: зона заранее держит ДВЕ строки плиток.
     // Расчёт резерва: 2 строки × 40px + перенос 4px + паддинг p-2 (16px)
@@ -342,9 +356,12 @@ const focusHint = computed<string | null>(() => {
           p.text-sm.mt-1(class="leading-snug" v-if="tip.ex")
             | 💬 <b>{{ t('practice.tipEx') }}:</b> «{{ tip.ex.es }}» — {{ tip.ex.ru }}
 
-    // Кнопка: до проверки — «Проверить», после — «Дальше» (на том же месте)
+    // Кнопка: до проверки — «Проверить», после — «Дальше» (на том же месте).
+    // «Проверить»: тёмно-зелёный фон + ЯВНЫЙ белый текст — в обеих темах
+    // контраст ≥ 4.5:1 (без text-white DaisyUI кладёт base-content: на
+    // светлой теме тёмный текст на тёмно-зелёном сливается)
     button.btn.text-lg(
-      :class="revealed ? 'btn-primary' : 'bg-green-800'"
+      :class="revealed ? 'btn-primary' : 'bg-green-800 text-white'"
       :disabled="!revealed && builtWords.length === 0"
       @click="revealed ? emit('next') : check()"
     ) {{ revealed ? t('practice.next') : t('practice.check') }}

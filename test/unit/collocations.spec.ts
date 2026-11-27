@@ -271,9 +271,9 @@ describe('Примеры из жалоб — больше не генериру�
     const t = TEMPLATES.find((x) => x.id === 't-noun-ser-adj')!
     const phrases = enumerateTemplate(t, ALL, 0, 100_000).phrases
     // подсказка артикля подлежащего: «El carro es nuevo» ↔ «Un carro es nuevo»
-    expect(phrases.some((p) => p.ru === '(Конкретное) молоко — дорогое')).toBe(true)
-    expect(phrases.some((p) => p.ru === '(Конкретное) молоко — очень вкусное')).toBe(true)
-    expect(phrases.some((p) => p.ru === '(Конкретная) машина — красивая')).toBe(true)
+    expect(phrases.some((p) => p.ru === '(Известное) молоко — дорогое')).toBe(true)
+    expect(phrases.some((p) => p.ru === '(Известное) молоко — очень вкусное')).toBe(true)
+    expect(phrases.some((p) => p.ru === '(Известная) машина — красивая')).toBe(true)
     for (const p of phrases) {
       // «Молоко — дорогой» (сбиты род/скобки) больше не генерируется
       expect(p.ru, p.ru).not.toBe('Молоко — дорогой')
@@ -362,9 +362,9 @@ describe('Примеры из жалоб — больше не генериру�
       expect(p.ru, p.ru).not.toBe('Кровать — лёгкая')
       expect(p.ru, p.ru).not.toBe('Деньги — лёгкие')
     }
-    expect(phrases.some((p) => p.ru === '(Конкретное) молоко — вкусное')).toBe(true)
-    expect(phrases.some((p) => p.ru === '(Конкретная) кровать — новая')).toBe(true)
-    expect(phrases.some((p) => p.ru === '(Конкретное) время — трудное')).toBe(true)
+    expect(phrases.some((p) => p.ru === '(Известное) молоко — вкусное')).toBe(true)
+    expect(phrases.some((p) => p.ru === '(Известная) кровать — новая')).toBe(true)
+    expect(phrases.some((p) => p.ru === '(Известное) время — трудное')).toBe(true)
   })
 
   it('«Я — дешёвый» — местоимение + качественное прилагательное согласован по смыслу', () => {

@@ -3,21 +3,24 @@
 // «странных выражений» из жалоб пользователя.
 //
 // 1. «El maestro quiere un pan pequeño» и «Un maestro quiere el pan pequeño»
-//    отвечали одному и тому же промпту — теперь el/la → «(конкретный)»,
-//    un/una → «(какой-то)» на месте артикля.
-// 2. «Я нуждаюсь стол» → «Мне нужна машина» (necesitar + NP).
-// 3. «Они не учатся русский язык» → «Они не изучают русский язык» (estudiar).
-// 4. «Они платят хлеб» → «Они платят за хлеб» (pagar).
-// 5. «Что ты нуждаешься?» → «Что тебе нужно?» (¿Qué necesitas?).
-// 6. «Сестра — семья» больше не генерируется (familia — не профессия).
-// 7. «Учительници» → «учительницы» (ц → ы в окончаниях).
-// 8. «Какая машина?» → «Которая машина?» (¿Cuál es el carro? — выбор).
-// 9. «Маленькая соль», «горячее окно» — коллокации.
+//    отвечали одному и тому же промпту — теперь el/la → «(известный)»,
+//    un/una → «(какой-то)» на месте артикля (форма согласуется с
+//    существительным: известный/известное/известная/известные).
+// 2. «мой/этот/много» сами заменяют артикль — подсказки НЕТ.
+// 3. «Я нуждаюсь стол» → «Мне нужна машина» (necesitar + NP).
+// 4. «Они не учатся русский язык» → «Они не изучают русский язык» (estudiar).
+// 5. «Они платят хлеб» → «Они платят за хлеб» (pagar).
+// 6. «Что ты нуждаешься?» → «Что тебе нужно?» (¿Qué necesitas?).
+// 7. «Сестра — семья» больше не генерируется (familia — не профессия).
+// 8. «Учительници» → «учительницы» (ц → ы в окончаниях).
+// 9. «Какая машина?» → «Которая машина?» (¿Cuál es el carro? — выбор).
+// 10. «Маленькая соль», «горячее окно» — коллокации.
 // ============================================================
 
 import { describe, expect, it } from 'vitest'
 import { TEMPLATES } from '../../shared/phrases/templates'
 import { enumerateTemplate, walkFills } from '../../shared/phrases/engine'
+import { ruArticleHint, splitRuPrompt } from '../../shared/phrases/ru'
 import { getWord, ALL_WORDS } from '../../shared/data/words'
 import { ruPlural } from '../../shared/phrases/ru-morph'
 import type { Fill } from '../../shared/types'
@@ -31,7 +34,7 @@ const T = (id: string) => {
 }
 
 describe('Подсказки артиклей в русском промпте', () => {
-  it('«El maestro quiere un pan pequeño» → «(Конкретный) учитель хочет (какой-то) маленький хлеб»', () => {
+  it('«El maestro quiere un pan pequeño» → «(Известный) учитель хочет (какой-то) маленький хлеб»', () => {
     const t = T('t-noun-v-do-adj')
     const fill = {
       v: w('v-querer'),
@@ -39,10 +42,10 @@ describe('Подсказки артиклей в русском промпте',
       'o#noun': w('n-pan'), 'o#num': 'sg', 'o#det': w('d-un'), 'o#adj': w('a-pequeno'),
     } as unknown as Fill
     expect(t.render(fill, 'aff')).toBe('El maestro quiere un pan pequeño')
-    expect(t.ru(fill, 'aff')).toBe('(Конкретный) учитель хочет (какой-то) маленький хлеб')
+    expect(t.ru(fill, 'aff')).toBe('(Известный) учитель хочет (какой-то) маленький хлеб')
   })
 
-  it('«Un maestro quiere el pan pequeño» → «(Какой-то) учитель хочет (конкретный) маленький хлеб»', () => {
+  it('«Un maestro quiere el pan pequeño» → «(Какой-то) учитель хочет (известный) маленький хлеб»', () => {
     const t = T('t-noun-v-do-adj')
     const fill = {
       v: w('v-querer'),
@@ -50,7 +53,7 @@ describe('Подсказки артиклей в русском промпте',
       'o#noun': w('n-pan'), 'o#num': 'sg', 'o#det': w('d-el'), 'o#adj': w('a-pequeno'),
     } as unknown as Fill
     expect(t.render(fill, 'aff')).toBe('Un maestro quiere el pan pequeño')
-    expect(t.ru(fill, 'aff')).toBe('(Какой-то) учитель хочет (конкретный) маленький хлеб')
+    expect(t.ru(fill, 'aff')).toBe('(Какой-то) учитель хочет (известный) маленький хлеб')
   })
 
   it('падеж подсказки: «Veo a una maestra» → «вижу (какую-то) учительницу»', () => {
@@ -74,6 +77,27 @@ describe('Подсказки артиклей в русском промпте',
     expect(t.ru(fill, 'aff')).toBe('(Какие-то) отцы едят еду')
   })
 
+  it('мн.ч. у «las»: «Las madres comen comida» → «(Известные) матери едят еду»', () => {
+    const t = T('t-noun-v-do')
+    const fill = {
+      v: w('v-comer'),
+      's#noun': w('n-madre'), 's#num': 'pl', 's#det': w('d-las'), 's#adj': null,
+      'o#noun': w('n-comida'), 'o#num': 'sg', 'o#det': null, 'o#adj': null,
+    } as unknown as Fill
+    expect(t.render(fill, 'aff')).toBe('Las madres comen comida')
+    expect(t.ru(fill, 'aff')).toBe('(Известные) матери едят еду')
+  })
+
+  it('падеж «известная»: «Veo a la maestra» → «вижу (известную) учительницу»', () => {
+    const t = T('t-pron-v-person')
+    const fill = {
+      s: w('p-yo'), v: w('v-ver'),
+      'o#noun': w('n-maestra'), 'o#num': 'sg', 'o#det': w('d-la'), 'o#adj': null,
+    } as unknown as Fill
+    expect(t.render(fill, 'aff')).toBe('Yo veo a la maestra')
+    expect(t.ru(fill, 'aff')).toBe('Я вижу (известную) учительницу')
+  })
+
   it('предлог: «Trabajo en una escuela» → «работаю в (какой-то) школе»', () => {
     const t = T('t-pron-v-prep-np')
     const fill = {
@@ -90,11 +114,11 @@ describe('Подсказки артиклей в русском промпте',
     expect(phrases.length).toBe(total)
     expect(phrases.some((p) => p.ru.startsWith('У меня есть семья'))).toBe(true)
     for (const p of phrases) {
-      expect(p.ru, p.ru).not.toMatch(/\((конкретн|как[а-яё]*-то)/)
+      expect(p.ru, p.ru).not.toMatch(/\((известн|как[а-яё]*-то)/)
     }
   })
 
-  it('casa — голая форма без подсказки («Я дома», не «Я дома (конкретном)»)', () => {
+  it('casa — голая форма без подсказки («Я дома», не «Я дома (известном)»)', () => {
     const t = T('t-pron-estar-place')
     const fill = {
       s: w('p-yo'),
@@ -115,6 +139,58 @@ describe('Подсказки артиклей в русском промпте',
   })
 })
 
+describe('мой/этот сами делают предмет известным — подсказки НЕТ', () => {
+  it('ruArticleHint: притяжательные/указательные/количество — пусто', () => {
+    // подсказка ставится только на месте настоящего артикля
+    expect(ruArticleHint(w('n-telefono'), w('d-el'), 'sg')).toBe(' (известный)')
+    expect(ruArticleHint(w('n-libro'), w('d-el'), 'sg')).toBe(' (известная)')
+    expect(ruArticleHint(w('n-libro'), w('d-un'), 'sg')).toBe(' (какая-то)')
+    expect(ruArticleHint(w('n-telefono'), w('p-mi'), 'sg')).toBe('')
+    expect(ruArticleHint(w('n-mujer'), w('p-este'), 'sg')).toBe('')
+    expect(ruArticleHint(w('n-pan'), w('d-mucho'), 'sg')).toBe('')
+    expect(ruArticleHint(w('n-libro'), null, 'sg')).toBe('')
+  })
+
+  it('«Yo busco mi teléfono» → «Я ищу мой телефон» без «(…)»', () => {
+    const t = T('t-pron-v-do')
+    const fill = {
+      s: w('p-yo'), v: w('v-buscar'),
+      'o#noun': w('n-telefono'), 'o#num': 'sg', 'o#det': w('p-mi'), 'o#adj': null,
+    } as unknown as Fill
+    expect(t.render(fill, 'aff')).toBe('Yo busco mi teléfono')
+    expect(t.ru(fill, 'aff')).toBe('Я ищу мой телефон')
+    expect(t.ru(fill, 'aff')).not.toMatch(/\(/)
+  })
+
+  it('«Yo conozco a esta mujer» → «Я знаю эту женщину» без «(…)»', () => {
+    const t = T('t-pron-v-person')
+    const fill = {
+      s: w('p-yo'), v: w('v-conocer'),
+      'o#noun': w('n-mujer'), 'o#num': 'sg', 'o#det': w('p-este'), 'o#adj': null,
+    } as unknown as Fill
+    expect(t.render(fill, 'aff')).toBe('Yo conozco a esta mujer')
+    expect(t.ru(fill, 'aff')).toBe('Я знаю эту женщину')
+    expect(t.ru(fill, 'aff')).not.toMatch(/\(/)
+  })
+
+  it('splitRuPrompt: подсказка в скобках — отдельная приглушённая часть', () => {
+    expect(splitRuPrompt('Она ждёт (известный) автобус')).toEqual([
+      { text: 'Она ждёт ', hint: false },
+      { text: '(известный)', hint: true },
+      { text: ' автобус', hint: false },
+    ])
+    expect(splitRuPrompt('Я вижу (известную) учительницу и (какой-то) дом')).toEqual([
+      { text: 'Я вижу ', hint: false },
+      { text: '(известную)', hint: true },
+      { text: ' учительницу и ', hint: false },
+      { text: '(какой-то)', hint: true },
+      { text: ' дом', hint: false },
+    ])
+    // без подсказок — одна часть
+    expect(splitRuPrompt('Мне нужно время')).toEqual([{ text: 'Мне нужно время', hint: false }])
+  })
+})
+
 describe('necesitar — «Мне нужна машина» (не «Я нуждаюсь машина»)', () => {
   const need = (noun: string, det: string | null) => ({
     s: w('p-yo'), v: w('v-necesitar'),
@@ -127,7 +203,7 @@ describe('necesitar — «Мне нужна машина» (не «Я нужда
     expect(t.ru(need('n-cama', 'd-una'), 'aff')).toBe('Мне нужна (какая-то) кровать')
     expect(t.ru(need('n-tiempo', null), 'aff')).toBe('Мне нужно время')
     expect(t.ru(need('n-pan', 'd-mucho'), 'aff')).toBe('Мне нужно много хлеба')
-    expect(t.ru(need('n-mesa', 'd-la'), 'neg')).toBe('Мне не нужен (конкретный) стол')
+    expect(t.ru(need('n-mesa', 'd-la'), 'neg')).toBe('Мне не нужен (известный) стол')
   })
 
   it('«¿Qué necesitas?» → «Что тебе нужно?»', () => {
@@ -198,7 +274,7 @@ describe('pagar — «платить за …»', () => {
       's#noun': w('n-hombre'), 's#num': 'pl', 's#det': w('d-los'), 's#adj': null,
       'o#noun': w('n-pan'), 'o#num': 'sg', 'o#det': null, 'o#adj': null,
     } as unknown as Fill
-    expect(t.ru(fill, 'aff')).toBe('(Конкретные) мужчины платят за хлеб')
+    expect(t.ru(fill, 'aff')).toBe('(Известные) мужчины платят за хлеб')
   })
 
   it('«¿Qué pagas?» больше не генерируется', () => {
@@ -227,7 +303,7 @@ describe('ser-профессии — собирательные исключен
       's#noun': w('n-hermana'), 's#num': 'sg', 's#det': w('d-la'), 's#adj': null,
     } as unknown as Fill
     expect(t.render(fill, 'aff')).toBe('La hermana es maestra')
-    expect(t.ru(fill, 'aff')).toBe('(Конкретная) сестра — учительница')
+    expect(t.ru(fill, 'aff')).toBe('(Известная) сестра — учительница')
   })
 })
 

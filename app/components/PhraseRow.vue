@@ -6,6 +6,7 @@
 import { computed } from 'vue'
 import { KIND_LABELS } from '#shared/phrases/schema'
 import type { PhraseKind } from '#shared/phrases/schema'
+import { splitRuPrompt } from '#shared/phrases/ru'
 import { useT, useLocale } from '~/composables/useI18n'
 import SpeakButton from './SpeakButton.vue'
 
@@ -18,6 +19,9 @@ const props = defineProps<{
 const t = useT()
 const locale = useLocale()
 const kindLabel = computed(() => KIND_LABELS[props.kind])
+/** Подсказки в скобках («(известный)») — приглушённым шрифтом, как
+ *  в упражнении «Сборка фразы»: метка артикля, а не перевод */
+const ruParts = computed(() => splitRuPrompt(props.ru))
 const kindBadge = computed(() => {
   if (props.kind === 'aff') return 'badge-success'
   if (props.kind === 'neg') return 'badge-error'
@@ -33,6 +37,11 @@ const kindBadge = computed(() => {
       .font-semibold.text-primary.flex.items-center.gap-2
         span.break-words {{ es }}
         SpeakButton(:text="es" :label="t('phrases.listen')")
-      .text-sm(class="mt-0.5 text-base-content/70") {{ ru }}
+      .text-sm(class="mt-0.5 text-base-content/70")
+        span(
+          v-for="(p, i) in ruParts"
+          :key="i"
+          :class="p.hint ? 'font-normal text-base-content/45' : ''"
+        ) {{ p.text }}
     span.badge.badge-sm(:class="kindBadge") {{ kindLabel[locale === 'es' ? 'es' : 'ru'] }}
 </template>

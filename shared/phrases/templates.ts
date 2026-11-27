@@ -925,10 +925,18 @@ export const TEMPLATES: Template[] = [
       const noun = fill['o#noun'] as Word
       const detO = fill['o#det'] as Word | null
       const ruCaseKey = PERSON_VERB_RU_CASE[v.id] ?? 'a'
-      // подсказка артикля: «Veo a una maestra» → «вижу (какую-то) учительницу»
+      // подсказка артикля: «Veo a una maestra» → «вижу (какую-то) учительницу»;
+      // мой/этот артикль заменяют собой — их видно в переводе: «вижу мою мать»
       const hint = ruArticleHint(noun, detO, 'sg', ruHintCaseFor(ruCaseKey))
       const caseForm = noun.ruCases?.[ruCaseKey] ?? ruAccusative(noun)
-      const ruNoun = hint ? `${hint.trim()} ${caseForm}` : caseForm
+      const parts: string[] = []
+      if (hint) parts.push(hint.trim())
+      const isArticle = !!detO?.det?.definite || !!detO?.det?.indefinite
+      if (detO && !isArticle && !detO.det?.quantity) {
+        parts.push(ruDetForm(detO, noun.ruGender ?? 'm', 'sg', 'acc'))
+      }
+      parts.push(caseForm)
+      const ruNoun = parts.join(' ')
       const ruCore = `${capitalize(ruPron(p))} ${ruVerbP(v, p)} ${ruNoun}`
       if (kind === 'neg') return `${capitalize(ruPron(p))} не ${ruVerbP(v, p)} ${ruNoun}`
       return kind === 'yesno' ? `${ruCore}?` : ruCore
@@ -1113,7 +1121,15 @@ export const TEMPLATES: Template[] = [
       const ruCaseKey = PERSON_VERB_RU_CASE[v.id] ?? 'a'
       const hint = ruArticleHint(noun, detO, 'sg', ruHintCaseFor(ruCaseKey))
       const caseForm = noun.ruCases?.[ruCaseKey] ?? ruAccusative(noun)
-      const ruNoun = hint ? `${hint.trim()} ${caseForm}` : caseForm
+      // мой/этот заменяют артикль — их видно в переводе: «знает эту женщину»
+      const parts: string[] = []
+      if (hint) parts.push(hint.trim())
+      const isArticleO = !!detO?.det?.definite || !!detO?.det?.indefinite
+      if (detO && !isArticleO && !detO.det?.quantity) {
+        parts.push(ruDetForm(detO, noun.ruGender ?? 'm', 'sg', 'acc'))
+      }
+      parts.push(caseForm)
+      const ruNoun = parts.join(' ')
       const ruForm = ruVerbI(v, 2)
       if (kind === 'neg') return `${capitalize(np)} не ${ruForm} ${ruNoun}`
       if (kind === 'yesno') return `${capitalize(np)} ${ruForm} ${ruNoun}?`
