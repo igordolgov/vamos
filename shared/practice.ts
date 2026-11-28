@@ -443,29 +443,58 @@ export function phraseChoiceExercise(
 }
 
 /**
+ * Оценка ширины плитки в пикселях: 16px-шрифт (текст-base), паддинги
+ * px-2.5 (20px), граница и перенос (gap 4px). Оценка ЗАВЫШЕННА
+ * (8px/символ против фактических ~7px латиницы): пул гарантированно
+ * остаётся в пределах бюджета, плитки длинных слов не занижены.
+ */
+export function tileWidthPx(w: string): number {
+  return w.length * 8 + 26
+}
+
+/**
  * Лишние слова-дистракторы для сборки фразы: слова, виденные
  * пользователем, которых нет в ответе — без дубликатов и пунктуации.
  * Если передан known — дистракторы ТОЛЬКО из этого набора (изученные
  * и встречавшиеся слова: незнакомые слова не подмешиваются в плитки).
  * Неизученные вопросительные слова не предлагаются вовсе. Если слов
  * уровня не хватило (первые уроки) — добираем из всего словаря.
+ *
+ * Число дистракторов — БОЛЬШЕ прежних 2–3 (до 5: сборка требует
+ * думать, а не набирать подряд), но пул ограничен ШИРИНОЙ ДВУХ СТРОК
+ * на мобильном (390px → строка пула ~344px): считаем ширину плиток
+ * ответа + добавленных дистракторов и останавливаемся на границе
+ * бюджета. Минимум 2 — пул из одних слов фразы слишком прост
+ * (набирай подряд); первые два добавляются и при превышении бюджета
+ * (длинная фраза), остальные — строго в пределах двух строк.
  */
-function buildDistractors(
+export function buildDistractors(
   answerTiles: string[],
   maxLesson: number,
   rand: () => number,
   known?: Set<string>,
 ): string[] {
-  const n = answerTiles.length <= 3 ? 2 : 3
+  const n = answerTiles.length <= 3 ? 4 : 5
+  const MIN = 2
+  // Бюджет ширины: две строки пула на мобильном (390px минус паддинги
+  // страницы/карточки = ~344px на строку)
+  const TWO_ROW_BUDGET = 2 * 344
   const used = new Set(answerTiles.map((w) => w.toLowerCase()))
+  let widthSum = answerTiles.reduce((s, w) => s + tileWidthPx(w), 0)
   const taken = new Set<string>()
   const out: string[] = []
-  const tryPush = (es: string) => {
-    if (/\s/.test(es)) return // только отдельные слова
+  const tryPush = (es: string): boolean => {
+    if (/\s/.test(es)) return false // только отдельные слова
     const key = es.toLowerCase()
-    if (used.has(key) || taken.has(key) || /[¿?¡!.]/.test(key)) return
+    if (used.has(key) || taken.has(key) || /[¿?¡!.]/.test(key)) return false
+    const w = tileWidthPx(key)
+    // Первые MIN — всегда (пул без дистракторов слишком прост),
+    // остальные — только в пределах двух строк
+    if (out.length >= MIN && widthSum + w > TWO_ROW_BUDGET) return false
     taken.add(key)
+    widthSum += w
     out.push(key)
+    return true
   }
   const seen = new Set<string>()
   const isQw = (w: Word) => w.pos === 'question'

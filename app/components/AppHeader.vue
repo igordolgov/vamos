@@ -20,7 +20,8 @@ header.navbar.shadow-sm.sticky.top-0.z-40(class="px-2 min-h-12! sm:px-4 sm:min-h
     span.hidden(class="md:inline text-xs text-base-content/60 ml-1 sm:text-sm")
       | {{ t('app.tagline') }}
 
-  // Навигация (десктоп)
+  // Навигация (десктоп). Раздел «Фразы» убран по просьбе пользователя —
+  // страница phrases.vue остаётся доступной по прямой ссылке
   .navbar-center.hidden(class="lg:flex")
     ul.menu.menu-horizontal.gap-1.text-sm
       li
@@ -29,8 +30,6 @@ header.navbar.shadow-sm.sticky.top-0.z-40(class="px-2 min-h-12! sm:px-4 sm:min-h
         NuxtLink(to="/lessons") {{ t('nav.lessons') }}
       li
         NuxtLink(to="/words") {{ t('nav.words') }}
-      li
-        NuxtLink(to="/phrases") {{ t('nav.phrases') }}
       li
         NuxtLink(to="/practice") {{ t('nav.practice') }}
       li

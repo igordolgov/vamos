@@ -250,7 +250,7 @@ describe('estudiar — «изучаю» с дополнением, «учусь�
       'o#noun': w('n-ruso'), 'o#num': 'sg', 'o#det': null, 'o#adj': null,
     } as unknown as Fill
     expect(t.render(fill, 'neg')).toBe('Ellos no estudian ruso')
-    expect(t.ru(fill, 'neg')).toBe('Они не изучают русский язык')
+    expect(t.ru(fill, 'neg')).toBe('Они (муж.) не изучают русский язык')
   })
 
   it('«¿Qué estudias?» → «Что ты изучаешь?»', () => {
@@ -321,7 +321,7 @@ describe('русские мн.ч. после «ц» — «ы» (не «и»)', (
   it('«Они — учительницы» во фразах', () => {
     const t = T('t-pron-ser-prof')
     const { phrases } = enumerateTemplate(t, ALL, 0, 120_000)
-    expect(phrases.some((p) => p.ru === 'Они — учительницы')).toBe(true)
+    expect(phrases.some((p) => p.ru === 'Они (жен.) — учительницы')).toBe(true)
   })
 })
 

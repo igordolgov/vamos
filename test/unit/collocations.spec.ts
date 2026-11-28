@@ -420,8 +420,8 @@ describe('Наречия и отрицание', () => {
     const t = TEMPLATES.find((x) => x.id === 't-pron-adv-no-v')!
     const { phrases } = enumerateTemplate(t, ALL, 0, 10_000)
     expect(phrases.some((p) => p.es === 'Yo ya no trabajo')).toBe(true)
-    expect(phrases.some((p) => p.ru === 'Они уже не работают')).toBe(true)
-    expect(phrases.some((p) => p.ru === 'Они ещё не работают')).toBe(true)
+    expect(phrases.some((p) => p.ru === 'Они (муж.) уже не работают')).toBe(true)
+    expect(phrases.some((p) => p.ru === 'Они (муж.) ещё не работают')).toBe(true)
     for (const p of phrases) expect(p.kind).toBe('neg')
   })
 
@@ -429,7 +429,7 @@ describe('Наречия и отрицание', () => {
     const t = TEMPLATES.find((x) => x.id === 't-pron-tampoco-v')!
     const { phrases } = enumerateTemplate(t, ALL, 0, 10_000)
     expect(phrases.some((p) => p.es === 'Ellos tampoco trabajan')).toBe(true)
-    expect(phrases.some((p) => p.ru === 'Они тоже не работают')).toBe(true)
+    expect(phrases.some((p) => p.ru === 'Они (муж.) тоже не работают')).toBe(true)
   })
 
   it('«No siempre trabajan» сохранено, у adverb2 отрицаний нет', () => {

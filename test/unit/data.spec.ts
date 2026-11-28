@@ -197,7 +197,7 @@ describe('Фразы после ранних уроков (1 и 4)', () => {
     const rus = phrases.map((p) => p.ru)
     const ess = phrases.map((p) => p.es)
     expect(rus).toContain('Я работаю')
-    expect(rus).toContain('Они не пишут')
+    expect(rus).toContain('Они (муж.) не пишут')
     expect(rus).toContain('Ты живёшь?')
     expect(ess).toContain('Yo trabajo')
     expect(ess).toContain('Ellos no escriben')

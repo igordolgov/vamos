@@ -75,13 +75,16 @@ section.hero.bg-base-100.rounded-2xl.shadow-sm.border.border-base-300.mb-2
       p.mt-1(class="text-base-content/60")
         | {{ t('dash.stats.wordsTotal', { n: WORD_COUNT }) }} ·
         | {{ t('dash.stats.phrasesTotal', { n: phrases.total.toLocaleString('ru-RU') }) }}
-      // Личный счётчик: сколько фраз ТЫ уже можешь сказать от выученных слов
-      p(class="mt-0.5 font-semibold text-secondary")
+      // Личный счётчик: сколько фраз ТЫ уже можешь сказать от выученных слов.
+      // Скрывается до первой выученной фразы — «0 фраз» не мотивирует
+      p(class="mt-0.5 font-semibold text-secondary" v-if="phrases.known > 0")
         | {{ t('dash.stats.phrasesYou', { n: phrasesYou, w: phrasesYouWord }) }}
       NuxtLink.btn.btn-primary.mt-1.btn-sm(class="lg:btn-md" :to="`/lessons/${nextLesson.number}`") {{ t('dash.continue') }}
 
     .flex.gap-3.mt-2(class="lg:mt-0")
-      StreakWidget(:streak="streak")
+      // Серия дней: бейдж появляется СО ВТОРОГО дня подряд —
+      // «1 день подряд» на первый день выглядит странно
+      StreakWidget(v-if="streak >= 2" :streak="streak")
 
 // Повторение: слова «в процессе» — карточка только когда есть что повторять
 NuxtLink.card.bg-base-100.shadow-sm.border.border-base-300.mb-2.block(to="/practice" v-if="reviewCount > 0")

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 // ============================================================
 // pages/settings.vue — язык интерфейса, тема, размер шрифта,
-// профиль, сброс прогресса и справка о приложении.
+// сброс прогресса и справка о приложении.
+// Регистрация/вход убраны: прогресс хранится локально и не требует
+// профиля (панель AuthPanel удалена по просьбе пользователя)
 // ============================================================
 import { onMounted, ref } from 'vue'
 import { useT, setLocale, useLocale } from '~/composables/useI18n'
@@ -10,7 +12,6 @@ import { applyFontSize, setProgressSetting, useProgress } from '~/composables/us
 import { useInstall } from '~/composables/useInstall'
 import type { Locale } from '#shared/i18n'
 import type { Theme } from '~/composables/useTheme'
-import AuthPanel from '~/components/AuthPanel.vue'
 
 const t = useT()
 const locale = useLocale()
@@ -79,9 +80,6 @@ h1.text-2xl.font-bold.text-primary.mb-2 {{ t('set.title') }}
           option(value="s") {{ t('set.fontSize.s') }}
           option(value="m") {{ t('set.fontSize.m') }}
           option(value="l") {{ t('set.fontSize.l') }}
-
-// Профиль и синхронизация
-AuthPanel.mb-2
 
 // Установка PWA: Chromium/Android — кнопка системного диалога;
 // iOS Safari — системного диалога НЕТ, показываем инструкцию

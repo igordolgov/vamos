@@ -166,6 +166,25 @@ describe('QuizChoice', () => {
     expect(wrapper.emitted('next')).toBeTruthy()
   })
 
+  it('вопрос RU→ES: скобочные подсказки («вы (вежл.)») серым', () => {
+    const wrapper = mount(QuizChoice, {
+      props: {
+        questionRu: 'вы (вежл.)',
+        options: ['usted', 'ustedes', 'él', 'ella'],
+        answerIndex: 0,
+      },
+    })
+    // части подсказки рендерятся отдельным span с приглушённым цветом
+    const spans = wrapper.findAll('p span')
+    const hint = spans.find((s) => s.text() === '(вежл.)')
+    expect(hint, 'подсказка «(вежл.)» отдельным span').toBeTruthy()
+    expect(hint!.classes()).toContain('text-base-content/50')
+    // обычный текст — без подсказочного класса
+    const main = spans.find((s) => s.text().includes('вы'))
+    expect(main).toBeTruthy()
+    expect(main!.classes()).not.toContain('text-base-content/50')
+  })
+
   it('зона результата зарезервирована до ответа — карточка не меняет размер', () => {
     const wrapper = mount(QuizChoice, {
       props: { questionEs: 'casa', options: ['дом', 'еда', 'книга', 'ночь'], answerIndex: 0 },
@@ -183,11 +202,18 @@ describe('QuizChoice', () => {
 })
 
 describe('StreakWidget', () => {
-  it('склонение дней: 1 день / 2 дня / 5 дней', () => {
-    expect(mount(StreakWidget, { props: { streak: 1 } }).text()).toContain('1 день')
+  it('склонение дней: 2 дня / 5 дней / 21 день', () => {
     expect(mount(StreakWidget, { props: { streak: 2 } }).text()).toContain('2 дня')
     expect(mount(StreakWidget, { props: { streak: 5 } }).text()).toContain('5 дней')
     expect(mount(StreakWidget, { props: { streak: 21 } }).text()).toContain('21 день')
+  })
+
+  it('бейдж появляется СО ВТОРОГО дня: streak 1 — виджет не рисуется', () => {
+    // Просьба пользователя: «1 день подряд» на первой странице выглядит
+    // странно — серия ещё не началась
+    const first = mount(StreakWidget, { props: { streak: 1 } })
+    expect(first.text()).not.toContain('день')
+    expect(first.find('.border').exists()).toBe(false)
   })
 })
 

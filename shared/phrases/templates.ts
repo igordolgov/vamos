@@ -12,7 +12,7 @@ import { getWord } from '../data/words'
 import { ALL_WORDS, wordsByPos } from '../data/words'
 import { capitalize, conjugate, gerundOf, joinPrepNP } from './es'
 import { ruAdjForNoun, ruAdjForm, ruArticleHint, ruDetForm, ruGustarForm, ruNounCaseWithDet, ruNounForm, ruNounPhrase } from './ru'
-import { ruAccusative, ruAdjGenitive, ruDetGenitive, ruGenitive } from './ru-morph'
+import { ruAccusative, ruAdjGenitive, ruDetGenitive, ruGenitive, ruGenitivePlural } from './ru-morph'
 import { initEngine, npEs, npNumber, npRu, verbPrepRuKey, adjCompatible } from './engine'
 import { NEG_BEFORE_ADVERB_RU, TENER_NOUN_IDS, TENER_PLURAL_IDS, adjPersonCompatible, verbObjAllowedNouns } from './collocations'
 import type { Fill, PhraseKind, Template } from './schema'
@@ -195,9 +195,15 @@ initEngine(ALL_ADJECTIVES, ALL_WORDS.filter((w) => w.pos === 'noun'))
 // Хелперы рендеринга
 // ============================================================
 
-/** Русское местоимение без скобок: «вы (мн.ч.)» → «вы» */
+/**
+ * Русское местоимение-подлежащее С УТОЧНЕНИЕМ в скобках:
+ * «вы (вежл.)», «вы (мн. ч.)», «они (муж.)», «они (жен.)».
+ * Скобочная часть — подсказка, отличающая омоничные формы
+ * (usted/ustedes → «Вы», ellos/ellas → «Они»); интерфейс показывает
+ * скобки серым (splitRuPrompt) — как подсказки артиклей.
+ */
 function ruPron(pron: Word): string {
-  return (pron.ru[0] ?? pron.es).replace(/\s*\(.*\)\s*/, '')
+  return pron.ru[0] ?? pron.es
 }
 
 /** Индекс русской формы [я, ты, он, мы, вы, они] для местоимения-подлежащего */
@@ -841,6 +847,9 @@ export const TEMPLATES: Template[] = [
         const det = fill['o#det'] as Word | null
         const noun = fill['o#noun'] as Word
         if (kind === 'neg') return `У ${p.pronoun?.ruGen} нет ${ruTenerGenitive(noun, det, null)}`
+        // после «есть» — именительный падеж. Подсказка артикля НЕ нужна:
+        // objDetsForVerb с tener допускает только un/una — пара
+        // детерминирована (правило урока 5)
         const npNom = npRu(fill, 'o')
         if (kind === 'yesno') return `У ${p.pronoun?.ruGen} есть ${npNom}?`
         return `У ${p.pronoun?.ruGen} есть ${npNom}`
@@ -892,7 +901,8 @@ export const TEMPLATES: Template[] = [
         const adj = fill['o#adj'] as Word | null
         const noun = fill['o#noun'] as Word
         if (kind === 'neg') return `У ${p.pronoun?.ruGen} нет ${ruTenerGenitive(noun, det, adj)}`
-        // после «есть» — именительный падеж («У меня есть дешёвая музыка»)
+        // после «есть» — именительный падеж (объект при tener — только
+        // un/una, пара детерминирована — подсказка не нужна)
         const npNom = npRu(fill, 'o')
         if (kind === 'yesno') return `У ${p.pronoun?.ruGen} есть ${npNom}?`
         return `У ${p.pronoun?.ruGen} есть ${npNom}`
@@ -1056,10 +1066,17 @@ export const TEMPLATES: Template[] = [
       if (v.id === 'v-tener') {
         const det = fill['o#det'] as Word | null
         const noun = fill['o#noun'] as Word
-        // после «есть» — именительный падеж («У мужчины есть идея»)
+        // Подлежащее-существительное: род мн.ч. («у родителей») и его
+        // определитель («той девочки», «(известных) родителей») —
+        // раньше мн.ч. и det терялись («Los padres tienen…» → «У отца есть…»).
+        // Объект при tener — только un/una (objDetsForVerb) — без подсказки
+        const sDet = fill['s#det'] as Word | null
+        const subjNum = npNumber(fill, 's')
+        const subjGen = subjNum === 'pl' ? ruGenitivePlural(subj) : ruGenitive(subj)
+        const subjRu = ruNounCaseWithDet(subj, sDet, 'de', subjGen, subjNum)
+        if (kind === 'neg') return `У ${subjRu} нет ${ruTenerGenitive(noun, det, null)}`
         const npNom = npRu(fill, 'o')
-        if (kind === 'neg') return `У ${ruGenitive(subj)} нет ${ruTenerGenitive(noun, det, null)}`
-        return kind === 'yesno' ? `У ${ruGenitive(subj)} есть ${npNom}?` : `У ${ruGenitive(subj)} есть ${npNom}`
+        return kind === 'yesno' ? `У ${subjRu} есть ${npNom}?` : `У ${subjRu} есть ${npNom}`
       }
       if (kind === 'neg') return `${capitalize(np)} не ${ruForm} ${npO}`
       if (kind === 'yesno') return `${capitalize(np)} ${ruForm} ${npO}?`
@@ -1096,10 +1113,14 @@ export const TEMPLATES: Template[] = [
         const det = fill['o#det'] as Word | null
         const adj = fill['o#adj'] as Word | null
         const noun = fill['o#noun'] as Word
-        // после «есть» — именительный падеж («У мужчины есть дешёвая музыка»)
+        // после «есть» — именительный падеж (объект при tener — только
+        // un/una, детерминировано). Определитель ПОДЛЕЖАЩЕГО виден
+        // в промпте: «У той девочки есть …» ↔ «Esa niña tiene…»
+        const sDet = fill['s#det'] as Word | null
+        const subjRu = ruNounCaseWithDet(subj, sDet, 'de', ruGenitive(subj), 'sg')
         const npNom = npRu(fill, 'o')
-        if (kind === 'neg') return `У ${ruGenitive(subj)} нет ${ruTenerGenitive(noun, det, adj)}`
-        return kind === 'yesno' ? `У ${ruGenitive(subj)} есть ${npNom}?` : `У ${ruGenitive(subj)} есть ${npNom}`
+        if (kind === 'neg') return `У ${subjRu} нет ${ruTenerGenitive(noun, det, adj)}`
+        return kind === 'yesno' ? `У ${subjRu} есть ${npNom}?` : `У ${subjRu} есть ${npNom}`
       }
       if (kind === 'neg') return `${capitalize(np)} не ${ruForm} ${npO}`
       if (kind === 'yesno') return `${capitalize(np)} ${ruForm} ${npO}?`
@@ -1851,14 +1872,16 @@ function qwTemplate(id: string, qwId: string, ruQw: string, verbs: Word[]): Temp
   }
 }
 
-/** Русское будущее время: буду/будешь/будет/будем/будете/будут */
+/** Русское будущее время: буду/будешь/будет/будем/будете/будут.
+ *  «он» (p-el) — тоже ЕДИНСТВЕННОЕ число («он будет жить»):
+ *  раньше он попадал в общий «будут» — «он будут жить» (ошибка). */
 function ruFuture(pron: Word): string {
   const id = pron.id
   if (id === 'p-yo') return 'буду'
   if (id === 'p-tu') return 'будешь'
   if (id === 'p-usted' || id === 'p-ustedes') return 'будете'
   if (id === 'p-nosotros') return 'будем'
-  if (id === 'p-ella') return 'будет'
+  if (id === 'p-el' || id === 'p-ella') return 'будет'
   return 'будут'
 }
 

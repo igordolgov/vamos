@@ -200,7 +200,7 @@ describe('Русский рендеринг', () => {
   it('формы русского глагола: «Вы говорите» (не «говорят»)', () => {
     const { phrases } = enumerateTemplate(t('t-pron-v-lang'), ALL, 0, 100)
     const usted = phrases.find((p) => p.es.startsWith('Usted habla'))
-    expect(usted?.ru).toBe('Вы говорите по-испански')
+    expect(usted?.ru).toBe('Вы (вежл.) говорите по-испански')
   })
 })
 
@@ -242,7 +242,7 @@ describe('Согласование числа в ser-шаблоне', () => {
     // Ellos son hermanas → «Они — сёстры» (раньше: «Ellos son hermana» / «Они — сестра»)
     const el = profFill('p-ellos', 'n-hermana')
     expect(t.render(el, 'aff')).toBe('Ellos son hermanas')
-    expect(t.ru(el, 'aff')).toBe('Они — сёстры')
+    expect(t.ru(el, 'aff')).toBe('Они (муж.) — сёстры')
     // Nosotros somos amigos → «Мы — друзья»
     const nos = profFill('p-nosotros', 'n-amigo')
     expect(t.render(nos, 'aff')).toBe('Nosotros somos amigos')
@@ -255,8 +255,8 @@ describe('Согласование числа в ser-шаблоне', () => {
     expect(t.render(ella, 'aff')).toBe('Ella es hermana')
     expect(t.ru(ella, 'aff')).toBe('Она — сестра')
     // отрицание и вопрос тоже согласованы
-    expect(t.ru(profFill('p-ellos', 'n-hermano'), 'neg')).toBe('Они не братья')
-    expect(t.ru(profFill('p-ellos', 'n-hermano'), 'yesno')).toBe('Они — братья?')
+    expect(t.ru(profFill('p-ellos', 'n-hermano'), 'neg')).toBe('Они (муж.) не братья')
+    expect(t.ru(profFill('p-ellos', 'n-hermano'), 'yesno')).toBe('Они (муж.) — братья?')
   })
 })
 

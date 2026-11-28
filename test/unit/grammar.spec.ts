@@ -11,6 +11,7 @@ import { ruAdjForNoun, ruAdjForm, ruDetForm, ruNounPhrase } from '../../shared/p
 import { ruAdjGenitive, ruDetGenitive, ruGenitive, ruPlural, ruAccusative } from '../../shared/phrases/ru-morph'
 import { enumerateTemplate } from '../../shared/phrases/engine'
 import { TEMPLATES, npRuAcc } from '../../shared/phrases/templates'
+import type { Fill } from '../../shared/phrases/schema'
 import { getWord, findWord } from '../../shared/data/words'
 
 describe('Правильные спряжения (все лица, включая vosotros)', () => {
@@ -252,7 +253,7 @@ describe('Русская морфология', () => {
     const rus = phrases.map((p) => p.ru)
     // hacer есть и в estar+герундии → маркер «(вообще)» отличает
     // «hacen» от «están haciendo»
-    expect(rus).toContain('Они делают (вообще) дешёвую музыку')
+    expect(rus).toContain('Они (муж.) делают (вообще) дешёвую музыку')
     expect(rus.some((r) => /дешёвая музык/.test(r))).toBe(false)
   })
 
@@ -284,6 +285,59 @@ describe('Русская морфология', () => {
     const rus = phrases.map((p) => p.ru)
     expect(rus).toContain('У меня есть новая книга')
     expect(rus.some((r) => /есть новую/.test(r))).toBe(false)
+  })
+})
+
+describe('Будущее время и уточнения местоимений (пакет правок)', () => {
+  it('«он будет жить» — будущее с «он» в ЕД.Ч. (не «будут»)', () => {
+    // Ошибка пользователя: «он будут жить», «он не будут учить» —
+    // p-el попадал в общий «будут»
+    const t = TEMPLATES.find((x) => x.id === 't-pron-ir-a-inf')!
+    const fill = { s: getWord('p-el'), v2: getWord('v-vivir') } as unknown as Fill
+    expect(t.render(fill, 'aff')).toBe('Él va a vivir')
+    expect(t.ru(fill, 'aff')).toBe('Он будет жить')
+    expect(t.ru(fill, 'neg')).toBe('Он не будет жить')
+  })
+
+  it('уточнения местоимений-омонимов в скобках: Вы (вежл.)/(мн. ч.), Они (муж.)/(жен.)', () => {
+    // Просьба пользователя: после слова «Вы» уточнять вежл. или мн. ч.
+    // (в скобках и серым); «они» — омоним ellos/ellas
+    const t = TEMPLATES.find((x) => x.id === 't-pron-v-bare')!
+    expect(t.ru({ s: getWord('p-usted'), v: getWord('v-trabajar') } as unknown as Fill, 'aff')).toBe('Вы (вежл.) работаете')
+    expect(t.ru({ s: getWord('p-ustedes'), v: getWord('v-trabajar') } as unknown as Fill, 'aff')).toBe('Вы (мн. ч.) работаете')
+    expect(t.ru({ s: getWord('p-ellos'), v: getWord('v-trabajar') } as unknown as Fill, 'aff')).toBe('Они (муж.) работают')
+    expect(t.ru({ s: getWord('p-ellas'), v: getWord('v-trabajar') } as unknown as Fill, 'aff')).toBe('Они (жен.) работают')
+  })
+})
+
+describe('tener с подлежащим-существительным (t-noun-v-do)', () => {
+  const tenerFill = (sdet: string, snoun: string, snum: 'sg' | 'pl') =>
+    ({
+      's#noun': getWord(snoun),
+      's#det': getWord(sdet),
+      's#num': snum,
+      v: getWord('v-tener'),
+      'o#noun': getWord('n-mesa'),
+      'o#det': getWord('d-una'),
+      'o#num': 'sg',
+      'o#adj': null,
+    }) as unknown as Fill
+
+  it('мн.ч. подлежащего: «У (известных) отцов есть стол» (не «У отца»)', () => {
+    // Раньше «Los padres tienen una mesa» → «У отца есть стол» —
+    // мн.ч. терялся
+    const t = TEMPLATES.find((x) => x.id === 't-noun-v-do')!
+    const fill = tenerFill('d-los', 'n-padre', 'pl')
+    expect(t.render(fill, 'aff')).toBe('Los padres tienen una mesa')
+    expect(t.ru(fill, 'aff')).toBe('У (известных) отцов есть стол')
+    expect(t.ru(fill, 'neg')).toBe('У (известных) отцов нет стола')
+  })
+
+  it('определитель подлежащего виден в промпте: «У той девочки есть стол»', () => {
+    // «Esa niña tiene una mesa» без пометки отвечал бы и «Una niña…»
+    const t = TEMPLATES.find((x) => x.id === 't-noun-v-do')!
+    expect(t.ru(tenerFill('p-ese', 'n-nina', 'sg'), 'aff')).toBe('У той девочки есть стол')
+    expect(t.ru(tenerFill('d-una', 'n-nina', 'sg'), 'aff')).toBe('У (какой-то) девочки есть стол')
   })
 })
 

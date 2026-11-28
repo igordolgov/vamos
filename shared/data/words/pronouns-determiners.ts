@@ -18,13 +18,13 @@ export const PRONOUNS: Word[] = [
   p('p-tu', 'tú', ['ты'], 1, { role: 'subject', person: '2s', impliedGender: 'm', impliedNumber: 'sg', ruGen: 'тебя', ruDat: 'тебе' }, {
     ruHint: 'В Латинской Америке с друзьями и семьёй; «вы» (вежливое) — usted',
   }),
-  p('p-usted', 'usted', ['вы (вежливо)'], 1, { role: 'subject', person: '3s', impliedGender: 'm', impliedNumber: 'sg', ruGen: 'вас', ruDat: 'вам' }, {
+  p('p-usted', 'usted', ['вы (вежл.)'], 1, { role: 'subject', person: '3s', impliedGender: 'm', impliedNumber: 'sg', ruGen: 'вас', ruDat: 'вам' }, {
     ruHint: 'Глагол в форме 3-го лица ед.ч.: usted habla',
   }),
   p('p-el', 'él', ['он'], 1, { role: 'subject', person: '3s', impliedGender: 'm', impliedNumber: 'sg', ruGen: 'него', ruDat: 'ему' }),
   p('p-ella', 'ella', ['она'], 1, { role: 'subject', person: '3s', impliedGender: 'f', impliedNumber: 'sg', ruGen: 'неё', ruDat: 'ей' }),
   p('p-nosotros', 'nosotros', ['мы'], 1, { role: 'subject', person: '1p', impliedGender: 'm', impliedNumber: 'pl', ruGen: 'нас', ruDat: 'нам' }),
-  p('p-ustedes', 'ustedes', ['вы (мн.ч.)'], 1, { role: 'subject', person: '3p', impliedGender: 'm', impliedNumber: 'pl', ruGen: 'вас', ruDat: 'вам' }, {
+  p('p-ustedes', 'ustedes', ['вы (мн. ч.)'], 1, { role: 'subject', person: '3p', impliedGender: 'm', impliedNumber: 'pl', ruGen: 'вас', ruDat: 'вам' }, {
     ruHint: 'В Латинской Америке единственная форма «вы» для мн.ч. (vosotros не используется)',
   }),
   p('p-ellos', 'ellos', ['они (муж.)'], 1, { role: 'subject', person: '3p', impliedGender: 'm', impliedNumber: 'pl', ruGen: 'них', ruDat: 'им' }),

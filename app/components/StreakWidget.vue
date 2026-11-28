@@ -4,12 +4,17 @@
 // Одна строка с правильным склонением для текущей локали:
 //   RU: «1 день подряд» / «2 дня подряд» / «5 дней подряд»
 //   ES: «1 día seguido» / «3 días seguidos»
+// Бейдж появляется СО ВТОРОГО дня подряд (streak >= 2): на первый
+// день «1 день подряд» выглядит странно — серия ещё не началась.
 // ============================================================
 import { computed } from 'vue'
 import { useLocale } from '~/composables/useI18n'
 
 const props = defineProps<{ streak: number }>()
 const locale = useLocale()
+
+/** Серия началась: показываем со второго дня подряд */
+const visible = computed(() => props.streak >= 2)
 
 const label = computed(() => {
   const n = props.streak
@@ -27,7 +32,11 @@ const label = computed(() => {
 </script>
 
 <template lang="pug">
-.flex.items-center.gap-2.rounded-xl.px-3.py-2.border(class="bg-accent/15 border-accent/40")
+// Серия дней не началась (первый день) — бейдж не показывается
+.flex.items-center.gap-2.rounded-xl.px-3.py-2.border(
+  v-if="visible"
+  class="bg-accent/15 border-accent/40"
+)
   span.text-2xl(aria-hidden="true") 🔥
   p.font-bold.text-lg.leading-none {{ label }}
 </template>

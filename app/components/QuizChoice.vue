@@ -66,15 +66,25 @@ function btnClass(index: number): string {
 function optionParts(option: string) {
   return splitRuPrompt(option)
 }
+
+/** Вопрос RU→ES тоже содержит служебные скобки: «вы (вежл.)»,
+ *  «его (вин. п)» — скобочная часть серым, как в остальных местах */
+const questionParts = computed(() => splitRuPrompt(props.questionRu ?? ''))
 </script>
 
 <template lang="pug">
 .card.bg-base-100.shadow-lg.border.border-base-300.w-full
   .card-body(class="gap-2 sm:gap-4 p-3 sm:p-4")
     // Вопрос (на мобильном чуть меньше — карточка должна уместиться
-    // на экране вместе с вариантами и фидбеком)
+    // на экране вместе с вариантами и фидбеком). Скобочные подсказки
+    // («вы (вежл.)», «его (вин. п)») — серым, как варианты и промпты
     .text-center
-      p.text-2xl.font-bold.mb-1(class="sm:mb-2 text-base-content/60 sm:text-3xl" v-if="questionRu") {{ questionRu }}
+      p.text-2xl.font-bold.mb-1(class="sm:mb-2 text-base-content/60 sm:text-3xl" v-if="questionRu")
+        span(
+          v-for="(p, i) in questionParts"
+          :key="i"
+          :class="p.hint ? 'font-normal text-base-content/50' : ''"
+        ) {{ p.text }}
       .flex.items-center.justify-center.gap-2(v-if="questionEs")
         h2.text-2xl.font-bold.text-primary(class="sm:text-3xl") {{ questionEs }}
         SpeakButton(:text="questionEs")

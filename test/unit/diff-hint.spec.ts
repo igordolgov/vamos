@@ -205,14 +205,30 @@ describe('targetedHint — границы применимости', () => {
     expect(h).toBeNull()
   })
 
-  it('не то слово (словарная ошибка) → null', () => {
-    const h = targetedHint(['tengo', 'un', 'perro'], ['tengo', 'un', 'gato'])
-    expect(h).toBeNull()
+  it('не то слово (словарная ошибка) → подсказка про КОНКРЕТНОЕ слово', () => {
+    // Просьба пользователя: советы должны даваться по ошибкам, которые
+    // допущены — «когда вставлено не то слово». Теперь замена casa→libro
+    // объясняется словарём, а не общим tip шаблона
+    const h = targetedHint(['tengo', 'un', 'casa'], ['tengo', 'un', 'libro'])
+    expect(h).toBeTruthy()
+    expect(h).toMatch(/libro/)
+    expect(h).toMatch(/casa/)
   })
 
-  it('пропущено существительное → null', () => {
+  it('лишнее словарное слово → подсказка, что оно лишнее', () => {
+    // «не то слово вставлено»: grande не входит в ответ — словарь
+    // объясняет, что слово лишнее
+    const h = targetedHint(['quiero', 'un', 'libro', 'grande'], ['quiero', 'un', 'libro'])
+    expect(h).toBeTruthy()
+    expect(h).toMatch(/grande/)
+    expect(h).toMatch(/лишнее/)
+  })
+
+  it('пропущено существительное → подсказка, какое слово пропущено', () => {
     const h = targetedHint(['quiero', 'un'], ['quiero', 'un', 'libro'])
-    expect(h).toBeNull()
+    expect(h).toBeTruthy()
+    expect(h).toMatch(/libro/)
+    expect(h).toMatch(/Пропущено|пропущено/)
   })
 
   it('alt-ответы участвуют в выравнивании: пропуск местоимения в alt-варианте', () => {

@@ -74,13 +74,13 @@ const PRON_RU: Record<string, string> = {
   me: 'мне/меня', te: 'тебе', le: 'ему/ей', les: 'им', nos: 'нам/нас',
   lo: 'его', la: 'её', los: 'их (м.р.)', las: 'их (ж.р.)',
   yo: 'я', tú: 'ты', él: 'он', ella: 'она', usted: 'вы (вежл.)',
-  nosotros: 'мы', ustedes: 'вы (мн.)', ellos: 'они', ellas: 'они',
+  nosotros: 'мы', ustedes: 'вы (мн. ч.)', ellos: 'они', ellas: 'они',
 }
 
 /** Глоссарий предлогов */
 const PREP_RU: Record<string, string> = {
   a: 'к/в', de: 'из/от', en: 'в/на', con: 'с',
-  para: 'для/чтобы', sin: 'без', sobre: 'о/на',
+  para: 'для/чтобы', sin: 'без', sobre: 'о/на', por: 'по/через',
 }
 
 /** Лица для объяснения формы глагола */
@@ -101,6 +101,59 @@ const VERB_FORMS: Map<string, { verb: Word; person: VerbPerson }> = (() => {
 })()
 
 const NOUNS: Word[] = wordsByPos('noun')
+
+// ============================================================
+// Словарный индекс: испанская форма (любая) → слово словаря.
+// Нужен для СЛОВАРНЫХ ошибок («не то слово»): раньше замена
+// существительного/наречия/прилагательного не классифицировалась
+// (null) — пользователь видел только общий tip шаблона, а не
+// подсказку про СВОЮ ошибку.
+// ============================================================
+
+/** Все формы слова: базовая, альтернативы, спряжения глагола,
+ *  род/число прилагательного и местоимения, мн.ч. существительного */
+function allWordForms(w: Word): string[] {
+  const out = [w.es, ...(w.esAlt ?? [])]
+  if (w.verb) out.push(...Object.values(w.verb.forms))
+  if (w.adj) out.push(w.adj.m, w.adj.f, w.adj.mp, w.adj.fp)
+  if (w.pronoun?.forms)
+    out.push(w.pronoun.forms.m, w.pronoun.forms.f, w.pronoun.forms.mp, w.pronoun.forms.fp)
+  if (w.nounPlural) out.push(w.nounPlural)
+  return out.map((s) => s.toLowerCase()).filter(Boolean)
+}
+
+/** Индекс «форма → слова» строится один раз (словарь статичен) */
+const TOKEN_WORDS: Map<string, Word[]> = (() => {
+  const m = new Map<string, Word[]>()
+  for (const w of wordsByPos('noun'))
+    for (const f of allWordForms(w)) {
+      const list = m.get(f)
+      if (list) list.push(w)
+      else m.set(f, [w])
+    }
+  for (const pos of ['verb', 'adjective', 'adverb', 'pronoun', 'determiner', 'preposition', 'question', 'conjunction', 'number', 'construction'] as const) {
+    for (const w of wordsByPos(pos))
+      for (const f of allWordForms(w)) {
+        const list = m.get(f)
+        if (list) list.push(w)
+        else m.set(f, [w])
+      }
+  }
+  return m
+})()
+
+/** Слово по испанской форме (первое в словаре) */
+function tokenWord(token: string): Word | undefined {
+  return TOKEN_WORDS.get(token.toLowerCase())?.[0]
+}
+
+/** Названия частей речи для словарных подсказок */
+const POS_RU: Partial<Record<Word['pos'], string>> = {
+  noun: 'существительное', verb: 'глагол', adjective: 'прилагательное',
+  adverb: 'наречие', pronoun: 'местоимение', determiner: 'артикль/определитель',
+  preposition: 'предлог', question: 'вопросительное слово', conjunction: 'союз',
+  number: 'числительное', construction: 'конструкция',
+}
 
 /** Существительное по испанскому токену (ед.ч. или форма мн.ч.) */
 function nounByToken(token: string): Word | undefined {
@@ -245,6 +298,23 @@ function classifySub(bt: string, at: string, a: string[], ai: number, b: string[
     }
     return `По переводу нужен глагол «${at}» (${va.verb.ru[0] ?? ''}), а не «${bt}» (${vb.verb.ru[0] ?? ''}).`
   }
+  // СЛОВАРНАЯ замена («не то слово»): оба токена известны словарю —
+  // объясняем, какое слово нужно и почему вставленное не подходит
+  const wa = tokenWord(at)
+  const wb = tokenWord(bt)
+  if (wa && wb) {
+    if (wa.pos === 'preposition' && wb.pos === 'preposition') {
+      return `По переводу здесь нужен предлог «${at}» (${PREP_RU[at] ?? wa.ru[0] ?? ''}), а не «${bt}» (${PREP_RU[bt] ?? wb.ru[0] ?? ''}).`
+    }
+    if (wa.pos === 'verb' && wb.pos !== 'verb') {
+      return `«${bt}» (${wb.ru[0] ?? bt}) — ${POS_RU[wb.pos] ?? 'не глагол'}, а по переводу здесь глагол: «${at}» (${wa.ru[0] ?? at}).`
+    }
+    if (wb.pos === 'verb' && wa.pos !== 'verb') {
+      return `«${bt}» — глагол («${wb.ru[0] ?? bt}»), а по переводу здесь ${POS_RU[wa.pos] ?? 'другое слово'}: «${at}» (${wa.ru[0] ?? at}).`
+    }
+    return `По переводу нужно слово «${at}» (${wa.ru.join(', ')}), а не «${bt}» (${wb.ru.join(', ')}).`
+  }
+  if (wa) return `По переводу здесь нужно слово «${at}» (${wa.ru.join(', ')}) — «${bt}» не подходит.`
   return null
 }
 
@@ -307,6 +377,19 @@ function classifyIns(at: string, a: string[], ai: number): string | null {
   if (v) {
     return `Пропущен глагол: «${at}» (${v.verb.ru[0] ?? ''}). В испанском предложении глагол обязателен.`
   }
+  // Словарный fallback: пропущено известное слово (существительное,
+  // прилагательное, наречие…) — раньше возвращался null и показывался
+  // общий tip вместо объяснения КОНКРЕТНОЙ ошибки
+  const w = tokenWord(at)
+  if (w) {
+    if (w.pos === 'noun') {
+      return `Пропущено существительное «${at}» (${w.ru.join(', ')}): в переводе есть «${w.ru[0]}» — во фразе это слово должно стоять.`
+    }
+    if (w.pos === 'adjective') {
+      return `Пропущено прилагательное «${at}» (${w.ru.join(', ')}): в переводе есть «${w.ru[0]}». Прилагательное ставится ПОСЛЕ существительного и согласуется с ним в роде и числе.`
+    }
+    return `Пропущено слово «${at}» (${w.ru.join(', ')}): в переводе есть «${w.ru[0]}».`
+  }
   return null
 }
 
@@ -347,6 +430,11 @@ function classifyDel(bt: string, b: string[], bi: number): string | null {
   }
   if (DET_TOKEN_RU[bt]) {
     return `Определитель «${bt}» (${DET_TOKEN_RU[bt]}) здесь лишний — в переводе нет «${DET_TOKEN_RU[bt]}».`
+  }
+  // Словарный fallback: лишнее известное слово («не то слово вставлено»)
+  const w = tokenWord(bt)
+  if (w) {
+    return `Слово «${bt}» (${w.ru.join(', ')}) здесь лишнее: в переводе его нет.`
   }
   return null
 }

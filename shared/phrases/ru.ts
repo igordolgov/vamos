@@ -271,6 +271,7 @@ export function ruDetCaseForm(
   det: Word | null | undefined,
   noun: Word,
   ruKey: string,
+  number: GramNumber = 'sg',
 ): string {
   const role = det?.pronoun?.role
   if (!det || (role !== 'possessive' && role !== 'demonstrative')) return ''
@@ -281,12 +282,14 @@ export function ruDetCaseForm(
     const ru = det.ruDet
     if (!ru) return ''
     const animate = noun.nounClass === 'person' || noun.nounClass === 'family'
+    if (number === 'pl') return animate ? cases?.gen?.pl ?? ru.pl : ru.pl
     if (gender === 'f') return ru.accF
     if (animate) return cases?.gen?.m ?? ru.m
     return ru.m
   }
   const table = cases?.[key as 'gen']
   if (!table) return ''
+  if (number === 'pl') return table.pl
   return gender === 'f' ? table.f : table.m
 }
 
@@ -312,10 +315,11 @@ export function ruNounCaseWithDet(
   det: Word | null | undefined,
   ruKey: string,
   base: string,
+  number: GramNumber = 'sg',
 ): string {
   const role = det?.pronoun?.role
   if (role === 'possessive' || role === 'demonstrative') {
-    const form = ruDetCaseForm(det, noun, ruKey)
+    const form = ruDetCaseForm(det, noun, ruKey, number)
     // без падежных форм определитель в косвенном падеже не вставляем:
     // «в школе» без «моей» лучше, чем «в мою школе»
     return form ? ruInsertDet(base, form) : base
@@ -323,7 +327,7 @@ export function ruNounCaseWithDet(
   // артикль → подсказка на месте артикля: после предлога
   // («в (какой-то) школе») или перед словом без предлога
   // («вижу (какую-то) учительницу»)
-  const hint = ruArticleHint(noun, det, 'sg', ruHintCaseFor(ruKey))
+  const hint = ruArticleHint(noun, det, number, ruHintCaseFor(ruKey))
   return hint ? ruInsertDet(base, hint.trim()) : base
 }
 
