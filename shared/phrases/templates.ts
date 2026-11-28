@@ -1693,10 +1693,20 @@ export const TEMPLATES: Template[] = [
     group: 'вопросы',
     requires: ['v-tener', 'n-ano', 'qw-cuanto'],
     questionWord: getWord('qw-cuanto'),
-    units: [{ kind: 'free', role: 's', words: ['p-tu', 'p-usted'].map(getWord) }],
+    // ты / Вы (вежливо) / Вы (мн.ч.): форма глагола — по лицу
+    // местоимения (tienes / tiene / tienen)
+    units: [{ kind: 'free', role: 's', words: ['p-tu', 'p-usted', 'p-ustedes'].map(getWord) }],
     variants: ['qw'],
-    render: (fill) => `¿Cuántos años tiene${(fill.s as Word).id === 'p-tu' ? 's' : ''} ${(fill.s as Word).es}?`,
-    ru: () => `Сколько тебе лет?`,
+    render: (fill) =>
+      `¿Cuántos años ${conjugate(getWord('v-tener'), pronPerson(fill.s as Word))} ${(fill.s as Word).es}?`,
+    ru: (fill) => {
+      const p = fill.s as Word
+      // Вежливое обращение — «Вам» с большой буквы; у «вы» мн.ч. — пометка
+      // после слова: иначе «¿…tienen ustedes?» не отличить от «¿…tiene usted?»
+      if (p.id === 'p-tu') return 'Сколько тебе лет?'
+      if (p.id === 'p-ustedes') return 'Сколько Вам (мн. ч.) лет?'
+      return 'Сколько Вам лет?'
+    },
   },
   {
     id: 't-qw-cual-es',

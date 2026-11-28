@@ -120,20 +120,24 @@ describe('QuizChoice', () => {
     expect(wrapper.emitted('answered')![0]).toEqual([true])
   })
 
-  it('неверный ответ: «Верный ответ:» и сам ответ — на отдельных строках', async () => {
+  it('неверный ответ: пояснение варианта и зелёная подсветка верного', async () => {
     const wrapper = mount(QuizChoice, {
-      props: { questionEs: 'casa', options: ['дом', 'еда', 'книга', 'ночь'], answerIndex: 0 },
+      props: {
+        questionEs: 'casa',
+        options: ['дом', 'еда', 'книга', 'ночь'],
+        answerIndex: 0,
+        optionNotes: { еда: 'это «comida»' },
+      },
     })
     const buttons = wrapper.findAll('button')
     await buttons[1].trigger('click')
     expect(wrapper.emitted('answered')![0]).toEqual([false])
-    // подпись и ответ — два отдельных абзаца в зоне фидбека
+    // пояснение выбранного неверного варианта: что он на самом деле означает
     const fb = wrapper.find('.animate-feedback')
-    const lines = fb.findAll('p')
-    expect(lines).toHaveLength(2)
-    expect(lines[0]!.text()).toContain('Верный ответ:')
-    expect(lines[0]!.classes()).toContain('text-error')
-    expect(lines[1]!.text()).toBe('дом')
+    expect(fb.text()).toContain('еда» — это «comida»')
+    // верный вариант подсвечен зелёным — ответ виден в списке вариантов
+    expect(buttons[0].classes()).toContain('btn-success')
+    expect(buttons[1].classes()).toContain('btn-error')
     // повторный клик игнорируется после раскрытия
     await buttons[2].trigger('click')
     expect(wrapper.emitted('answered')!.length).toBe(1)
@@ -167,7 +171,7 @@ describe('QuizChoice', () => {
       props: { questionEs: 'casa', options: ['дом', 'еда', 'книга', 'ночь'], answerIndex: 0 },
     })
     // зона фидбека существует и до ответа (пустая, постоянной высоты)
-    expect(wrapper.find('.min-h-20').exists()).toBe(true)
+    expect(wrapper.find('.min-h-10').exists()).toBe(true)
     expect(wrapper.find('.animate-feedback').exists()).toBe(false)
     // «Дальше» уже в DOM (держит своё место), но невидима до ответа
     const next = wrapper.findAll('button').at(-1)!
@@ -455,5 +459,98 @@ describe('QuizBuild — сборка фразы из плиток', () => {
     await tileBtn(wrapper, 'Yo').trigger('click')
     const tile = wrapper.find('[aria-label="Собранная фраза"] button')
     expect(tile.classes()).toContain('touch-none')
+  })
+
+  // ============================================================
+  // Цветные плитки: переключатель в шапке сессии, легенда под
+  // «Проверить», поэтапный режим — всегда одного цвета
+  // ============================================================
+  it('цветной режим (по умолчанию): плитка окрашена по роли, легенда показана', () => {
+    const wrapper = mount(QuizBuild, {
+      props: {
+        tiles: TILES,
+        answerTiles: ANSWER,
+        hint: 'Я хочу говорить',
+        tileWords: { yo: 'pronoun', quiero: 'verb', hablar: 'verb' },
+      },
+    })
+    // плитка глагола — красная (word-tile--verb)
+    expect(tileBtn(wrapper, 'quiero').classes()).toContain('word-tile--verb')
+    // легенда под «Проверить»: какой цвет что обозначает
+    const legend = wrapper.text()
+    expect(legend).toContain('глагол')
+    expect(legend).toContain('предмет')
+    expect(legend).toContain('местоимение')
+    expect(legend).toContain('наречие')
+    expect(legend).toContain('предлог/артикль')
+  })
+
+  it('переключатель выключен (colorTiles: false) — все плитки одного цвета, легенды нет', async () => {
+    const wrapper = mount(QuizBuild, {
+      props: {
+        tiles: TILES,
+        answerTiles: ANSWER,
+        hint: 'x',
+        tileWords: { yo: 'pronoun', quiero: 'verb', hablar: 'verb' },
+        colorTiles: false,
+      },
+    })
+    const colored = wrapper.findAll('.word-tile--verb, .word-tile--noun, .word-tile--pronoun, .word-tile--adverb, .word-tile--prep')
+    expect(colored).toHaveLength(0)
+    expect(wrapper.text()).not.toContain('предлог/артикль')
+    // собранная плитка — базовая btn-primary, без цветового класса
+    await tileBtn(wrapper, 'quiero').trigger('click')
+    const built = wrapper.find('[aria-label="Собранная фраза"] button')
+    expect(built.classes()).toContain('btn-primary')
+  })
+
+  it('поэтапный режим — плитки ВСЕГДА одного цвета (цвет не выдаёт верное слово)', async () => {
+    const wrapper = mount(QuizBuild, {
+      props: {
+        tiles: TILES,
+        answerTiles: ANSWER,
+        hint: 'Я хочу говорить',
+        tileWords: { yo: 'pronoun', quiero: 'verb', hablar: 'verb' },
+        stages: [
+          ['yo', 'tú', 'él'],
+          ['quiero', 'quieres', 'quierer'],
+          ['hablar', 'hablo', 'llamar'],
+        ],
+      },
+    })
+    // в кандидатах шага нет ни одной цветной плитки: «quiero» (верное,
+    // есть в tileWords) не выделяется среди отвлекающих
+    const colored = wrapper.findAll('.word-tile--verb, .word-tile--noun, .word-tile--pronoun, .word-tile--adverb, .word-tile--prep')
+    expect(colored).toHaveLength(0)
+    // легенды в поэтапном режиме нет — цвет не используется
+    expect(wrapper.text()).not.toContain('предлог/артикль')
+    // собранная плитка тоже нецветная (btn-primary)
+    await tileBtn(wrapper, 'yo').trigger('click')
+    const built = wrapper.find('[aria-label="Собранная фраза"] button')
+    expect(built.classes()).toContain('btn-primary')
+    expect(built.classes()).not.toContain('word-tile--pronoun')
+  })
+
+  it('поэтапный режим после проверки: зелёный/красный фидбек остаётся', async () => {
+    const wrapper = mount(QuizBuild, {
+      props: {
+        tiles: TILES,
+        answerTiles: ANSWER,
+        hint: 'x',
+        stages: [
+          ['yo', 'tú', 'él'],
+          ['quiero', 'quieres'],
+          ['hablar', 'hablo'],
+        ],
+      },
+    })
+    await tileBtn(wrapper, 'yo').trigger('click')
+    await tileBtn(wrapper, 'quiero').trigger('click')
+    await tileBtn(wrapper, 'hablar').trigger('click')
+    await checkBtn(wrapper).trigger('click')
+    expect(wrapper.emitted('answered')![0]).toEqual([true])
+    // верно собранные плитки — зелёные (фидбек, а не подсказка)
+    const built = wrapper.findAll('[aria-label="Собранная фраза"] button')
+    expect(built.every((b) => b.classes().includes('btn-success'))).toBe(true)
   })
 })

@@ -312,7 +312,7 @@ export const VERBS: Word[] = [
   }, { ruHint: 'Llamo a mi amigo — звоню другу' }),
 
   // ===== Урок 29: неправильные глаголы =====
-  v('v-decir', 'decir', ['говорить', 'сказать'], 29, {
+  v('v-decir', 'decir', ['сказать', 'говорить'], 29, {
     forms: forms(['digo', 'dices', 'dice', 'decimos', 'decís', 'dicen']),
     transitive: true,
     objClasses: ['abstract'],

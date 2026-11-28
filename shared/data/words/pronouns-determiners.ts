@@ -36,7 +36,7 @@ export const PRONOUNS: Word[] = [
   p('p-le', 'le', ['ему', 'ей', 'вам'], 25, { role: 'object', io: true }),
   p('p-les', 'les', ['им', 'вам (мн.)'], 25, { role: 'object', io: true }),
   p('p-nos', 'nos', ['нам', 'нас'], 25, { role: 'object', io: true }),
-  p('p-lo', 'lo', ['его', 'это'], 25, { role: 'object' }),
+  p('p-lo', 'lo', ['его (вин. п)', 'это'], 25, { role: 'object' }, { ruHint: 'lo — «его» в винительном падеже (вижу его = Lo veo); «его»-владелец — su' }),
   p('p-la', 'la', ['её'], 25, { role: 'object' }),
   p('p-los', 'los', ['их (муж.)'], 25, { role: 'object' }),
   p('p-las', 'las', ['их (жен.)'], 25, { role: 'object' }),
@@ -60,7 +60,7 @@ export const PRONOUNS: Word[] = [
       prep: { m: 'твоём', f: 'твоей', pl: 'твоих' },
     },
   }),
-  p('p-su', 'su', ['его', 'её', 'их', 'ваш'], 24, { role: 'possessive', forms: { m: 'su', f: 'su', mp: 'sus', fp: 'sus' } }, {
+  p('p-su', 'su', ['его (чей?)', 'её', 'их', 'ваш'], 24, { role: 'possessive', forms: { m: 'su', f: 'su', mp: 'sus', fp: 'sus' } }, {
     // конвенция приложения: su переводится «его» независимо от рода
     // существительного (род владельца по su неопределим) — как в ruDet
     ruDet: { m: 'его', n: 'его', f: 'его', pl: 'его', accF: 'его' },

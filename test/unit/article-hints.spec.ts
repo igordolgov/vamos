@@ -348,3 +348,79 @@ describe('коллокации — абсурдные пары исключен�
     }, { maxLeaves: 150_000 })
   })
 })
+
+describe('Одушевлённые в винительном — подсказка как родительный (жалоба)', () => {
+  // «Veo al hermano» → «вижу (известный) брата» было неверно:
+  // у одушевлённых м.р. винительный = родительный: «вижу (известного) брата»
+  const see = (nounId: string, detId: string) => {
+    const t = T('t-pron-v-person')
+    const fill = {
+      s: w('p-yo'), v: w('v-ver'),
+      'o#noun': w(nounId), 'o#num': 'sg', 'o#det': w(detId), 'o#adj': null,
+    } as unknown as Fill
+    return t.ru(fill, 'aff')
+  }
+
+  it('el → «(известного)»: брат, врач, друг, ребёнок', () => {
+    expect(see('n-hermano', 'd-el')).toBe('Я вижу (известного) брата')
+    expect(see('n-medico', 'd-el')).toBe('Я вижу (известного) врача')
+    expect(see('n-amigo', 'd-el')).toBe('Я вижу (известного) друга')
+    expect(see('n-nino', 'd-el')).toBe('Я вижу (известного) ребёнка')
+  })
+
+  it('un → «(какого-то)»: студент, учитель', () => {
+    expect(see('n-estudiante', 'd-un')).toBe('Я вижу (какого-то) студента')
+    expect(see('n-maestro', 'd-un')).toBe('Я вижу (какого-то) учителя')
+  })
+
+  it('неодушевлённые без изменений: «вижу (известный) телефон»', () => {
+    const t = T('t-pron-v-do')
+    const fill = {
+      s: w('p-yo'), v: w('v-buscar'),
+      'o#noun': w('n-telefono'), 'o#num': 'sg', 'o#det': w('d-el'), 'o#adj': null,
+    } as unknown as Fill
+    expect(t.ru(fill, 'aff')).toBe('Я ищу (вообще) (известный) телефон')
+  })
+
+  it('дательный не меняется: «помогаю (известному) брату»', () => {
+    // у ayudar дополнение-лицо идёт с дат. падежом (PERSON_VERB_RU_CASE)
+    const t = T('t-pron-v-person')
+    const fill = {
+      s: w('p-yo'), v: w('v-ayudar'),
+      'o#noun': w('n-hermano'), 'o#num': 'sg', 'o#det': w('d-el'), 'o#adj': null,
+    } as unknown as Fill
+    expect(t.ru(fill, 'aff')).toBe('Я помогаю (известному) брату')
+  })
+})
+
+describe('Вопрос о возрасте — вежливое «Вы» (жалоба)', () => {
+  // «¿Cuántos años tiene usted?» отвечало «Сколько тебе лет?».
+  // Вежливое обращение — «Сколько Вам лет?» (Вам с большой буквы),
+  // мн.ч. — с пометкой после слова: «Сколько Вам (мн. ч.) лет?»
+  const age = (pronId: string) => {
+    const t = T('t-qw-cuantos-anos')
+    const fill = { s: w(pronId) } as unknown as Fill
+    return { es: t.render(fill, 'qw'), ru: t.ru(fill, 'qw') }
+  }
+
+  it('tú → «Сколько тебе лет?»', () => {
+    expect(age('p-tu')).toEqual({
+      es: '¿Cuántos años tienes tú?',
+      ru: 'Сколько тебе лет?',
+    })
+  })
+
+  it('usted → «Сколько Вам лет?» (Вам с большой буквы)', () => {
+    expect(age('p-usted')).toEqual({
+      es: '¿Cuántos años tiene usted?',
+      ru: 'Сколько Вам лет?',
+    })
+  })
+
+  it('ustedes → «Сколько Вам (мн. ч.) лет?» (пометка после слова)', () => {
+    expect(age('p-ustedes')).toEqual({
+      es: '¿Cuántos años tienen ustedes?',
+      ru: 'Сколько Вам (мн. ч.) лет?',
+    })
+  })
+})

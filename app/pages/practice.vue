@@ -95,6 +95,16 @@ function toggleStaged(e: Event) {
   setProgressSetting('stagedBuild', (e.target as HTMLInputElement).checked)
 }
 
+// Цветная подсветка плиток «Сборки фразы» по роли слова — переключатель
+// в шапке сессии рядом с 👍/👎 (только в обычном режиме; в поэтапном
+// цвет выключен всегда: цветная плитка выдавала бы верное слово).
+// По умолчанию включена (как было до переключателя)
+const colorTiles = computed(() => progress.value.settings.colorTiles ?? true)
+
+function toggleColor(e: Event) {
+  setProgressSetting('colorTiles', (e.target as HTMLInputElement).checked)
+}
+
 // Закрепление урока: /practice?lesson=N (0 или мусор — весь словарь)
 const lessonFilter = computed(() => {
   const n = Number(route.query.lesson)
@@ -320,6 +330,21 @@ div.mb-2(v-if="mode === 'menu'")
   .flex.items-center.justify-between.mb-2(class="gap-1")
     p(class="text-sm text-base-content/60 shrink-0") {{ t('practice.progress', { n: index + 1, total: SESSION_LENGTH }) }}
     .flex.items-center.gap-1(v-if="current?.kind === 'build' && current.answerTiles")
+      // Переключатель цветного режима (только обычная сборка): плитки
+      // окрашены по роли слова, под «Проверить» — легенда цветов.
+      // В поэтапном режиме не показывается — там цвет выключен всегда
+      label.flex.items-center.cursor-pointer.select-none(
+        v-if="!stagedBuild"
+        class="shrink-0 h-7 px-1"
+        :title="t('practice.colorTilesHint')"
+      )
+        span.text-base(class="mr-0.5" aria-hidden="true") 🎨
+        input.toggle.toggle-xs.toggle-primary(
+          type="checkbox"
+          :checked="colorTiles"
+          :aria-label="t('practice.colorTilesHint')"
+          @change="toggleColor($event)"
+        )
       button.btn.btn-md.border-success(
         class="h-7 min-h-0"
         :title="t('practice.like')"
@@ -377,6 +402,7 @@ div.mb-2(v-if="mode === 'menu'")
       :alt-answers="current.altAnswers"
       :hint="current.hint ?? ''"
       :tip="current.tip"
+      :color-tiles="colorTiles"
       @answered="onAnswered"
       @next="goNext"
     )

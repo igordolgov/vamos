@@ -255,7 +255,7 @@ export function dislikeExercise(ex: Exercise): string | null {
 
 /** Сохранить настройки в прогресс (и синхронизировать) */
 export function setProgressSetting(
-  key: 'locale' | 'theme' | 'fontSize' | 'stagedBuild',
+  key: 'locale' | 'theme' | 'fontSize' | 'stagedBuild' | 'colorTiles',
   value: string | boolean,
 ): void {
   const next: Progress = {

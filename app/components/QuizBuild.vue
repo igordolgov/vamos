@@ -13,6 +13,11 @@
 // все сразу — для каждой позиции ответа показывается свой набор
 // кандидатов (верное слово + похожие отвлекающие). Выбор слова
 // переводит на следующий шаг, возврат плитки — на предыдущий.
+// В этом режиме плитки ВСЕ ОДНОГО ЦВЕТА: верное слово всегда есть в
+// словаре ролей, а отвлекающие — не все, поэтому цветная плитка
+// выдавала бы ответ. Цветность осталась в обычном режиме — там она
+// включается переключателем (prop colorTiles, настройки), а под
+// кнопкой «Проверить» показывается легенда: какой цвет что означает.
 //
 // Плитки — компактные (маленькие паддинги, стандартное скругление
 // кнопок DaisyUI — пилюли читаются хуже). Зона сборки изначально
@@ -26,20 +31,29 @@ import { targetedHint } from '#shared/phrases/diff-hint'
 import { splitRuPrompt } from '#shared/phrases/ru'
 import type { PartOfSpeech } from '#shared/types'
 
-const props = defineProps<{
-  tiles: string[]
-  answerTiles: string[]
-  /** Роль каждой плитки (строка → часть речи): цвет плитки — по роли */
-  tileWords?: Record<string, PartOfSpeech>
-  hint: string
-  /** Поэтапный режим: stages[k] — кандидаты для k-го слова ответа.
-   *  Пусто/не задано — обычный режим, весь пул сразу */
-  stages?: string[][]
-  /** Допустимые варианты без подлежащего-местоимения («Eres alto») */
-  altAnswers?: string[]
-  /** Объяснение ошибки: почему путают и как запомнить — при неверном ответе */
-  tip?: WordTip
-}>()
+// withDefaults: Vue приводит отсутствующий boolean-проп к false —
+// а цветной режим должен быть ВКЛЮЧЁН, когда переключатель не трогали
+const props = withDefaults(
+  defineProps<{
+    tiles: string[]
+    answerTiles: string[]
+    /** Роль каждой плитки (строка → часть речи): цвет плитки — по роли */
+    tileWords?: Record<string, PartOfSpeech>
+    hint: string
+    /** Поэтапный режим: stages[k] — кандидаты для k-го слова ответа.
+     *  Пусто/не задано — обычный режим, весь пул сразу */
+    stages?: string[][]
+    /** Допустимые варианты без подлежащего-местоимения («Eres alto») */
+    altAnswers?: string[]
+    /** Цветная подсветка плиток по роли слова (переключатель в шапке
+     *  сессии). По умолчанию включена. В поэтапном режиме НЕ действует:
+     *  там плитки всегда одного цвета (иначе цвет выдаёт верное слово) */
+    colorTiles?: boolean
+    /** Объяснение ошибки: почему путают и как запомнить — при неверном ответе */
+    tip?: WordTip
+  }>(),
+  { colorTiles: true },
+)
 
 const emit = defineEmits<{ answered: [correct: boolean]; next: [] }>()
 
@@ -87,8 +101,14 @@ const POS_COLOR: Partial<Record<PartOfSpeech, string>> = {
   adverb: 'adverb',
 }
 
+/** Цветной режим: переключатель в шапке сессии (по умолчанию вкл),
+ *  но в поэтапном режиме всегда выключен — цветная плитка среди
+ *  нецветных отвлекающих выдавала бы верное слово */
+const colorOn = computed(() => props.colorTiles && !staged.value)
+
 /** Цветовой класс плитки по её роли (или '' — базовая) */
 function posClass(tile: string): string {
+  if (!colorOn.value) return ''
   const pos = props.tileWords?.[tile.toLowerCase()]
   const color = pos ? POS_COLOR[pos] : undefined
   return color ? `word-tile--${color}` : ''
@@ -245,6 +265,18 @@ function builtClass(pos: number): string {
   return `${base} ${word.toLowerCase() === expected ? 'btn-success' : 'btn-error'}`
 }
 
+/** Легенда цветного режима: какой цвет что обозначает. Показывается
+ *  под кнопкой «Проверить», пока включён цветной режим (и не в
+ *  поэтапном). Кружки — те же классы word-tile--*: цвета совпадают
+ *  с плитками в обеих темах */
+const LEGEND: Array<{ cls: string; key: string }> = [
+  { cls: 'word-tile--verb', key: 'practice.legendVerb' },
+  { cls: 'word-tile--noun', key: 'practice.legendNoun' },
+  { cls: 'word-tile--pronoun', key: 'practice.legendPronoun' },
+  { cls: 'word-tile--adverb', key: 'practice.legendAdverb' },
+  { cls: 'word-tile--prep', key: 'practice.legendPrep' },
+]
+
 /** Озвучка собранной фразы — в шапке сессии (practice.vue, speakBuilt) */
 
 /** Верно, если собран полный ответ без учёта регистра — точный или
@@ -397,4 +429,15 @@ const hintParts = computed(() => splitRuPrompt(props.hint ?? ''))
       :disabled="!revealed && builtWords.length === 0"
       @click="revealed ? emit('next') : check()"
     ) {{ revealed ? t('practice.next') : t('practice.check') }}
+
+    // Легенда цветного режима: какой цвет что обозначает. Только в
+    // цветном режиме (обычная сборка, не поэтапная) и до проверки —
+    // после проверки плитки перекрашиваются в зелёный/красный фидбека
+    .flex.flex-wrap.justify-center(
+      v-if="colorOn && !revealed"
+      class="w-full pt-1 gap-x-3 gap-y-0.5 text-xs text-base-content/60 select-none"
+    )
+      span.flex.items-center.gap-1(v-for="c in LEGEND" :key="c.key")
+        span.inline-block.rounded-full.border(class="w-2.5 h-2.5" :class="c.cls" aria-hidden="true")
+        | {{ t(c.key) }}
 </template>

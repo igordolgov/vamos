@@ -204,3 +204,39 @@ describe('Фразы после ранних уроков (1 и 4)', () => {
     expect(ess).toContain('¿Tú vives?')
   })
 })
+
+describe('Омонимичные русские переводы — уточнения в скобках', () => {
+  // Жалоба: «его» отвечает и lo (вин. п.), и su (чей?) — в тесте-выборе
+  // RU→ES вопрос неразрешим. Правило: два слова не могут иметь один
+  // и тот же ПЕРВЫЙ перевод — он становится вопросом теста-выбора.
+  it('ни у каких двух слов первый перевод не совпадает', () => {
+    const byRu = new Map<string, string[]>()
+    for (const w of ALL_WORDS) {
+      const ru = w.ru[0]!
+      byRu.set(ru, [...(byRu.get(ru) ?? []), w.id])
+    }
+    const dupes = [...byRu.entries()].filter(([, ids]) => ids.length > 1)
+    expect(dupes, `одинаковые ru[0]: ${dupes.map(([ru, ids]) => `«${ru}» → ${ids.join(', ')}`).join('; ')}`).toEqual([])
+  })
+
+  it('его/его разведены: lo — вин. п., su — чей?', () => {
+    expect(WORDS_BY_ID['p-lo']!.ru[0]).toBe('его (вин. п)')
+    expect(WORDS_BY_ID['p-su']!.ru[0]).toBe('его (чей?)')
+  })
+
+  it('предлоги a/en различимы («в (куда?)» / «в (где?)»)', () => {
+    expect(WORDS_BY_ID['prep-a']!.ru[0]).toBe('в (куда?)')
+    expect(WORDS_BY_ID['prep-en']!.ru[0]).toBe('в (где?)')
+  })
+
+  it('hay — «есть (имеется)» (не путается с «есть»-comer)', () => {
+    expect(WORDS_BY_ID['cstr-hay']!.ru[0]).toBe('есть (имеется)')
+    expect(WORDS_BY_ID['v-comer']!.ru[0]).toBe('есть')
+  })
+
+  it('союзы que/cuando — «(союз)», decir — «сказать»', () => {
+    expect(WORDS_BY_ID['c-que']!.ru[0]).toBe('что (союз)')
+    expect(WORDS_BY_ID['c-cuando']!.ru[0]).toBe('когда (союз)')
+    expect(WORDS_BY_ID['v-decir']!.ru[0]).toBe('сказать')
+  })
+})

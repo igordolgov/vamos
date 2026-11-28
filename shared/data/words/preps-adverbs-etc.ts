@@ -9,9 +9,9 @@ import { adv, conj, cstr, num, prep, qw } from './helpers'
 
 /** Предлоги (уроки 17–18). nounClasses — с чем предлог образует фразы */
 export const PREPOSITIONS: Word[] = [
-  prep('prep-a', 'a', ['в', 'к', 'на'], 17, ['place', 'person', 'family']),
+  prep('prep-a', 'a', ['в (куда?)', 'к', 'на'], 17, ['place', 'person', 'family']),
   prep('prep-de', 'de', ['из', 'от', 'с (обозначает принадлежность)'], 17, ['place', 'thing', 'food', 'drink', 'abstract', 'family', 'person']),
-  prep('prep-en', 'en', ['в', 'на'], 17, ['place']),
+  prep('prep-en', 'en', ['в (где?)', 'на'], 17, ['place']),
   prep('prep-con', 'con', ['с', 'со'], 17, ['person', 'family', 'animal', 'thing']),
   prep('prep-para', 'para', ['для', 'чтобы'], 17, ['place', 'person', 'family', 'abstract']),
   prep('prep-por', 'por', ['по', 'через', 'за'], 17, ['place', 'abstract']),
@@ -81,8 +81,8 @@ export const CONJUNCTIONS: Word[] = [
   conj('c-pero', 'pero', ['но'], 22),
   conj('c-porque', 'porque', ['потому что'], 22),
   conj('c-si', 'si', ['если'], 22),
-  conj('c-cuando', 'cuando', ['когда'], 22),
-  conj('c-que', 'que', ['что', 'чтобы'], 22),
+  conj('c-cuando', 'cuando', ['когда (союз)'], 22),
+  conj('c-que', 'que', ['что (союз)', 'чтобы'], 22),
   conj('c-aunque', 'aunque', ['хотя'], 22),
   conj('c-entonces', 'entonces', ['тогда'], 22),
 ]
@@ -104,7 +104,7 @@ export const NUMBERS: Word[] = [
 
 /** Конструкции (урок 26) — «кирпичи» для фраз */
 export const CONSTRUCTIONS: Word[] = [
-  cstr('cstr-hay', 'hay', ['есть', 'имеется'], 26, {
+  cstr('cstr-hay', 'hay', ['есть (имеется)'], 26, {
     pattern: 'noun',
     ru: 'hay + сущ.: Hay una mesa — Есть стол (безличная форма haber)',
   }),

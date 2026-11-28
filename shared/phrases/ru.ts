@@ -192,6 +192,10 @@ const HINT_INDEF: Record<'m' | 'f' | 'n' | 'pl', Record<HintCase, string>> = {
  * Подсказка артикля: el/la → «(известный)», un/una → «(какой-то)».
  * Возвращает строку с ведущим пробелом или '' — не артикль (мой/этот/
  * много видны в переводе сами). caseForm — падежный ключ русской фразы.
+ * Одушевлённые (людьми/роднёй — nounClass person/family) в винительном
+ * падеже выглядят как родительный: «вижу (известного) брата», у
+ * мн.ч. так же («вижу (известных) отцов») — форма берётся из колонки
+ * родительного, как это делает ruDetCaseForm для «мой/этот».
  */
 export function ruArticleHint(
   noun: Word,
@@ -203,8 +207,12 @@ export function ruArticleHint(
   const isDef = !!det.det.definite
   if (!isDef && !det.det.indefinite) return ''
   const key = noun.ruPluralOnly || number === 'pl' ? 'pl' : (noun.ruGender ?? 'm')
+  // одушевлённое м.р./мн.ч.: винительный = родительный
+  const animate = noun.nounClass === 'person' || noun.nounClass === 'family'
+  const effCase: HintCase =
+    caseForm === 'acc' && animate && (key === 'm' || key === 'pl') ? 'gen' : caseForm
   const table = isDef ? HINT_DEF : HINT_INDEF
-  return ` (${table[key][caseForm]})`
+  return ` (${table[key][effCase]})`
 }
 
 /** Ключ падежа русской падежной аннотации → падеж подсказки артикля */
