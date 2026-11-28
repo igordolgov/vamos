@@ -366,4 +366,13 @@ export const VERBS: Word[] = [
     ruInf: 'знать',
     ruForms: ['знаю', 'знаешь', 'знает', 'знаем', 'знаете', 'знают'],
   }, { ruHint: 'Conozco a la familia — Я знаком с семьёй' }),
+
+  // Урок 37: цены — «¿Cuánto cuesta?». В речи почти только 3-е лицо:
+  // cuesta (ед.ч.) / cuestan (мн.ч. подлежащего)
+  v('v-costar', 'costar', ['стоить'], 37, {
+    forms: forms(['cuesto', 'cuestas', 'cuesta', 'costamos', 'costáis', 'cuestan']),
+    transitive: false,
+    ruInf: 'стоить',
+    ruForms: ['стою', 'стоишь', 'стоит', 'стоим', 'стоите', 'стоят'],
+  }, { ruHint: 'o → ue: cuesta. «¿Cuánto cuesta?» — Сколько стоит?' }),
 ]

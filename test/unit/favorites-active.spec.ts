@@ -174,6 +174,6 @@ describe('Речевые достижения', () => {
   it('новый урок 33 «Спасательные фразы» попал в словарь', () => {
     const words = ALL_WORDS.filter((w) => w.lesson === 33)
     expect(words.map((w) => w.es).sort()).toEqual(['dame', 'dime', 'espera', 'mira', 'oye'])
-    expect(ALL_WORDS.length).toBe(318)
+    expect(ALL_WORDS.length).toBe(368) // уроки 34–37: числа, дни, месяцы, цены
   })
 })

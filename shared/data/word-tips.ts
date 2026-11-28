@@ -619,6 +619,33 @@ export const WORD_TIPS: Record<string, WordTip> = {
     hack: 'ese — «эСЭ, у тебя там»: рядом с тобой.',
     ex: { es: 'Ese libro es interesante.', ru: 'Та книга интересная.' },
   },
+
+  // --- Уроки 34–37: числа, дни, месяцы, цены ---
+  'num-veintiuno': {
+    why: 'До 29 числа пишутся одним словом: veintidós, veintisiete. Перед существительным veintiuno теряет -о: veintiún libros, veintiuna casas.',
+    hack: 'veinti- = «двадцать +»: veintitrés = двадцать + три.',
+    ex: { es: 'Tengo veintiún libros.', ru: 'У меня есть двадцать одна книга.' },
+  },
+  'num-treinta': {
+    why: 'После 29 числа составные: десяток + y + единица. treinta y cinco — буквально «тридцать и пять».',
+    hack: '«y» — это «и»: cuarenta y dos = сорок и два.',
+    ex: { es: 'Tengo treinta y cinco años.', ru: 'Мне тридцать пять лет.' },
+  },
+  'n-lunes': {
+    why: 'Дни недели пишутся с маленькой буквы. el lunes — конкретный день («в понедельник»), los lunes — каждый раз («по понедельникам»).',
+    hack: 'артикль меняет смысл: el = один день, los = все такие дни.',
+    ex: { es: 'El lunes trabajo. Los lunes descanso.', ru: 'В понедельник я работаю. По понедельникам отдыхаю.' },
+  },
+  'n-cumpleanos': {
+    why: 'cumpleaños — мужской род, хотя по-русски кончается на «-я»: el cumpleaños, mi cumpleaños.',
+    hack: 'состоит из cumple (исполняется) + años (годы): «исполняется лет».',
+    ex: { es: 'Mi cumpleaños es en mayo.', ru: 'Мой день рождения в мае.' },
+  },
+  'v-costar': {
+    why: 'costar — o → ue: cuesta. В речи почти только 3-е лицо: ¿Cuánto cuesta? (ед.ч.), ¿Cuánto cuestan? (мн.ч.).',
+    hack: '«cuesta» — «кuesta»: холм (cuesta = подъём) — цена «поднимается».',
+    ex: { es: '¿Cuánto cuesta este libro?', ru: 'Сколько стоит эта книга?' },
+  },
 }
 
 /**
@@ -627,6 +654,30 @@ export const WORD_TIPS: Record<string, WordTip> = {
  * ser/estar, «tengo» вместо «у меня есть», личное «a», hay и т.д.
  */
 export const PHRASE_TIPS: Record<string, WordTip> = {
+  't-qw-que-hora': {
+    why: '«¿Qué hora es?» — фиксированный вопрос про время. Ответ: Es la una (час) / Son las tres (три).',
+    hack: 'один час — Es la (единственная), дальше — Son las.',
+  },
+  't-es-la-hora': {
+    why: 'Время: Es la una, но Son las dos/tres… — в испанском «часы» множественного, кроме одного часа. en punto = «ровно».',
+    hack: '1 → Es la una, всё остальное → Son las N.',
+  },
+  't-qw-cuanto-cuesta': {
+    why: 'cuesta/cuestan согласуется с предметом: el pan cuesta, los libros cuestan. «Сколько стоит/стоят» — как в русском.',
+    hack: 'мн.ч. предмета → cuestan.',
+  },
+  't-cuesta-num': {
+    why: 'Цена: Cuesta veinte pesos. Песо — валюта Мексики, Аргентины, Колумбии, Кубы; доллар — dólares.',
+    hack: '«Стоит N песо» — безличная форма: кто не важен, важна цена.',
+  },
+  't-dia-los': {
+    why: 'los lunes = «по понедельникам» — регулярное действие. Глагол в 1-м лице: подлежащее «я» опускается.',
+    hack: 'los + день = «по + день-мн.»: los sábados = по субботам.',
+  },
+  't-cumpleanos-mes': {
+    why: 'en + месяц = «в + месяц»: en mayo = в мае. Предлог en без изменений во всех месяцах.',
+    hack: 'en = «в» для месяцев: en enero, en julio.',
+  },
   't-pron-ser-prof': {
     why: 'Профессия — суть человека, поэтому ser и без артикля: Soy maestro.',
     hack: 'профессия — «паспортная строка»: ser.',

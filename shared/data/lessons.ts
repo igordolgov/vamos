@@ -37,7 +37,7 @@ export const LESSONS: Lesson[] = [
   { number: 9, titleRu: 'Притяжательные и указательные', titleEs: 'Posesivos', hintRu: 'mi, tu, su, este, ese...', unlocksFrom: 'Урок 8: «Mi hermano habla español»' },
   { number: 10, titleRu: 'Люди и профессии', titleEs: 'Las personas', hintRu: 'hombre, mujer, maestro, médico...', unlocksFrom: 'Урок 10: «Yo soy maestro»' },
   { number: 11, titleRu: 'Время', titleEs: 'El tiempo', hintRu: 'día, año, semana, hora...', unlocksFrom: 'Урок 26: «Hace dos años»' },
-  { number: 12, titleRu: 'Числа и «сколько»', titleEs: 'Números y cuánto', hintRu: 'cero — diez, cuánto, cuál', unlocksFrom: 'Урок 12: «¿Cuántos años tienes?»' },
+  { number: 12, titleRu: 'Числа и «сколько»', titleEs: 'Números y cuánto', hintRu: 'cero — diez, cuánto, cuál (11–100 — урок 34)', unlocksFrom: 'Урок 12: «¿Cuántos años tienes?»' },
   { number: 13, titleRu: 'Дом', titleEs: 'La casa', hintRu: 'casa, cocina, mesa, puerta...', unlocksFrom: 'Урок 13: «Estoy en la cocina»' },
   { number: 14, titleRu: 'Места в городе', titleEs: 'Los lugares', hintRu: 'escuela, tienda, parque...', unlocksFrom: 'Урок 14: «Voy a la escuela»' },
   { number: 15, titleRu: 'Вещи I', titleEs: 'Las cosas I', hintRu: 'libro, teléfono, dinero...' },
@@ -59,6 +59,10 @@ export const LESSONS: Lesson[] = [
   { number: 31, titleRu: 'Абстрактные понятия', titleEs: 'Ideas', hintRu: 'vida, mundo, pregunta, verdad...' },
   { number: 32, titleRu: 'Конструкции и языки', titleEs: 'Construcciones e idiomas', hintRu: 'acabar de, hace... + español, ruso...', unlocksFrom: 'Урок 32: «¿Hablas español?»' },
   { number: 33, titleRu: 'Спасательные фразы', titleEs: 'Frases de rescate', hintRu: 'dame, dime, mira, oye, espera — попроси и останови' },
+  { number: 34, titleRu: 'Числа 11–100', titleEs: 'Números 11–100', hintRu: 'once, veinte, veintidós, treinta, cien — до сотни', unlocksFrom: 'Урок 37: «Cuesta veinte pesos»' },
+  { number: 35, titleRu: 'Дни недели', titleEs: 'Días de la semana', hintRu: 'lunes, martes… — el lunes = в понедельник, los lunes = по понедельникам', unlocksFrom: 'Урок 35: «El lunes trabajo»' },
+  { number: 36, titleRu: 'Месяцы', titleEs: 'Los meses', hintRu: 'enero… diciembre + cumpleaños — en mayo = в мае', unlocksFrom: 'Урок 36: «Mi cumpleaños es en mayo»' },
+  { number: 37, titleRu: 'Цены и часы', titleEs: 'Precios y horas', hintRu: '¿Cuánto cuesta? ¿Qué hora es? — pesos, dólares', unlocksFrom: 'Урок 37: «¿Cuánto cuesta?» — первый разговор о цене' },
 ]
 
 /** Метаданные урока по номеру */

@@ -24,6 +24,11 @@ const RU_GENDER: Record<string, 'm' | 'f' | 'n'> = {
   'n-tiempo': 'n',       // время — с.р. (нарушает «я → ж.р.»)
   'n-nombre': 'n',       // имя — с.р.
   'n-manana': 'n',       // утро — с.р. (совпадает с правилом, для ясности)
+  // месяцы на -рь/-т: все м.р. (нарушают «ь → ж.р.»)
+  'n-enero': 'm', 'n-febrero': 'm', 'n-abril': 'm', 'n-septiembre': 'm',
+  'n-octubre': 'm', 'n-noviembre': 'm', 'n-diciembre': 'm',
+  'n-cumpleanos': 'm',   // «день рождения» — м.р. (нарушает «я → ж.р.»)
+  'n-peso': 'm',         // песо — несклоняемое м.р.
 }
 
 /** Механический род русского слова: consonant/й → м.р., а/я/ь → ж.р., о/е → с.р. */
@@ -274,4 +279,38 @@ export const NOUNS: Word[] = withRuMeta([
   n('n-espanol', 'español', 'm', 'españoles', ['испанский язык'], 32, 'language'),
   n('n-ruso', 'ruso', 'm', 'rusos', ['русский язык'], 32, 'language'),
   n('n-ingles', 'inglés', 'm', 'ingleses', ['английский язык'], 32, 'language'),
+
+  // ===== Урок 35: дни недели (с маленькой буквы; el lunes = в понедельник) =====
+  n('n-lunes', 'lunes', 'm', 'lunes', ['понедельник'], 35, 'abstract', {
+    ruHint: 'el lunes — в понедельник; los lunes — по понедельникам',
+  }),
+  n('n-martes', 'martes', 'm', 'martes', ['вторник'], 35, 'abstract'),
+  n('n-miercoles', 'miércoles', 'm', 'miércoles', ['среда'], 35, 'abstract'),
+  n('n-jueves', 'jueves', 'm', 'jueves', ['четверг'], 35, 'abstract'),
+  n('n-viernes', 'viernes', 'm', 'viernes', ['пятница'], 35, 'abstract'),
+  n('n-sabado', 'sábado', 'm', 'sábados', ['суббота'], 35, 'abstract'),
+  n('n-domingo', 'domingo', 'm', 'domingos', ['воскресенье'], 35, 'abstract'),
+
+  // ===== Урок 36: месяцы и день рождения (en mayo = в мае) =====
+  n('n-enero', 'enero', 'm', 'eneros', ['январь'], 36, 'abstract'),
+  n('n-febrero', 'febrero', 'm', 'febreros', ['февраль'], 36, 'abstract'),
+  n('n-marzo', 'marzo', 'm', 'marzos', ['март'], 36, 'abstract'),
+  n('n-abril', 'abril', 'm', 'abriles', ['апрель'], 36, 'abstract'),
+  n('n-mayo', 'mayo', 'm', 'mayos', ['май'], 36, 'abstract'),
+  n('n-junio', 'junio', 'm', 'junios', ['июнь'], 36, 'abstract'),
+  n('n-julio', 'julio', 'm', 'julios', ['июль'], 36, 'abstract'),
+  n('n-agosto', 'agosto', 'm', 'agostos', ['август'], 36, 'abstract'),
+  n('n-septiembre', 'septiembre', 'm', 'septiembres', ['сентябрь'], 36, 'abstract', { esAlt: ['setiembre'] }),
+  n('n-octubre', 'octubre', 'm', 'octubres', ['октябрь'], 36, 'abstract'),
+  n('n-noviembre', 'noviembre', 'm', 'noviembres', ['ноябрь'], 36, 'abstract'),
+  n('n-diciembre', 'diciembre', 'm', 'diciembres', ['декабрь'], 36, 'abstract'),
+  n('n-cumpleanos', 'cumpleaños', 'm', 'cumpleaños', ['день рождения'], 36, 'abstract', {
+    ruHint: 'М.р., хотя по-русски кончается на «-я»: el cumpleaños',
+  }),
+
+  // ===== Урок 37: цены — ¿Cuánto cuesta? =====
+  n('n-peso', 'peso', 'm', 'pesos', ['песо'], 37, 'thing', {
+    ruHint: 'Валюта Мексики, Аргентины, Колумбии, Кубы, Чили; не склоняется: двадцать песо',
+  }),
+  n('n-dolar', 'dólar', 'm', 'dólares', ['доллар'], 37, 'thing'),
 ])

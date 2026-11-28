@@ -166,4 +166,27 @@ export const LESSON_WORDS: string[][] = [
   [
     'cstr-dame', 'cstr-dime', 'cstr-mira', 'cstr-oye', 'cstr-espera',
   ],
+  // 34. Числа 11–100: 21–29 — одно слово (veintidós), дальше десяток + y + единица
+  [
+    'num-once', 'num-doce', 'num-trece', 'num-catorce', 'num-quince',
+    'num-dieciseis', 'num-diecisiete', 'num-dieciocho', 'num-diecinueve',
+    'num-veinte', 'num-veintiuno', 'num-veintidos', 'num-veintitres', 'num-veinticuatro',
+    'num-veinticinco', 'num-veintiseis', 'num-veintisiete', 'num-veintiocho', 'num-veintinueve',
+    'num-treinta', 'num-cuarenta', 'num-cincuenta', 'num-sesenta', 'num-setenta',
+    'num-ochenta', 'num-noventa', 'num-cien',
+  ],
+  // 35. Дни недели: el lunes = в понедельник, los lunes = по понедельникам
+  [
+    'n-lunes', 'n-martes', 'n-miercoles', 'n-jueves', 'n-viernes', 'n-sabado', 'n-domingo',
+  ],
+  // 36. Месяцы и день рождения: en mayo = в мае
+  [
+    'n-enero', 'n-febrero', 'n-marzo', 'n-abril', 'n-mayo', 'n-junio',
+    'n-julio', 'n-agosto', 'n-septiembre', 'n-octubre', 'n-noviembre', 'n-diciembre',
+    'n-cumpleanos',
+  ],
+  // 37. Цены: ¿Cuánto cuesta? — Cuesta veinte pesos
+  [
+    'v-costar', 'n-peso', 'n-dolar',
+  ],
 ]

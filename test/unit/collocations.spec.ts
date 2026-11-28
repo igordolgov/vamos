@@ -297,7 +297,7 @@ describe('Примеры из жалоб — больше не генериру�
     expect(verbObjCompatible(w('v-tener'), w('n-tiempo'))).toBe(true)
     expect(verbObjCompatible(w('v-tener'), w('n-familia'))).toBe(true)
     const t = TEMPLATES.find((x) => x.id === 't-pron-tener-noun')!
-    const { phrases, total } = enumerateTemplate(t, ALL, 0, 20_000)
+    const { phrases, total } = enumerateTemplate(t, ALL, 0, 200_000)
     expect(phrases.length, 'перечисление = подсчёт').toBe(total)
     for (const p of phrases) {
       expect(p.es, p.es).not.toMatch(/pollo|carne|leche|comida|música|vida/)
@@ -308,7 +308,7 @@ describe('Примеры из жалоб — больше не генериру�
 
   it('«У неё есть три отца» — числа только с «безопасными» существительными', () => {
     const t = TEMPLATES.find((x) => x.id === 't-pron-tener-num')!
-    const { phrases, total } = enumerateTemplate(t, ALL, 0, 20_000)
+    const { phrases, total } = enumerateTemplate(t, ALL, 0, 200_000)
     expect(phrases.length, 'перечисление = подсчёт').toBe(total)
     for (const p of phrases) {
       expect(p.es, p.es).not.toMatch(/\b(padres|madres|abuelos|abuelas)\b/)

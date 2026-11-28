@@ -13,10 +13,10 @@ import { countTemplate, enumerateTemplate } from '../../shared/phrases/engine'
 import type { PartOfSpeech } from '../../shared/types'
 
 describe('Словарь', () => {
-  it('содержит ~313 слов', () => {
+  it('содержит ~368 слов (37 уроков, A1)', () => {
     expect(WORD_COUNT).toBe(ALL_WORDS.length)
-    expect(WORD_COUNT).toBeGreaterThanOrEqual(300)
-    expect(WORD_COUNT).toBeLessThanOrEqual(330)
+    expect(WORD_COUNT).toBeGreaterThanOrEqual(340)
+    expect(WORD_COUNT).toBeLessThanOrEqual(390)
   })
 
   it('идентификаторы уникальны', () => {

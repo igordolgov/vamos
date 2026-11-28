@@ -12,7 +12,7 @@ import { getWord } from '../data/words'
 import { ALL_WORDS, wordsByPos } from '../data/words'
 import { capitalize, conjugate, gerundOf, joinPrepNP } from './es'
 import { ruAdjForNoun, ruAdjForm, ruArticleHint, ruDetForm, ruGustarForm, ruNounCaseWithDet, ruNounForm, ruNounPhrase } from './ru'
-import { ruAccusative, ruAdjGenitive, ruDetGenitive, ruGenitive, ruGenitivePlural } from './ru-morph'
+import { ruAccusative, ruAdjGenitive, ruDetGenitive, ruGenitive, ruGenitivePlural, ruNominative, ruPlural } from './ru-morph'
 import { initEngine, npEs, npNumber, npRu, verbPrepRuKey, adjCompatible } from './engine'
 import { NEG_BEFORE_ADVERB_RU, TENER_NOUN_IDS, TENER_PLURAL_IDS, adjPersonCompatible, verbObjAllowedNouns } from './collocations'
 import type { Fill, PhraseKind, Template } from './schema'
@@ -65,12 +65,29 @@ export const CONJUGATED_VERBS: Word[] = wordsByPos('verb').filter((v) => !!v.ver
 export const PREP_VERBS: Word[] = wordsByPos('verb').filter((v) => !!v.verb?.withPrep && v.id !== 'v-estar')
 
 /** Существительные по классам */
+/** Дни недели, месяцы, день рождения: календарные слова — ТОЛЬКО
+ *  в своих шаблонах (t-dia-el/los, t-hoy-es-dia, t-cumpleanos-mes):
+ *  «Hay miércoles», «Tengo el lunes», «¿Cuál es el enero?» — не генерируем */
+export const CALENDAR_NOUN_IDS: ReadonlySet<string> = new Set([
+  'n-lunes', 'n-martes', 'n-miercoles', 'n-jueves', 'n-viernes', 'n-sabado', 'n-domingo',
+  'n-enero', 'n-febrero', 'n-marzo', 'n-abril', 'n-mayo', 'n-junio',
+  'n-julio', 'n-agosto', 'n-septiembre', 'n-octubre', 'n-noviembre', 'n-diciembre',
+  'n-cumpleanos',
+])
+
+/** Общие существительные (без календарных): для шаблонов предметов и дополнений */
+export const GENERIC_NOUNS: Word[] = ALL_WORDS.filter(
+  (w) => w.pos === 'noun' && !CALENDAR_NOUN_IDS.has(w.id),
+)
+
 export const PERSON_NOUNS: Word[] = ALL_WORDS.filter((w) => w.nounClass === 'person' || w.nounClass === 'family')
 /** Люди для сер-профессий: без собирательных — «Она — семья», «Сестра — семья»
  *  не генерируем (familia — не профессия и не качество, жалоба пользователя) */
 export const PROF_NOUNS: Word[] = PERSON_NOUNS.filter((w) => w.id !== 'n-familia')
 export const THING_NOUNS: Word[] = ALL_WORDS.filter(
-  (w) => w.nounClass === 'thing' || w.nounClass === 'food' || w.nounClass === 'drink' || w.nounClass === 'abstract' || w.nounClass === 'language',
+  (w) =>
+    !CALENDAR_NOUN_IDS.has(w.id) &&
+    (w.nounClass === 'thing' || w.nounClass === 'food' || w.nounClass === 'drink' || w.nounClass === 'abstract' || w.nounClass === 'language'),
 )
 export const PLACE_NOUNS: Word[] = ALL_WORDS.filter((w) => w.nounClass === 'place')
 export const HUMAN_PLACE_NOUNS: Word[] = PLACE_NOUNS.filter((w) => !!w.ruCases?.en)
@@ -78,6 +95,82 @@ export const SURFACE_NOUNS: Word[] = ALL_WORDS.filter((w) => !!w.ruCases?.en && 
 
 /** Числа 2–4 (для «dos hermanos», «hace dos años») */
 export const NUMBERS_2_4: Word[] = ['num-dos', 'num-tres', 'num-cuatro'].map(getWord)
+
+/** Числа 2–100 (без cero/uno): для «Tengo veinte libros», «Cuesta treinta pesos».
+ *  Числовое значение на оси фраз ограничивает только русский согласование —
+ *  оно считается по NUM_VALUE ниже */
+export const NUMBERS_ALL: Word[] = [
+  'num-dos', 'num-tres', 'num-cuatro', 'num-cinco', 'num-seis', 'num-siete', 'num-ocho',
+  'num-nueve', 'num-diez', 'num-once', 'num-doce', 'num-trece', 'num-catorce', 'num-quince',
+  'num-dieciseis', 'num-diecisiete', 'num-dieciocho', 'num-diecinueve', 'num-veinte',
+  'num-veintiuno', 'num-veintidos', 'num-veintitres', 'num-veinticuatro', 'num-veinticinco',
+  'num-veintiseis', 'num-veintisiete', 'num-veintiocho', 'num-veintinueve',
+  'num-treinta', 'num-cuarenta', 'num-cincuenta', 'num-sesenta', 'num-setenta',
+  'num-ochenta', 'num-noventa', 'num-cien',
+].map(getWord)
+
+/** Числовое значение числительного (для русского согласования: 2–4/5+) */
+const NUM_VALUE: Record<string, number> = {
+  'num-cero': 0, 'num-uno': 1, 'num-dos': 2, 'num-tres': 3, 'num-cuatro': 4,
+  'num-cinco': 5, 'num-seis': 6, 'num-siete': 7, 'num-ocho': 8, 'num-nueve': 9, 'num-diez': 10,
+  'num-once': 11, 'num-doce': 12, 'num-trece': 13, 'num-catorce': 14, 'num-quince': 15,
+  'num-dieciseis': 16, 'num-diecisiete': 17, 'num-dieciocho': 18, 'num-diecinueve': 19,
+  'num-veinte': 20, 'num-veintiuno': 21, 'num-veintidos': 22, 'num-veintitres': 23,
+  'num-veinticuatro': 24, 'num-veinticinco': 25, 'num-veintiseis': 26, 'num-veintisiete': 27,
+  'num-veintiocho': 28, 'num-veintinueve': 29, 'num-treinta': 30, 'num-cuarenta': 40,
+  'num-cincuenta': 50, 'num-sesenta': 60, 'num-setenta': 70, 'num-ochenta': 80,
+  'num-noventa': 90, 'num-cien': 100,
+}
+
+/** Часы 1–12 (для «Son las tres»): часы по-русски и по-испански — только до двенадцати */
+const HOURS_1_12: Word[] = [
+  'num-uno', 'num-dos', 'num-tres', 'num-cuatro', 'num-cinco', 'num-seis',
+  'num-siete', 'num-ocho', 'num-nueve', 'num-diez', 'num-once', 'num-doce',
+].map(getWord)
+
+/** Дни недели (урок 35) */
+const DAYS: Word[] = [
+  'n-lunes', 'n-martes', 'n-miercoles', 'n-jueves', 'n-viernes', 'n-sabado', 'n-domingo',
+].map(getWord)
+
+/** Русские формы дня: вин.п. («в понедельник») и дат.мн. («по понедельникам») */
+const DAY_RU: Record<string, { acc: string; datPl: string }> = {
+  'n-lunes': { acc: 'понедельник', datPl: 'понедельникам' },
+  'n-martes': { acc: 'вторник', datPl: 'вторникам' },
+  'n-miercoles': { acc: 'среду', datPl: 'средам' },
+  'n-jueves': { acc: 'четверг', datPl: 'четвергам' },
+  'n-viernes': { acc: 'пятницу', datPl: 'пятницам' },
+  'n-sabado': { acc: 'субботу', datPl: 'субботам' },
+  'n-domingo': { acc: 'воскресенье', datPl: 'воскресеньям' },
+}
+
+/** Глаголы для «El lunes trabajo» — действие без дополнения */
+const DAY_VERBS: Word[] = [
+  'v-trabajar', 'v-estudiar', 'v-leer', 'v-escribir', 'v-comer', 'v-hablar', 'v-vivir',
+].map(getWord)
+
+/** Месяцы (урок 36) */
+const MONTHS: Word[] = [
+  'n-enero', 'n-febrero', 'n-marzo', 'n-abril', 'n-mayo', 'n-junio',
+  'n-julio', 'n-agosto', 'n-septiembre', 'n-octubre', 'n-noviembre', 'n-diciembre',
+].map(getWord)
+
+/** Русская форма месяца (предл.п.): en mayo → «в мае» */
+const MONTH_RU_PREP: Record<string, string> = {
+  'n-enero': 'январе', 'n-febrero': 'феврале', 'n-marzo': 'марте', 'n-abril': 'апреле',
+  'n-mayo': 'мае', 'n-junio': 'июне', 'n-julio': 'июле', 'n-agosto': 'августе',
+  'n-septiembre': 'сентябре', 'n-octubre': 'октябре', 'n-noviembre': 'ноябре', 'n-diciembre': 'декабре',
+}
+
+/** Товары с ценой («¿Cuánto cuesta?»): еда, вещи, не абстракция и не вода
+ *  (проверка «una leche / un agua» запрещена QA-маской BAD_ES) */
+const PRICE_NOUNS: Word[] = [
+  'n-pan', 'n-cafe', 'n-cerveza', 'n-jugo', 'n-vino', 'n-queso', 'n-manzana',
+  'n-libro', 'n-camisa', 'n-carro', 'n-casa', 'n-telefono', 'n-computadora',
+].map(getWord)
+
+/** Деньги (урок 37): «Cuesta veinte pesos» */
+const MONEY_NOUNS: Word[] = ['n-peso', 'n-dolar'].map(getWord)
 
 /** Существительные времени (hace dos años) */
 export const TIME_NOUNS: Word[] = ['n-ano', 'n-mes', 'n-dia', 'n-semana', 'n-hora', 'n-minuto'].map(getWord)
@@ -334,14 +427,64 @@ export function npRuAcc(fill: Fill, role: string, articleHint = false): string {
   return parts.join(' ')
 }
 
-/** Русская форма числа (два/две; двое/трое/четверо для plural-only) */
-function ruNumWord(num: Word, noun: Word): string {
+/**
+ * Испанская форма числа ПЕРЕД существительным: veintiuno → veintiún (м.р.)/
+ * veintiuna (ж.р.) — апокопа, как uno → un. Остальные числа неизменны.
+ */
+function numEs(num: Word, noun: Word): string {
+  if (num.id === 'num-veintiuno') return noun.gender === 'f' ? 'veintiuna' : 'veintiún'
+  return num.es
+}
+
+/**
+ * Русская форма числительного по роду существительного:
+ * два/две, двадцать один/двадцать одна; для существительных,
+ * существующих только во мн.ч. (часы) — собирательные (двое/трое)
+ * или «двадцать одни».
+ */
+function ruNumForm(num: Word, noun: Word): string {
+  const ru = noun.ruGender ?? 'm'
+  const fem = ru === 'f'
+  const neut = ru === 'n'
   if (noun.ruPluralOnly) {
     const coll: Record<string, string> = { 'num-dos': 'двое', 'num-tres': 'трое', 'num-cuatro': 'четверо' }
+    if (num.id === 'num-veintiuno') return 'двадцать одни'
     return coll[num.id] ?? (num.ru[0] ?? num.es)
   }
-  if (num.id === 'num-dos') return (noun.ruGender ?? 'm') === 'f' ? 'две' : 'два'
+  if (num.id === 'num-dos') return fem ? 'две' : 'два'
+  if (num.id === 'num-veintiuno') {
+    if (fem) return 'двадцать одна'
+    if (neut) return 'двадцать одно'
+    return 'двадцать один'
+  }
+  if (num.id === 'num-veintidos') return fem ? 'двадцать две' : 'двадцать два'
   return num.ru[0] ?? num.es
+}
+
+/**
+ * Существительное при числительном по-русски:
+ * 1, 21, 31… — им.п. ед.ч. («двадцать один стол», НО 11 → «одиннадцать столов»);
+ * 2–4, 22–24… — род.п. ед.ч. («два стола», «двадцать две книги»);
+ * 5+ (и 11–19) — род.п. мн.ч. («пять столов», «двадцать книг», «сто книг»).
+ * Существительные только во мн.ч.: при 1/21 — им.п. мн.ч. («двадцать одни часы»),
+ * при собирательных и 5+ — род.п. («двое часов», «пять часов»).
+ */
+function ruNounWithNum(num: Word, noun: Word): string {
+  if (noun.ruPluralOnly) {
+    const n = NUM_VALUE[num.id] ?? 5
+    if (n % 10 === 1 && n !== 11 && n !== 100) return ruPlural(noun)
+    return ruGenitive(noun)
+  }
+  const n = NUM_VALUE[num.id] ?? 5
+  const unit = n % 10
+  if (unit === 1 && n !== 11 && n !== 100) return ruNominative(noun)
+  if (unit >= 2 && unit <= 4 && (n < 11 || n > 14)) return ruGenitive(noun)
+  return ruGenitivePlural(noun)
+}
+
+/** Числительное + существительное: «два стола», «двадцать один стол», «пять столов» */
+function ruNumPhrase(num: Word, noun: Word): string {
+  return `${ruNumForm(num, noun)} ${ruNounWithNum(num, noun)}`
 }
 
 // ============================================================
@@ -484,7 +627,7 @@ export const TEMPLATES: Template[] = [
       {
         kind: 'npDep',
         role: 's',
-        nouns: ALL_WORDS.filter((w) => w.pos === 'noun'),
+        nouns: GENERIC_NOUNS,
         number: 'sg',
         detSet: 'subject',
         bareAuto: false,
@@ -630,7 +773,7 @@ export const TEMPLATES: Template[] = [
       {
         kind: 'np',
         role: 'o',
-        nouns: ALL_WORDS.filter((w) => w.pos === 'noun'),
+        nouns: GENERIC_NOUNS,
         number: 'sg',
         detSet: 'object',
         bareAuto: true,
@@ -679,16 +822,18 @@ export const TEMPLATES: Template[] = [
     requires: ['v-tener'],
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
-      { kind: 'free', role: 'num', words: NUMBERS_2_4 },
+      { kind: 'free', role: 'num', words: NUMBERS_ALL },
       {
         kind: 'np',
         role: 'o',
-        nouns: ALL_WORDS.filter((w) => w.pos === 'noun'),
+        nouns: GENERIC_NOUNS,
         number: 'pl',
         detSet: 'none',
         bareAuto: false,
         withAdj: false,
-        // «два брата», «три книги» — да; «три отца», «трое денег» — нет
+        // «два брата», «три книги» — да; «три отца», «трое денег» — нет;
+        // год/месяц/день исключены: «Tengo veinte años» — возраст,
+        // по-русски «Мне двадцать лет» (другая конструкция)
         nounFilter: (n) => TENER_PLURAL_IDS.includes(n.id),
       },
     ],
@@ -698,15 +843,14 @@ export const TEMPLATES: Template[] = [
       const num = fill.num as Word
       const noun = fill['o#noun'] as Word
       const verb = conjugate(getWord('v-tener'), pronPerson(p))
-      const core = `${p.es} ${verb} ${num.es} ${noun.nounPlural}`
+      const core = `${p.es} ${verb} ${numEs(num, noun)} ${noun.nounPlural}`
       return kind === 'yesno' ? `¿${capitalize(core)}?` : capitalize(core)
     },
     ru: (fill, kind) => {
       const p = fill.s as Word
       const num = fill.num as Word
       const noun = fill['o#noun'] as Word
-      const ruNum = ruNumWord(num, noun)
-      const core = `У ${p.pronoun?.ruGen} есть ${ruNum} ${ruGenitive(noun)}`
+      const core = `У ${p.pronoun?.ruGen} есть ${ruNumPhrase(num, noun)}`
       return kind === 'yesno' ? `${core}?` : core
     },
   },
@@ -1176,7 +1320,7 @@ export const TEMPLATES: Template[] = [
     requires: [],
     units: [
       { kind: 'free', role: 's', words: SUBJECT_PRONOUNS },
-      { kind: 'verbPrep', verbRole: 'v', verbs: PREP_VERBS, prepRole: 'prep', preps: wordsByPos('preposition'), nounRole: 'o', nouns: ALL_WORDS.filter((w) => w.pos === 'noun'), number: 'sg' },
+      { kind: 'verbPrep', verbRole: 'v', verbs: PREP_VERBS, prepRole: 'prep', preps: wordsByPos('preposition'), nounRole: 'o', nouns: GENERIC_NOUNS, number: 'sg' },
     ],
     variants: ['aff', 'neg', 'yesno'],
     render: (fill, kind) => {
@@ -1659,19 +1803,144 @@ export const TEMPLATES: Template[] = [
     group: 'числа и время',
     requires: ['cstr-hace-tiempo'],
     units: [
-      { kind: 'free', role: 'num', words: NUMBERS_2_4 },
+      { kind: 'free', role: 'num', words: NUMBERS_ALL },
       { kind: 'np', role: 'o', nouns: TIME_NOUNS, number: 'pl', detSet: 'none', bareAuto: false, withAdj: false },
     ],
     variants: ['aff'],
     render: (fill) => {
       const num = fill.num as Word
       const noun = fill['o#noun'] as Word
-      return capitalize(`hace ${num.es} ${noun.nounPlural}`)
+      return capitalize(`hace ${numEs(num, noun)} ${noun.nounPlural}`)
     },
     ru: (fill) => {
       const num = fill.num as Word
       const noun = fill['o#noun'] as Word
-      return `${capitalize(ruNumWord(num, noun))} ${ruGenitive(noun)} назад`
+      return `${capitalize(ruNumPhrase(num, noun))} назад`
+    },
+  },
+
+  // ==========================================================
+  // ДНИ НЕДЕЛИ И МЕСЯЦЫ (уроки 35–36)
+  // ==========================================================
+  dayTemplate('t-dia-el', 'el'),
+  dayTemplate('t-dia-los', 'los'),
+  {
+    id: 't-hoy-es-dia',
+    lesson: 35,
+    group: 'дни и месяцы',
+    requires: [],
+    units: [{ kind: 'free', role: 'day', words: DAYS }],
+    variants: ['aff', 'qw'],
+    render: (fill, kind) =>
+      kind === 'qw' ? '¿Qué día es hoy?' : capitalize(`Hoy es ${(fill.day as Word).es}`),
+    ru: (fill, kind) =>
+      kind === 'qw' ? 'Какой сегодня день?' : `Сегодня ${(fill.day as Word).ru[0]}`,
+  },
+  {
+    id: 't-cumpleanos-mes',
+    lesson: 36,
+    group: 'дни и месяцы',
+    requires: ['n-cumpleanos'],
+    units: [{ kind: 'free', role: 'mes', words: MONTHS }],
+    variants: ['aff'],
+    render: (fill) => `Mi cumpleaños es en ${(fill.mes as Word).es}`,
+    ru: (fill) => `Мой день рождения в ${MONTH_RU_PREP[(fill.mes as Word).id] ?? (fill.mes as Word).ru[0]}`,
+  },
+  {
+    id: 't-qw-cuando-cumpleanos',
+    lesson: 36,
+    group: 'дни и месяцы',
+    requires: ['n-cumpleanos', 'qw-cuando'],
+    units: [],
+    variants: ['qw'],
+    render: () => '¿Cuándo es tu cumpleaños?',
+    ru: () => 'Когда твой день рождения?',
+  },
+
+  // ==========================================================
+  // ЦЕНЫ И ЧАСЫ (урок 37)
+  // ==========================================================
+  {
+    id: 't-qw-que-hora',
+    lesson: 37,
+    group: 'цены и часы',
+    requires: ['v-ser', 'qw-que'],
+    units: [],
+    variants: ['qw'],
+    render: () => '¿Qué hora es?',
+    ru: () => 'Сколько времени?',
+  },
+  {
+    id: 't-es-la-hora',
+    lesson: 37,
+    group: 'цены и часы',
+    // num-doce (урок 34): часы имеют смысл, когда числа 1–12 уже изучены
+    requires: ['num-doce'],
+    units: [{ kind: 'free', role: 'num', words: HOURS_1_12 }],
+    variants: ['aff'],
+    render: (fill) => {
+      const num = fill.num as Word
+      const h = NUM_VALUE[num.id] ?? 2
+      return h === 1 ? 'Es la una en punto' : `Son las ${num.es} en punto`
+    },
+    ru: (fill) => {
+      const num = fill.num as Word
+      const h = NUM_VALUE[num.id] ?? 2
+      // «Сейчас ровно час», «Сейчас ровно два часа», «…пять часов»
+      if (h === 1) return 'Сейчас ровно час'
+      const word = h <= 4 ? 'часа' : 'часов'
+      return `Сейчас ровно ${num.ru[0] ?? num.es} ${word}`
+    },
+  },
+  {
+    id: 't-qw-cuanto-cuesta',
+    lesson: 37,
+    group: 'цены и часы',
+    requires: ['v-costar'],
+    units: [
+      {
+        kind: 'np',
+        role: 's',
+        nouns: PRICE_NOUNS,
+        number: 'any',
+        detSet: 'subject',
+        bareAuto: false,
+        withAdj: false,
+      },
+    ],
+    variants: ['qw'],
+    render: (fill) => {
+      const verb = conjugate(getWord('v-costar'), npNumber(fill, 's') === 'pl' ? '3p' : '3s')
+      return `¿Cuánto ${verb} ${npEs(fill, 's')}?`
+    },
+    ru: (fill) => {
+      const noun = fill['s#noun'] as Word
+      const pl = npNumber(fill, 's') === 'pl' || noun.ruPluralOnly === true
+      const np = npRu(fill, 's', { articleHint: true })
+      return pl ? `Сколько стоят ${np}?` : `Сколько стоит ${np}?`
+    },
+  },
+  {
+    id: 't-cuesta-num',
+    lesson: 37,
+    group: 'цены и часы',
+    requires: ['v-costar'],
+    units: [
+      { kind: 'free', role: 'num', words: NUMBERS_ALL },
+      { kind: 'np', role: 'o', nouns: MONEY_NOUNS, number: 'pl', detSet: 'none', bareAuto: false, withAdj: false },
+    ],
+    variants: ['aff', 'yesno'],
+    render: (fill, kind) => {
+      const num = fill.num as Word
+      const noun = fill['o#noun'] as Word
+      const core = `Cuesta ${numEs(num, noun)} ${noun.nounPlural}`
+      return kind === 'yesno' ? `¿${capitalize(core)}?` : capitalize(core)
+    },
+    ru: (fill, kind) => {
+      const num = fill.num as Word
+      const noun = fill['o#noun'] as Word
+      const core = `Стоит ${ruNumPhrase(num, noun)}`
+      return kind === 'yesno' ? `${core}?` : core
     },
   },
 
@@ -1739,7 +2008,7 @@ export const TEMPLATES: Template[] = [
       {
         kind: 'np',
         role: 'o',
-        nouns: ALL_WORDS.filter((w) => w.nounClass === 'thing' || w.nounClass === 'abstract'),
+        nouns: ALL_WORDS.filter((w) => !CALENDAR_NOUN_IDS.has(w.id) && (w.nounClass === 'thing' || w.nounClass === 'abstract')),
         number: 'sg',
         detSet: 'subject',
         bareAuto: false,
@@ -1772,7 +2041,7 @@ export const TEMPLATES: Template[] = [
  */
 function ioDoTemplate(id: string, verbId: string): Template {
   const verb = getWord(verbId)
-  const nouns = verbObjAllowedNouns(verb, ALL_WORDS.filter((w) => w.pos === 'noun'))
+  const nouns = verbObjAllowedNouns(verb, GENERIC_NOUNS)
   return {
     id,
     lesson: 26,
@@ -1868,6 +2137,39 @@ function qwTemplate(id: string, qwId: string, ruQw: string, verbs: Word[]): Temp
       // «¿Qué estudias?» — вопрос про дополнение: «Что ты изучаешь?»
       const form = qwId === 'qw-que' ? ruVerbObjI(v, 1) : ruVerbI(v, 1)
       return `${capitalize(ruQw)} ты ${form}?`
+    },
+  }
+}
+
+/**
+ * Шаблон дня недели с определителем: el lunes = «в понедельник» (конкретный
+ * день), los lunes = «по понедельникам» (повторяемость). Глагол в 1-м лице
+ * (подлежащее «я» подразумевается): El lunes trabajo — В понедельник я работаю.
+ */
+function dayTemplate(id: string, art: 'el' | 'los'): Template {
+  const esArt = art === 'el' ? 'El' : 'Los'
+  const ruPre = (dayId: string) =>
+    art === 'el' ? `В ${DAY_RU[dayId]!.acc}` : `По ${DAY_RU[dayId]!.datPl}`
+  return {
+    id,
+    lesson: 35,
+    group: 'дни и месяцы',
+    requires: [],
+    units: [
+      { kind: 'free', role: 'day', words: DAYS },
+      { kind: 'free', role: 'v', words: DAY_VERBS },
+    ],
+    variants: ['aff', 'neg'],
+    render: (fill, kind) => {
+      const day = fill.day as Word
+      const v = fill.v as Word
+      const form = conjugate(v, '1s')
+      return capitalize(`${esArt} ${day.es}${kind === 'neg' ? ' no' : ''} ${form}`)
+    },
+    ru: (fill, kind) => {
+      const day = fill.day as Word
+      const v = fill.v as Word
+      return `${ruPre(day.id)} я ${kind === 'neg' ? 'не ' : ''}${ruVerbI(v, 0)}`
     },
   }
 }

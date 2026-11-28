@@ -87,7 +87,7 @@ export const CONJUNCTIONS: Word[] = [
   conj('c-entonces', 'entonces', ['тогда'], 22),
 ]
 
-/** Числительные (урок 23) */
+/** Числительные (урок 23: 0–10; урок 34: 11–100) */
 export const NUMBERS: Word[] = [
   num('num-cero', 'cero', ['ноль'], 23),
   num('num-uno', 'uno', ['один'], 23, { ruHint: 'Перед сущ. м.р.: un libro; перед ж.р.: una casa' }),
@@ -100,6 +100,39 @@ export const NUMBERS: Word[] = [
   num('num-ocho', 'ocho', ['восемь'], 23),
   num('num-nueve', 'nueve', ['девять'], 23),
   num('num-diez', 'diez', ['десять'], 23),
+  // --- Урок 34: 11–100. До 29 — одно слово; дальше десятки + y + единица:
+  // treinta y cinco (35), cuarenta y dos (42) — «y» = «и»
+  num('num-once', 'once', ['одиннадцать'], 34),
+  num('num-doce', 'doce', ['двенадцать'], 34),
+  num('num-trece', 'trece', ['тринадцать'], 34),
+  num('num-catorce', 'catorce', ['четырнадцать'], 34),
+  num('num-quince', 'quince', ['пятнадцать'], 34),
+  num('num-dieciseis', 'dieciséis', ['шестнадцать'], 34),
+  num('num-diecisiete', 'diecisiete', ['семнадцать'], 34),
+  num('num-dieciocho', 'dieciocho', ['восемнадцать'], 34),
+  num('num-diecinueve', 'diecinueve', ['девятнадцать'], 34),
+  num('num-veinte', 'veinte', ['двадцать'], 34),
+  num('num-veintiuno', 'veintiuno', ['двадцать один'], 34, {
+    ruHint: 'Перед сущ.: veintiún libro (м.р.), veintiuna casas (ж.р.)',
+  }),
+  num('num-veintidos', 'veintidós', ['двадцать два'], 34),
+  num('num-veintitres', 'veintitrés', ['двадцать три'], 34),
+  num('num-veinticuatro', 'veinticuatro', ['двадцать четыре'], 34),
+  num('num-veinticinco', 'veinticinco', ['двадцать пять'], 34),
+  num('num-veintiseis', 'veintiséis', ['двадцать шесть'], 34),
+  num('num-veintisiete', 'veintisiete', ['двадцать семь'], 34),
+  num('num-veintiocho', 'veintiocho', ['двадцать восемь'], 34),
+  num('num-veintinueve', 'veintinueve', ['двадцать девять'], 34),
+  num('num-treinta', 'treinta', ['тридцать'], 34, {
+    ruHint: '36 = treinta y seis — десяток + «y» + единица',
+  }),
+  num('num-cuarenta', 'cuarenta', ['сорок'], 34),
+  num('num-cincuenta', 'cincuenta', ['пятьдесят'], 34),
+  num('num-sesenta', 'sesenta', ['шестьдесят'], 34),
+  num('num-setenta', 'setenta', ['семьдесят'], 34),
+  num('num-ochenta', 'ochenta', ['восемьдесят'], 34),
+  num('num-noventa', 'noventa', ['девяносто'], 34),
+  num('num-cien', 'cien', ['сто'], 34, { ruHint: 'cien libros — сто книг; 100+ — cientos (не в A1)' }),
 ]
 
 /** Конструкции (урок 26) — «кирпичи» для фраз */
