@@ -54,9 +54,11 @@ export default defineNuxtConfig({
   // PWA — манифест и service worker
   // ============================================================
   pwa: {
-    // Service worker обновляется автоматически при новой версии
+    // Service worker обновляется автоматически при новой версии.
+    // В includeAssets только robots.txt: favicon и иконки уже входят
+    // в прекеш через globPatterns (дубликаты → предупреждения сборки)
     registerType: 'autoUpdate',
-    includeAssets: ['favicon.png', 'apple-touch-icon.png', 'robots.txt'],
+    includeAssets: ['robots.txt'],
 
     manifest: {
       id: '/',
@@ -86,12 +88,69 @@ export default defineNuxtConfig({
     // Конфигурация автогенерации service worker (workbox-build).
     // В @vite-pwa/nuxt 2.x ключ называется generateSW (старое имя workbox устарело).
     generateSW: {
-      // Прекеш всех статических ресурсов — приложение полностью работает офлайн
-      globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
-      navigateFallback: '/index.html',
-      // Данные API не кешируем: прогресс синхронизируется,
-      // а оффлайн-очередь хранится в localStorage
-      navigateFallbackDenylist: [/^\/api\//],
+      // ВАЖНО: @vite-pwa/nuxt по умолчанию добавляет в sw.js
+      // NavigationRoute(createHandlerBoundToURL('/')), но SSR-приложение
+      // не имеет готового index.html — «/» нет в прекеше, и
+      // createHandlerBoundToURL бросает ошибку при вычислении sw.js:
+      // service worker вообще не регистрируется (нет ни офлайна,
+      // ни предложения установки). Явно отключаем: офлайн даёт
+      // runtime-кеш страниц (NetworkFirst) ниже
+      navigateFallback: undefined,
+      // Прекеш всех статических ресурсов: чанки JS (в том числе код
+      // ленивых маршрутов), стили, иконки, шрифты. Манифест добавляется
+      // модулем сам — включать его в globPatterns не нужно (дубликат)
+      globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
+      // Приложение — SSR (готового index.html в сборке нет), поэтому
+      // офлайн-работа страниц обеспечивается runtime-кешем: HTML и
+      // пейлоад гидратации кешируются при просмотре онлайн и открываются
+      // без сети при следующих визитах (Workbox: NetworkFirst с таймаутом)
+      runtimeCaching: [
+        {
+          // Страницы: сеть с таймаутом 3 с → последний кеш
+          urlPattern: ({ request }) => request.mode === 'navigate',
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'vamos-pages',
+            networkTimeoutSeconds: 3,
+            expiration: { maxEntries: 64, maxAgeSeconds: 60 * 60 * 24 * 14 },
+          },
+        },
+        {
+          // Пейлоады гидратации Nuxt (клиентская навигация)
+          urlPattern: /\/_payload\.json(\?.*)?$/,
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'vamos-payload',
+            networkTimeoutSeconds: 3,
+            expiration: { maxEntries: 64, maxAgeSeconds: 60 * 60 * 24 * 14 },
+          },
+        },
+        {
+          // Метаданные приложения Nuxt (/builds/meta/…): клиентский
+          // роутер читает их при навигации — офлайн отдаём последние
+          urlPattern: /\/builds\//,
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'vamos-builds',
+            networkTimeoutSeconds: 3,
+            expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 7 },
+          },
+        },
+        {
+          // GET /api: последний успешный ответ доступен офлайн.
+          // Прогресс при этом и так дублируется в localStorage,
+          // POST/PUT прогресса при офлайне повторяются сами
+          // (очередь в useProgress)
+          urlPattern: ({ url, request }) =>
+            url.pathname.startsWith('/api/') && request.method === 'GET',
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'vamos-api',
+            networkTimeoutSeconds: 3,
+            expiration: { maxEntries: 32, maxAgeSeconds: 60 * 60 * 24 },
+          },
+        },
+      ],
     },
 
     client: {

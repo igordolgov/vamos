@@ -25,9 +25,12 @@ function progressWith(partial: Partial<Progress>): Progress {
 }
 
 const knownProgress = (): Progress => {
-  // знакомый набор: yo/tú, buscar, teléfono, mi — шаблон t-pron-v-do собирается
+  // знакомый набор: yo, buscar, teléfono + артикли (урок 2) —
+  // шаблон t-pron-v-do собирается: «Yo busco un teléfono».
+  // Общая практика собирает фразы ТОЛЬКО из встречавшихся слов:
+  // артикль в наборе обязателен (незнакомые слова не подставляются)
   const p = emptyProgress()
-  for (const id of ['p-yo', 'v-buscar', 'n-telefono']) {
+  for (const id of ['p-yo', 'v-buscar', 'n-telefono', 'd-un', 'd-el', 'd-la', 'd-una']) {
     p.words[id] = { correct: 3, wrong: 0, knownAt: 1 }
   }
   return p

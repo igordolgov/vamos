@@ -9,7 +9,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useT } from '~/composables/useI18n'
 import { speakEs, unlockSpeech } from '~/composables/useSpeech'
 import { useProgress, applyAnswer, markAlreadyKnown, likeExercise, dislikeExercise } from '~/composables/useProgress'
-import { makeExercise, type Exercise, type ExerciseKind } from '#shared/practice'
+import { makeExercise, hasPracticeMaterial, type Exercise, type ExerciseKind } from '#shared/practice'
 import { knownWordsCount } from '#shared/stats'
 import QuizChoice from '~/components/QuizChoice.vue'
 import QuizBuild from '~/components/QuizBuild.vue'
@@ -48,7 +48,11 @@ const wrongCount = ref(0)
 const newWords = ref<Array<{ es: string; ru: string[] }>>([])
 const lastCorrect = ref<boolean | null>(null)
 
-// Пул практики всегда содержит новые слова — блокировать нечего
+// Пул практики — только уже встречавшийся материал (слова уроков и
+// предыдущих сессий). Если пользователь ещё не проходил ни одного урока
+// и не отвечал на слова — в общей практике нечего спрашивать: вместо
+// плиток режимов показываем подсказку «пройдите урок»
+const hasMaterial = computed(() => hasPracticeMaterial(progress.value))
 const wordsKnown = computed(() => knownWordsCount(progress.value))
 
 // Режим «микс» чередует типы упражнений
@@ -288,20 +292,23 @@ h1.text-2xl.font-bold.text-primary(v-if="mode !== 'session'") {{ t('practice.tit
 // ширина ограничена (max-w-3xl)
 div.mb-2(v-if="mode === 'menu'")
   h2.card-title.text-lg.mb-2(class="sm:text-xl") {{ t('practice.source') }}
+  // Нет пройденного материала — направляем в уроки вместо пустой сессии
+  .alert.mb-2(v-if="!hasMaterial" class="bg-primary/10 py-2 border border-primary/40")
+    span.text-sm {{ t('practice.needLesson') }}
   .grid.grid-cols-2.w-full.max-w-3xl(class="gap-2.5 sm:gap-3 sm:grid-cols-3 lg:grid-cols-5 mx-auto")
-    button.glass-card.glass-card--success(type="button" @click="startWith('choice')")
+    button.glass-card.glass-card--success(type="button" :disabled="!hasMaterial" :class="{ 'opacity-50': !hasMaterial }" @click="startWith('choice')")
       span.glass-card-icon(aria-hidden="true") ✅
       span.glass-card-label {{ t('practice.choice') }}
-    button.glass-card.glass-card--accent(type="button" @click="startWith('build')")
+    button.glass-card.glass-card--accent(type="button" :disabled="!hasMaterial" :class="{ 'opacity-50': !hasMaterial }" @click="startWith('build')")
       span.glass-card-icon(aria-hidden="true") 🧩
       span.glass-card-label {{ t('practice.build') }}
-    button.glass-card.glass-card--info(type="button" @click="startWith('audio')")
+    button.glass-card.glass-card--info(type="button" :disabled="!hasMaterial" :class="{ 'opacity-50': !hasMaterial }" @click="startWith('audio')")
       span.glass-card-icon(aria-hidden="true") 🔊
       span.glass-card-label {{ t('practice.audio') }}
-    button.glass-card.glass-card--primary(type="button" @click="startWith('mixed')")
+    button.glass-card.glass-card--primary(type="button" :disabled="!hasMaterial" :class="{ 'opacity-50': !hasMaterial }" @click="startWith('mixed')")
       span.glass-card-icon(aria-hidden="true") 🎲
       span.glass-card-label {{ t('practice.mixed') }}
-    button.glass-card(type="button" @click="startWith('active')")
+    button.glass-card(type="button" :disabled="!hasMaterial" :class="{ 'opacity-50': !hasMaterial }" @click="startWith('active')")
       span.glass-card-icon(aria-hidden="true") ⌨️
       span.glass-card-label {{ t('practice.active') }}
 
@@ -309,7 +316,7 @@ div.mb-2(v-if="mode === 'menu'")
   // Плитки показываются не все сразу, а шаг за шагом — верное слово
   // среди похожих (вопросительные с вопросительными, формы глагола
   // с формами того же глагола)
-  .flex.flex-col.items-center.gap-1.mt-1.mb-2(class="mx-auto max-w-2xl")
+  .flex.flex-col.items-center.gap-1.mt-1.mb-2(v-if="hasMaterial" class="mx-auto max-w-2xl")
     label.flex.items-center.gap-2.cursor-pointer.select-none
       input.toggle.toggle-sm.toggle-primary(type="checkbox" :checked="stagedBuild" @change="toggleStaged($event)")
       span.text-sm.font-medium {{ t('practice.staged') }}
@@ -386,6 +393,7 @@ div.mb-2(v-if="mode === 'menu'")
       :question-ru="current.questionRu"
       :options="current.options"
       :answer-index="current.answerIndex"
+      :answer-es="current.answerEs"
       :tip="current.tip"
       :option-notes="current.optionNotes"
       @answered="onAnswered"

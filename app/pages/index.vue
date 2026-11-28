@@ -28,7 +28,7 @@ import BadgeCard from '~/components/BadgeCard.vue'
 const t = useT()
 const locale = useLocale()
 const {progress, ensureLoaded} = useProgress()
-const {canInstall, install} = useInstall()
+const {canInstall, isIOS, isStandalone, install} = useInstall()
 onMounted(() => {
   void ensureLoaded()
 })
@@ -130,6 +130,10 @@ section
       :unlocked="true"
       compact=""
     )
+  // Установка PWA: кнопка системного диалога (Chromium/Android);
+  // на iOS системного диалога нет — короткая подсказка
+  .alert.mt-3(class="bg-info/10 py-2 border border-info/40" v-if="isIOS && !isStandalone")
+    span.text-sm {{ t('set.installIosHint') }}
   button.btn.btn-outline.btn-wide.mt-3(
     v-if="canInstall"
     @click="install()"

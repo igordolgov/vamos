@@ -111,6 +111,7 @@ export const ES: Dict = {
   'practice.next': 'Siguiente',
   'practice.correct': '¡Correcto!',
   'practice.answerWas': 'Respuesta correcta:',
+  'practice.needLesson': 'La práctica general repasa lo ya estudiado: las palabras y frases aparecen aquí después de las lecciones y las respuestas. Completa una lección y su material aparecerá en la práctica.',
   'practice.tipWhy': 'Por qué',
   'practice.tipHack': 'Truco',
   'practice.tipEx': 'Ejemplo',
@@ -169,6 +170,9 @@ export const ES: Dict = {
   'set.aboutText': '¡Vamos! — aplicación para aprender español latinoamericano: 318 palabras frecuentes, motor combinatorio de frases (millones de oraciones en presente, con «mi/este» y estar + gerundio), colección personal de frases, traducción activa y proyecciones «aprendes — sabrás».',
   'set.install': 'Instalar como aplicación',
   'set.installHint': 'Funciona sin conexión como una aplicación normal',
+  'set.installIosHint': 'En iPhone y iPad no hay diálogo de instalación del sistema: la aplicación se añade desde el menú de Safari:',
+  'set.installIosStep1': 'En Safari abre el menú «Compartir» (el cuadrado con la flecha hacia arriba)',
+  'set.installIosStep2': 'Elige «Añadir a pantalla de inicio»: el icono aparecerá junto a las apps, se abre sin barra de direcciones y funciona sin conexión',
 
   'common.yes': 'Sí',
   'common.no': 'No',

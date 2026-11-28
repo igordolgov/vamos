@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { emptyProgress, isWordKnown, KNOWN_THRESHOLD } from '../../shared/types'
-import { practicePool, wordChoiceExercise, buildExercise, audioExercise, makeExercise, recordAnswer, shuffle, starExercise, starWord, unstarWord, phraseStarKey, autoWordTip, type Exercise } from '../../shared/practice'
+import { practicePool, hasPracticeMaterial, wordChoiceExercise, buildExercise, audioExercise, makeExercise, recordAnswer, shuffle, starExercise, starWord, unstarWord, phraseStarKey, autoWordTip, esNounDisplay, type Exercise } from '../../shared/practice'
 import { knownSet } from '../../shared/stats'
 import { getWord, ALL_WORDS } from '../../shared/data/words'
 import { TEMPLATES } from '../../shared/phrases/templates'
@@ -21,20 +21,26 @@ function withProgress(map: Record<string, number>) {
 }
 
 describe('Пул практики', () => {
-  it('приоритет: «в процессе» раньше новых', () => {
+  it('пул: слова «в процессе» присутствуют, незнакомые — нет', () => {
     const p = withProgress({ 'v-ser': 1 })
     const pool = practicePool(p)
-    const inProgressIdx = pool.findIndex((w) => w.id === 'v-ser')
-    expect(inProgressIdx).toBeGreaterThanOrEqual(0)
-    // любое «новое» слово идёт после слова в процессе
-    const firstFresh = pool.findIndex((w) => w.id !== 'v-ser' && !p.words[w.id]?.correct)
-    expect(firstFresh).toBeGreaterThan(inProgressIdx)
+    // слово в процессе есть в пуле
+    expect(pool.some((w) => w.id === 'v-ser')).toBe(true)
+    // незнакомых слов (ни одной попытки) в пуле нет: общая практика
+    // закрепляет уже встречавшийся материал, новые слова — в уроках
+    const unseen = pool.filter((w) => !p.words[w.id])
+    expect(unseen).toEqual([])
   })
 
   it('слова из будущих уроков не попадают в пул', () => {
-    const p = emptyProgress()
-    const pool = practicePool(p, 5)
-    for (const w of pool) expect(w.lesson).toBeLessThanOrEqual(5)
+    const p = withProgress({ 'v-ser': 1 })
+    const pool = practicePool(p, 1)
+    for (const w of pool) expect(w.lesson).toBeLessThanOrEqual(1)
+  })
+
+  it('hasPracticeMaterial: пусто у новичка, есть после первого урока', () => {
+    expect(hasPracticeMaterial(emptyProgress())).toBe(false)
+    expect(hasPracticeMaterial(withProgress({ 'v-ser': 1 }))).toBe(true)
   })
 })
 
@@ -126,7 +132,18 @@ describe('Упражнения', () => {
     const word = getWord('n-casa')
     const ex = wordChoiceExercise(word, ALL_WORDS, 'ru-es')
     expect(ex.questionRu).toBe('дом')
-    expect(ex.options).toContain('casa')
+    // перед существительным — серая подсказка артикля в скобках
+    expect(ex.options).toContain(esNounDisplay(word))
+    // озвучка после проверки — само слово, без артикля
+    expect(ex.answerEs).toBe('casa')
+  })
+
+  it('esNounDisplay: артикль по роду и articleGender', () => {
+    expect(esNounDisplay(getWord('n-casa'))).toBe('(la) casa')
+    // el agua: слово ж.р., артикль мужской — исключение учтено
+    expect(esNounDisplay(getWord('n-agua'))).toBe('(el) agua')
+    // не существительное — без артикля
+    expect(esNounDisplay(getWord('v-ser'))).toBe('ser')
   })
 
   it('сборка фразы: плитки без пунктуации, все слова ответа + лишние, нижний регистр', () => {
@@ -302,11 +319,12 @@ describe('Объяснения при неверном ответе', () => {
   })
 
   it('тест-выбор RU→ES: пояснение дистрактора — его русский перевод', () => {
-    const ex = wordChoiceExercise(getWord('n-casa'), ALL_WORDS, 'ru-es')
-    const wrong = ex.options.filter((o) => o !== 'casa')
+    const word = getWord('n-casa')
+    const ex = wordChoiceExercise(word, ALL_WORDS, 'ru-es')
+    const wrong = ex.options.filter((o) => o !== esNounDisplay(word))
     expect(wrong.length).toBe(3)
     for (const o of wrong) expect(ex.optionNotes?.[o], o).toMatch(/^это «.+»$/)
-    expect(ex.options[ex.answerIndex]).toBe('casa')
+    expect(ex.options[ex.answerIndex]).toBe(esNounDisplay(word))
   })
 
   it('аудио: пояснения дистракторов и подсказка для ser/estar', () => {

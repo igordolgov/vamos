@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest'
 import { emptyProgress } from '../../shared/types'
 import { ALL_WORDS, getWord } from '../../shared/data/words'
-import { makeExercise, type Exercise } from '../../shared/practice'
+import { makeExercise, hasPracticeMaterial, type Exercise } from '../../shared/practice'
 
 /** Прогресс со словами первых 13 уроков (correct = 2 — «выучено») */
 function richProgress() {
@@ -46,21 +46,41 @@ describe('makeExercise', () => {
     expect(ex!.options.length).toBe(4)
   })
 
-  it('гость без прогресса получает хотя бы choice', () => {
-    const ex = makeExercise('choice', emptyProgress())
-    expect(ex).not.toBeNull()
+  it('гость без прогресса: упражнений нет — практика подскажет пройти урок', () => {
+    // Общая практика закрепляет уже встречавшийся материал. У новичка его
+    // нет: makeExercise возвращает null, а меню практики вместо плиток
+    // показывает подсказку «пройдите урок» (hasPracticeMaterial)
+    expect(makeExercise('choice', emptyProgress())).toBeNull()
+    expect(makeExercise('build', emptyProgress())).toBeNull()
+    expect(hasPracticeMaterial(emptyProgress())).toBe(false)
   })
 
-  it('гость без прогресса получает и сборку фразы (раньше — «не работает»)', () => {
-    // Баг: сборка брала слова только из выученных (knownSet), у новичка их
-    // нет — makeExercise возвращал null и сессия мгновенно «завершалась».
-    // Теперь пул практики разрешён как источник слов.
-    let ex = makeExercise('build', emptyProgress())
-    for (let i = 0; i < 20 && !ex; i++) ex = makeExercise('build', emptyProgress())
+  it('прошёл урок один раз: в общей практике только его слова', () => {
+    // Урок 1 пройден единожды (correct = 1, ещё не «выучено»): практика
+    // спрашивает именно эти слова, а не материал будущих уроков
+    const p = emptyProgress()
+    for (const w of ALL_WORDS.filter((w) => w.lesson <= 1)) {
+      p.words[w.id] = { correct: 1, wrong: 0 }
+    }
+    expect(hasPracticeMaterial(p)).toBe(true)
+    const ex = makeExercise('choice', p)
     expect(ex).not.toBeNull()
-    expect(ex!.kind).toBe('build')
-    expect(ex!.tiles!.length).toBeGreaterThan(0)
-    expect(ex!.hint.length).toBeGreaterThan(0)
+    for (const id of ex!.wordIds) expect(getWord(id).lesson).toBe(1)
+  })
+
+  it('прошёл уроки один раз: фразы собираются только из встречавшихся слов', () => {
+    // Раньше общая практика «расширяла уровень» вверх по урокам, и во
+    // фразы просачивались незнакомые слова. Теперь — только встречавшийся
+    // материал (seen: хоть одна попытка) и изученное (knownSet)
+    const p = emptyProgress()
+    for (const w of ALL_WORDS.filter((w) => w.lesson <= 4)) {
+      p.words[w.id] = { correct: 1, wrong: 0 }
+    }
+    let ex: Exercise | null = makeExercise('build', p)
+    for (let i = 0; i < 30 && !ex; i++) ex = makeExercise('build', p)
+    expect(ex).not.toBeNull()
+    const seenIds = new Set(Object.keys(p.words))
+    for (const id of ex!.wordIds) expect(seenIds.has(id), id).toBe(true)
   })
 
   it('практика по уроку — слова только этого урока', () => {

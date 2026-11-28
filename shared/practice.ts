@@ -6,8 +6,10 @@
 // — «build»   — собрать испанскую фразу из плиток-слов;
 // — «audio»   — прослушать испанское слово/фразу и выбрать перевод.
 //
-// Пул слов: новые слова текущего уровня + повторение известных.
-// Слово засчитывается «выученным» после 2 верных ответов.
+// Пул слов ОБЩЕЙ практики — уже встречавшийся материал (уроки,
+// предыдущие сессии): незнакомые слова из будущих уроков в общую
+// практику не попадают. Слово засчитывается «выученным» после
+// 2 верных ответов.
 // ============================================================
 
 import type { Progress, Word } from './types'
@@ -104,6 +106,10 @@ export interface Exercise {
   speak?: string
   /** Вопрос на русском (для направления RU → ES) */
   questionRu?: string
+  /** Правильный испанский ответ без скобочных подсказок (RU → ES):
+   *  текст для озвучки после проверки — кнопка произносит само слово,
+   *  «(la) mesa» озвучивается как «mesa» */
+  answerEs?: string
   /** Варианты ответа */
   options: string[]
   /** Индекс верного варианта */
@@ -277,27 +283,37 @@ export function typeableWord(w: Word): boolean {
 }
 
 /**
- * Пул слов для практики: сначала слова «в процессе» (correct > 0, но
- * ещё не выученные), затем новые слова по возрастанию урока, затем
- * уже известные — для повторения. Слова с пометкой «Уже знал» —
- * выученные: они в knownSet и попадают в группу повторения наравне
- * с остальными известными (а во фразы — как пройденные в уроках).
+ * Пул слов ОБЩЕЙ практики — закрепление уже встречавшегося материала:
+ * сначала слова «в процессе» (были ответы, но порог «выучено» ещё не
+ * набран), затем уже известные — для повторения. Слова, которых
+ * пользователь ещё ни разу не видел (будущие уроки), в пул не
+ * попадают: практика спрашивает то, что изучено, а новые слова
+ * появляются в уроках. «Встречалось» — была хотя бы одна попытка
+ * (верная или неверная) в уроке или в практике. Слова с пометкой
+ * «Уже знал» — выученные: они в knownSet и попадают в группу
+ * повторения наравне с остальными известными.
  */
 export function practicePool(progress: Progress, maxLesson = LESSONS.length): Word[] {
   const known = knownSet(progress)
+  const touched = (w: Word) => {
+    const wp = progress.words[w.id]
+    return !!wp && (wp.correct > 0 || wp.wrong > 0)
+  }
   const inProgress = ALL_WORDS.filter(
-    (w) => !known.has(w.id) && w.lesson <= maxLesson && progress.words[w.id]?.correct,
+    (w) => !known.has(w.id) && touched(w) && w.lesson <= maxLesson,
   )
-  const fresh = ALL_WORDS.filter(
-    (w) => !known.has(w.id) && w.lesson <= maxLesson && !progress.words[w.id]?.correct,
-  ).sort((a, b) => a.lesson - b.lesson)
   const review = ALL_WORDS.filter((w) => known.has(w.id))
-  // Приоритет: закрепление (40%), новые (40%), повторение (20%)
-  return [
-    ...inProgress.slice(0, 15),
-    ...fresh.slice(0, 15),
-    ...shuffle(review).slice(0, 10),
-  ]
+  // Приоритет: закрепление недоученного, повторение изученного
+  return [...shuffle(inProgress), ...shuffle(review)]
+}
+
+/**
+ * Есть ли у пользователя материал для общей практики: хоть одно
+ * встречавшееся или изученное слово. Если нет — в меню практики
+ * показывается подсказка «пройдите урок» вместо плиток режимов.
+ */
+export function hasPracticeMaterial(progress: Progress): boolean {
+  return practicePool(progress).length > 0
 }
 
 /** Направление теста-выбора для слова */
@@ -328,6 +344,18 @@ function distractorCandidates(
   return samePos
 }
 
+/**
+ * Отображение испанского слова в вариантах «RU → ES»: перед
+ * существительным — артикль в скобках («(la) mesa»). Серая подсказка
+ * рода: учит запоминать существительное сразу с артиклем, но не
+ * считается частью слова. Остальным частям речи артикль не нужен.
+ */
+export function esNounDisplay(w: Word): string {
+  if (w.pos !== 'noun') return w.es
+  const article = (w.articleGender ?? w.gender) === 'f' ? 'la' : 'el'
+  return `(${article}) ${w.es}`
+}
+
 /** Упражнение «выбор варианта» по слову */
 export function wordChoiceExercise(
   word: Word,
@@ -341,13 +369,16 @@ export function wordChoiceExercise(
   // Отвлекающие — той же части речи, БЕЗ дубликатов перевода:
   // два одинаковых варианта делают вопрос неразрешимым.
   // Для каждого варианта запоминаем, что он на самом деле означает —
-  // после неверного ответа объясняем: «где» — это «dónde»
-  const answer = esRu ? word.ru[0]! : word.es
+  // после неверного ответа объясняем: «где» — это «dónde».
+  // RU → ES: перед каждым существительным-вариантом серая подсказка
+  // артикля — и у верного ответа, и у дистракторов (иначе подсказка
+  // выдавала бы верный вариант)
+  const answer = esRu ? word.ru[0]! : esNounDisplay(word)
   const seen = new Set([answer])
   const distractors: string[] = []
   const notes: Record<string, string> = {}
   for (const w of shuffle(distractorCandidates(word, all, maxLesson, known), rand)) {
-    const opt = esRu ? w.ru[0]! : w.es
+    const opt = esRu ? w.ru[0]! : esNounDisplay(w)
     if (seen.has(opt)) continue
     seen.add(opt)
     distractors.push(opt)
@@ -364,6 +395,8 @@ export function wordChoiceExercise(
     kind: 'choice',
     questionEs: esRu ? word.es : undefined,
     questionRu: esRu ? undefined : ruQuestion,
+    // RU → ES: озвучиваем само слово, без скобочной подсказки артикля
+    answerEs: esRu ? undefined : word.es,
     options,
     answerIndex,
     wordIds: [word.id],
@@ -411,10 +444,11 @@ export function phraseChoiceExercise(
 
 /**
  * Лишние слова-дистракторы для сборки фразы: слова, виденные
- * пользователем (урок <= maxLesson), которых нет в ответе — без
- * дубликатов и пунктуации. Неизученные вопросительные слова не
- * предлагаются вовсе (см. allowedBuildWords). Если слов уровня
- * не хватило (первые уроки) — добираем из всего словаря.
+ * пользователем, которых нет в ответе — без дубликатов и пунктуации.
+ * Если передан known — дистракторы ТОЛЬКО из этого набора (изученные
+ * и встречавшиеся слова: незнакомые слова не подмешиваются в плитки).
+ * Неизученные вопросительные слова не предлагаются вовсе. Если слов
+ * уровня не хватило (первые уроки) — добираем из всего словаря.
  */
 function buildDistractors(
   answerTiles: string[],
@@ -436,7 +470,12 @@ function buildDistractors(
   const seen = new Set<string>()
   const isQw = (w: Word) => w.pos === 'question'
   const pools = [
-    ALL_WORDS.filter((w) => w.lesson <= maxLesson && (!isQw(w) || (known?.has(w.id) ?? false))),
+    ALL_WORDS.filter(
+      (w) =>
+        w.lesson <= maxLesson &&
+        (!known || known.has(w.id)) &&
+        (!isQw(w) || (known?.has(w.id) ?? false)),
+    ),
     ALL_WORDS.filter((w) => !isQw(w) || (known?.has(w.id) ?? false)),
   ]
   for (const pool of pools) {
@@ -787,7 +826,6 @@ export interface MakeExerciseOpts {
 
 /** Скрытое/коллекционное заполнение шаблона для генератора упражнений */
 type FillPick = { fill: Fill; templateId: string; variant: 'aff' | 'neg' | 'yesno' | 'qw' }
-type FillPickLimit = FillPick & { limit: number }
 
 /**
  * Сгенерировать случайное упражнение заданного типа.
@@ -824,13 +862,15 @@ export function makeExercise(
     if (!typeableWord(word2)) return null
     return activeExercise(word2, rand)
   }
-  // build — только фразы. ОБЩАЯ ПРАКТИКА: разрешаем не только «выученные»
-  // слова (knownSet, 2+ верных ответа), а весь материал до текущего уровня
-  // (максимального урока пула): у новичка выученных слов нет, и «Сборка
-  // фразы» мгновенно завершала сессию (выглядело как «не работает»).
-  // Если на этом уровне фразы ещё не собираются (первые уроки — только
-  // местоимения и артикли), расширяем материал вверх по урокам, пока не
-  // появится хотя бы один собираемый шаблон.
+  // build — только фразы. ОБЩАЯ ПРАКТИКА — закрепление: фразы собираются
+  // ТОЛЬКО из материала, который пользователь уже встречал (слова с
+  // ответами из уроков и практики) или изучил (knownSet, «Уже знал»).
+  // Слова будущих уроков, которых пользователь ещё не видел, во фразы
+  // не попадают — раньше движок «расширял уровень» вверх по урокам,
+  // и в практику просачивались незнакомые слова. Если на встречавшемся
+  // материале фразы ещё не собираются (первые два урока — местоимения
+  // и артикли), makeExercise вернёт null: practice.vue откатится на
+  // тест-выбор по словам, а плитки «Сборки» появятся после урока 3.
   //
   // Фразы, отмеченные «уже выучил», пропускаем: пробуем другие заполнения
   // шаблона, а отмеченную держим как запасную (если другого материала нет).
@@ -877,44 +917,44 @@ export function makeExercise(
       ? buildExercise(picked.fill, picked.templateId, picked.variant, rand, Math.max(knownMaxLesson, opts.lesson), known, opts.staged === true)
       : null
   }
-  let fallback: FillPickLimit | null = null
-  let likedFallback: FillPickLimit | null = null
-  for (let limit = frontier; limit <= LESSONS.length; limit++) {
-    // Неизученные вопросительные слова не открываются расширением
-    // уровня: qw-шаблоны и их слова — только после изучения
-    const allowed = new Set([
-      ...ALL_WORDS.filter(
-        (w) => w.lesson <= limit && (w.pos !== 'question' || known.has(w.id)),
-      ).map((w) => w.id),
-      ...known,
-    ])
-    // Шаблоны, в которых собирается хотя бы одна фраза из разрешённых слов
-    const templates = allTemplates().filter((t) => countTemplate(t, allowed) > 0)
-    if (templates.length === 0) continue
-    for (let i = 0; i < 10; i++) {
-      const t = templates[Math.floor(rand() * templates.length)]
-      const fill = sampleFill(t, allowed, rand)
-      if (!fill) continue
-      const kind2 = t.variants[Math.floor(rand() * t.variants.length)]
-      const key = normalizePhraseKey(t.render(fill, kind2))
-      // 👎 — скрытая фраза не показывается вовсе
-      if (hiddenPhrases[key]) continue
-      // 👍 — коллекция: показываем сразу, это приоритет
-      if (likedPhrases[key]) {
-        if (!likedFallback) likedFallback = { fill, templateId: t.id, variant: kind2, limit }
-        continue
-      }
-      if (!fallback && starredPhrases[key]) {
-        fallback = { fill, templateId: t.id, variant: kind2, limit }
-        continue
-      }
-      // нейтральная фраза — обычный путь (лучше запасной «уже выучил»)
-      return buildExercise(fill, t.id, kind2, rand, limit, known, opts.staged === true)
+  let fallback: FillPick | null = null
+  let likedFallback: FillPick | null = null
+  // Встречавшийся материал: слово с хотя бы одной попыткой (урок или
+  // практика) + изученное. Неизученные вопросительные слова в seen не
+  // попадают сами — их просто не было в ответах пользователя
+  const seen = new Set([
+    ...ALL_WORDS.filter((w) => {
+      const wp = progress.words[w.id]
+      return !!wp && (wp.correct > 0 || wp.wrong > 0)
+    }).map((w) => w.id),
+    ...known,
+  ])
+  // Шаблоны, в которых собирается хотя бы одна фраза из встречавшихся слов
+  const templates = allTemplates().filter((t) => countTemplate(t, seen) > 0)
+  for (let i = 0; i < 10; i++) {
+    if (templates.length === 0) break
+    const t = templates[Math.floor(rand() * templates.length)]
+    const fill = sampleFill(t, seen, rand)
+    if (!fill) continue
+    const kind2 = t.variants[Math.floor(rand() * t.variants.length)]
+    const key = normalizePhraseKey(t.render(fill, kind2))
+    // 👎 — скрытая фраза не показывается вовсе
+    if (hiddenPhrases[key]) continue
+    // 👍 — коллекция: показываем сразу, это приоритет
+    if (likedPhrases[key]) {
+      if (!likedFallback) likedFallback = { fill, templateId: t.id, variant: kind2 }
+      continue
     }
+    if (!fallback && starredPhrases[key]) {
+      fallback = { fill, templateId: t.id, variant: kind2 }
+      continue
+    }
+    // нейтральная фраза — обычный путь (лучше запасной «уже выучил»)
+    return buildExercise(fill, t.id, kind2, rand, frontier, seen, opts.staged === true)
   }
   const picked = likedFallback ?? fallback
   return picked
-    ? buildExercise(picked.fill, picked.templateId, picked.variant, rand, picked.limit, known, opts.staged === true)
+    ? buildExercise(picked.fill, picked.templateId, picked.variant, rand, frontier, seen, opts.staged === true)
     : null
 }
 

@@ -16,7 +16,7 @@ const t = useT()
 const locale = useLocale()
 const theme = useTheme()
 const {progress, resetProgress, ensureLoaded} = useProgress()
-const {canInstall, install} = useInstall()
+const {canInstall, isIOS, isStandalone, install} = useInstall()
 const confirmReset = ref(false)
 type FontSize = 's' | 'm' | 'l'
 const fontSize = ref<FontSize>('m')
@@ -83,12 +83,19 @@ h1.text-2xl.font-bold.text-primary.mb-2 {{ t('set.title') }}
 // Профиль и синхронизация
 AuthPanel.mb-2
 
-// Установка PWA
-.card.bg-base-100.shadow-sm.border.border-base-300.mb-2(v-if="canInstall")
+// Установка PWA: Chromium/Android — кнопка системного диалога;
+// iOS Safari — системного диалога НЕТ, показываем инструкцию
+// «Поделиться» → «На экран “Домой”». Уже установленное приложение
+// (standalone) карточку не показывает
+.card.bg-base-100.shadow-sm.border.border-base-300.mb-2(v-if="canInstall || (isIOS && !isStandalone)")
   .card-body(class="p-3 sm:p-4 gap-2")
     h2.card-title.text-lg {{ t('set.install') }}
-    p(class="text-sm text-base-content/60") {{ t('set.installHint') }}
-    button.btn.btn-primary.btn-sm.w-fit(@click="install()") 📲 {{ t('dash.install') }}
+    p(class="text-sm text-base-content/60" v-if="canInstall") {{ t('set.installHint') }}
+    p(class="text-sm text-base-content/60" v-else) {{ t('set.installIosHint') }}
+    button.btn.btn-primary.btn-sm.w-fit(v-if="canInstall" @click="install()") 📲 {{ t('dash.install') }}
+    ol.text-sm(class="list-decimal ml-5 space-y-1 text-base-content/80" v-else)
+      li {{ t('set.installIosStep1') }}
+      li {{ t('set.installIosStep2') }}
 
 // Сброс прогресса + о приложении (в 2 колонки на десктопе)
 .grid.grid-cols-1(class="lg:grid-cols-2 gap-2 mb-2 items-start")

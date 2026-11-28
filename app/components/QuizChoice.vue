@@ -8,6 +8,7 @@
 // ============================================================
 import { computed, ref } from 'vue'
 import { useT } from '~/composables/useI18n'
+import { splitRuPrompt } from '#shared/phrases/ru'
 import type { WordTip } from '#shared/data/word-tips'
 import SpeakButton from './SpeakButton.vue'
 
@@ -16,6 +17,9 @@ const props = defineProps<{
   questionRu?: string
   options: string[]
   answerIndex: number
+  /** Правильный испанский ответ без подсказок (RU → ES):
+   *  для кнопки озвучки после проверки */
+  answerEs?: string
   /** Объяснение ошибки: почему путают и как запомнить — при неверном ответе */
   tip?: WordTip
   /** Что означает каждый отвлекающий вариант: текст варианта → «это …» */
@@ -56,6 +60,12 @@ function btnClass(index: number): string {
   if (index === selected.value) return 'btn-error'
   return 'btn-ghost'
 }
+
+/** Артикль-подсказка в скобках перед существительными («(la) mesa»)
+ *  — серым, как подсказки-скобки в русских промптах */
+function optionParts(option: string) {
+  return splitRuPrompt(option)
+}
 </script>
 
 <template lang="pug">
@@ -80,7 +90,12 @@ function btnClass(index: number): string {
         :disabled="revealed && i !== answerIndex && i !== selected"
         @click="choose(i)"
       )
-        span.text-base(class="sm:text-lg") {{ option }}
+        span.text-base(class="sm:text-lg")
+          span(
+            v-for="(p, j) in optionParts(option)"
+            :key="j"
+            :class="p.hint ? 'font-normal text-base-content/50' : ''"
+          ) {{ p.text }}
         // Значок всегда в DOM (невидимым плейсхолдером): ширина правой
         // части кнопки постоянна → перенос строк не меняется при ответе
         span.ml-auto(v-if="revealed && i === answerIndex") ✓
@@ -95,12 +110,19 @@ function btnClass(index: number): string {
     .min-h-10.flex.items-center.justify-center
       div.text-center.animate-feedback(v-if="revealed")
         template(v-if="isCorrect")
-          p.text-2xl.font-bold.text-success ✓ {{ t('practice.correct') }}
+          .flex.items-center.justify-center.gap-2
+            p.text-2xl.font-bold.text-success ✓ {{ t('practice.correct') }}
+            // RU → ES: правильное слово и озвучка сразу после проверки
+            span.text-2xl.font-bold.text-primary(v-if="answerEs") {{ answerEs }}
+            SpeakButton(v-if="answerEs" :text="answerEs")
         template(v-else)
-          //- p.text-base.font-semibold.text-error(class="sm:text-lg") ✗ {{ t('practice.answerWas') }}
-          //- p.text-xl.font-bold.text-base-content(class="sm:text-2xl") {{ options[answerIndex] }}
           // Почему выбранный вариант неверен: что он на самом деле означает
           p.text-lg.font-semibold(class="mt-0.5 text-error" v-if="pickedNote") {{ pickedNote }}
+          // RU → ES: правильное слово — показать и озвучить
+          .flex.items-center.justify-center.gap-2(v-if="answerEs")
+            p.text-base.font-semibold(class="text-base-content/60") {{ t('practice.answerWas') }}
+            span.text-2xl.font-bold.text-primary {{ answerEs }}
+            SpeakButton(:text="answerEs")
 
     // Объяснение ошибки: почему легко путать и лайфхак запоминания,
     // пример употребления. Появляется только при неверном ответе —
