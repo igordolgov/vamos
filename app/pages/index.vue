@@ -16,6 +16,7 @@ import {
   inProgressWords,
 } from '#shared/stats'
 import { currentStreak } from '#shared/streak'
+import { srsDueCount } from '#shared/srs'
 import { WORD_COUNT } from '#shared/data/words'
 import { LESSONS } from '#shared/data/lessons'
 import { phrasesWord, pluralRu } from '#shared/i18n/plural'
@@ -49,6 +50,10 @@ const phrasesYouWord = computed(() => phrasesWord(phrases.value.known, locale.va
 // их повторение закрывает хвосты уроков
 const reviewCount = computed(() => inProgressWords(progress.value).length)
 const reviewWord = computed(() => pluralRu(reviewCount.value, ['слово', 'слова', 'слов']))
+
+// Карточки «Повторения» к сегодняшнему показу (просроченные + новые
+// карточки выученных слов)
+const srsDue = computed(() => srsDueCount(progress.value, Date.now()))
 
 // Первый непройденный урок (кнопка «Продолжить учёбу»): первый урок,
 // где есть невыученные слова — а не всегда урок 1; если выучено всё,
@@ -90,6 +95,12 @@ section.hero.bg-base-100.rounded-2xl.shadow-sm.border.border-base-300.mb-2
 NuxtLink.card.bg-base-100.shadow-sm.border.border-base-300.mb-2.block(to="/practice" v-if="reviewCount > 0")
   .card-body(class="p-3 sm:p-4 flex-row items-center justify-between gap-2")
     h2.card-title.text-base 📌 {{ t('dash.review', { n: reviewCount, w: reviewWord }) }}
+    span.btn.btn-primary.btn-sm {{ t('dash.reviewStart') }}
+
+// Карточки «Повторения» (SRS): к показу сегодня — просроченные и новые
+NuxtLink.card.bg-base-100.shadow-sm.border.border-base-300.mb-2.block(to="/review" v-if="srsDue > 0")
+  .card-body(class="p-3 sm:p-4 flex-row items-center justify-between gap-2")
+    h2.card-title.text-base 🔁 {{ t('dash.srsDue', { n: srsDue }) }}
     span.btn.btn-primary.btn-sm {{ t('dash.reviewStart') }}
 
 // Статистика: кольца (на десктопе — все 11 в один ряд)

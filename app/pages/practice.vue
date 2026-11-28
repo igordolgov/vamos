@@ -10,7 +10,7 @@ import { useT } from '~/composables/useI18n'
 import { speakEs, unlockSpeech } from '~/composables/useSpeech'
 import { useProgress, applyAnswer, markAlreadyKnown, likeExercise, dislikeExercise } from '~/composables/useProgress'
 import { makeExercise, hasPracticeMaterial, type Exercise, type ExerciseKind } from '#shared/practice'
-import { knownWordsCount } from '#shared/stats'
+import { knownWordsCount, weakWords } from '#shared/stats'
 import QuizChoice from '~/components/QuizChoice.vue'
 import QuizBuild from '~/components/QuizBuild.vue'
 import QuizActive from '~/components/QuizActive.vue'
@@ -115,6 +115,13 @@ const lessonFilter = computed(() => {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0
 })
 
+// Слабые слова: /practice?pool=weak — сессия по словам с ошибками
+// (кнопка «Потренировать слабые» на странице «Повторение»)
+const weakFilter = computed(() => route.query.pool === 'weak')
+const weakPool = computed(() =>
+  weakFilter.value ? weakWords(progress.value, 30).map((w) => w.word) : undefined,
+)
+
 function startWith(k: ExerciseKind | 'mixed') {
   kind.value = k
   startSession()
@@ -174,7 +181,11 @@ function exerciseSignature(ex: Exercise): string {
 }
 
 function generateUnique(chosen: ExerciseKind): Exercise | null {
-  const opts = { lesson: lessonFilter.value || undefined, staged: stagedBuild.value }
+  const opts = {
+    lesson: lessonFilter.value || undefined,
+    staged: stagedBuild.value,
+    pool: weakPool.value,
+  }
   let ex = makeExercise(chosen, progress.value, Math.random, opts)
   for (let i = 0; i < 8 && ex && lastSignature && exerciseSignature(ex) === lastSignature; i++) {
     ex = makeExercise(chosen, progress.value, Math.random, opts)
@@ -283,6 +294,11 @@ h1.text-2xl.font-bold.text-primary(v-if="mode !== 'session'") {{ t('practice.tit
 // Баннер режима закрепления урока
 .alert.mb-2(v-if="lessonFilter" class="bg-primary/10 py-2 border border-primary/40")
   span.text-sm.font-medium {{ t('practice.lessonMode', { n: lessonFilter }) }}
+  NuxtLink.btn.btn-ghost.btn-xs(to="/practice") {{ t('practice.lessonAll') }}
+
+// Баннер режима слабых слов (счётчик — слова в пуле сессии)
+.alert.mb-2(v-if="weakFilter && (weakPool?.length ?? 0) > 0" class="bg-secondary/10 py-2 border border-secondary/40")
+  span.text-sm.font-medium {{ t('practice.weakMode', { n: weakPool?.length ?? 0 }) }}
   NuxtLink.btn.btn-ghost.btn-xs(to="/practice") {{ t('practice.lessonAll') }}
 
 // Меню выбора типа упражнения: клик по карточке сразу запускает

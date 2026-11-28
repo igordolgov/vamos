@@ -11,11 +11,12 @@
 // ============================================================
 
 import { computed, ref } from 'vue'
-import { emptyProgress, type Progress, type Word } from '#shared/types'
+import { emptyProgress, type Progress, type SrsCard, type Word } from '#shared/types'
 import { evaluateAchievements, type Achievement } from '#shared/achievements'
 import { recordAnswer, starExercise, starWord, unstarWord, likePhrase, hidePhrase } from '#shared/practice'
 import type { Exercise } from '#shared/practice'
 import { touchStreak } from '#shared/streak'
+import { srsReviewWord } from '#shared/srs'
 import { authHeaders } from './useAuth'
 
 const LS_KEY = 'vamos.progress'
@@ -107,6 +108,20 @@ export function mergeProgress(local: Progress, remote: Progress): Progress {
     if (!merged.hiddenPhrases) merged.hiddenPhrases = {}
     const l = merged.hiddenPhrases[key]
     if (l === undefined || at < l) merged.hiddenPhrases[key] = at
+  }
+  // Карточки «Повторения»: уровень — максимум (карточка не может
+  // «откатиться» при синке); при равных уровнях — более ранний срок
+  // повторения (покажем раньше — консервативнее для памяти)
+  const lsrs = local.srs ?? {}
+  const rsrs = remote.srs ?? {}
+  if (Object.keys(lsrs).length || Object.keys(rsrs).length) {
+    const srs: Record<string, SrsCard> = {}
+    for (const [id, c] of Object.entries(rsrs)) srs[id] = { ...c }
+    for (const [id, c] of Object.entries(lsrs)) {
+      const r = srs[id]
+      if (!r || c.box > r.box || (c.box === r.box && c.due < r.due)) srs[id] = { ...c }
+    }
+    merged.srs = srs
   }
   // Счётчики ответов: берём максимум (консервативно, без двойного счёта)
   merged.answers.correct = Math.max(local.answers.correct, remote.answers.correct)
@@ -215,6 +230,23 @@ export function markAlreadyKnown(ex: Exercise): void {
   const now = Date.now()
   const next: Progress = JSON.parse(JSON.stringify(progressState.value))
   starExercise(next, ex, now)
+  next.streakDates = touchStreak(next, new Date(now))
+  next.updatedAt = now
+  progressState.value = next
+  lsSet(next)
+  scheduleSync()
+}
+
+/**
+ * Самооценка карточки «Повторения» («Знаю» / «Не помню»):
+ * двигает карточку по уровням интервального повторения
+ * (см. shared/srs.ts). Счётчики ответов не меняются — оценка
+ * субъективная; серия дней при этом продлевается.
+ */
+export function applySrsReview(wordId: string, ok: boolean): void {
+  const now = Date.now()
+  const next: Progress = JSON.parse(JSON.stringify(progressState.value))
+  next.srs = srsReviewWord(next.srs ?? {}, wordId, ok, now)
   next.streakDates = touchStreak(next, new Date(now))
   next.updatedAt = now
   progressState.value = next

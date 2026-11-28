@@ -29,12 +29,14 @@ onMounted(() => {
   initInstallPrompt()
 })
 
-// Пункты мобильной нижней навигации (labels — ключи i18n)
+// Пункты мобильной нижней навигации (labels — ключи i18n).
+// «Повторение» — флешки по интервалам (SRS) и слабые слова
 const t = useT()
 const mobileNav = [
   { to: '/', key: 'nav.dashboard', icon: '🏠' },
   { to: '/lessons', key: 'nav.lessons', icon: '📘' },
   { to: '/practice', key: 'nav.practice', icon: '🎯' },
+  { to: '/review', key: 'nav.review', icon: '🔁' },
   { to: '/words', key: 'nav.words', icon: '🔤' },
   { to: '/settings', key: 'nav.settings', icon: '⚙️' },
 ]
@@ -56,7 +58,7 @@ const mobileNav = [
 
   // Мобильная нижняя навигация (крупные иконки + safe-area для iPhone)
   nav.fixed.bottom-0.inset-x-0.border-t.border-base-300.z-40(class="lg:hidden bg-base-100/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]")
-    .grid.grid-cols-5
+    .grid.grid-cols-6
       NuxtLink.flex.flex-col.items-center.py-2.text-xs(
         v-for="item in mobileNav"
         :key="item.to"

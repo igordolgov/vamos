@@ -11,6 +11,7 @@ import EmptyState from '../../app/components/EmptyState.vue'
 import PhraseRow from '../../app/components/PhraseRow.vue'
 import QuizChoice from '../../app/components/QuizChoice.vue'
 import QuizBuild from '../../app/components/QuizBuild.vue'
+import Flashcard from '../../app/components/Flashcard.vue'
 import StreakWidget from '../../app/components/StreakWidget.vue'
 import { getWord } from '../../shared/data/words'
 import { ACHIEVEMENTS } from '../../shared/achievements'
@@ -204,6 +205,42 @@ describe('QuizChoice', () => {
     expect(next.classes()).toContain('invisible')
     // клик по невидимой кнопке до ответа всё равно ведёт дальше (безвредно),
     // а после ответа кнопка становится видимой
+  })
+})
+
+describe('Flashcard — карточка «Повторения»', () => {
+  it('лицо — русский перевод; испанского слова и кнопок оценки до переворота нет', () => {
+    const w = mount(Flashcard, { props: { word: getWord('n-casa') } })
+    expect(w.text()).toContain('дом')
+    expect(w.text()).not.toContain('casa')
+    expect(w.text()).not.toContain('Знаю')
+  })
+
+  it('переворот по клику: испанское слово + перевод + кнопки самооценки', async () => {
+    const w = mount(Flashcard, { props: { word: getWord('n-casa') } })
+    await w.find('[role="button"]').trigger('click')
+    expect(w.text()).toContain('casa')
+    expect(w.text()).toContain('дом')
+    expect(w.text()).toContain('Знаю')
+    expect(w.text()).toContain('Не помню')
+  })
+
+  it('подсказки в скобках на лице — серым («Вы (вежл.)»)', () => {
+    const w = mount(Flashcard, { props: { word: getWord('p-usted') } })
+    const spans = w.findAll('span')
+    const hint = spans.find((s) => s.text() === '(вежл.)')
+    expect(hint, 'подсказка отдельным span').toBeTruthy()
+    expect(hint!.classes()).toContain('text-base-content/50')
+  })
+
+  it('самооценка: «Не помню» → rate(false), «Знаю» → rate(true)', async () => {
+    const w = mount(Flashcard, { props: { word: getWord('n-casa') } })
+    await w.find('[role="button"]').trigger('click')
+    const findBtn = (txt: string) => w.findAll('button').find((b) => b.text().includes(txt))!
+    await findBtn('Не помню').trigger('click')
+    expect(w.emitted('rate')![0]).toEqual([false])
+    await findBtn('Знаю').trigger('click')
+    expect(w.emitted('rate')![1]).toEqual([true])
   })
 })
 

@@ -33,6 +33,8 @@ header.navbar.shadow-sm.sticky.top-0.z-40(class="px-2 min-h-12! sm:px-4 sm:min-h
       li
         NuxtLink(to="/practice") {{ t('nav.practice') }}
       li
+        NuxtLink(to="/review") {{ t('nav.review') }}
+      li
         NuxtLink(to="/opportunities") {{ t('nav.opportunities') }}
       li
         NuxtLink(to="/achievements") {{ t('nav.achievements') }}

@@ -7,7 +7,7 @@
 
 import type { PartOfSpeech, Progress, Word } from './types'
 import { isWordKnown, KNOWN_THRESHOLD } from './types'
-import { ALL_WORDS, WORD_COUNT, POS_LABELS, wordsByLesson, getWord } from './data/words'
+import { ALL_WORDS, WORD_COUNT, POS_LABELS, wordsByLesson, getWord, findWord } from './data/words'
 import { LESSONS } from './data/lessons'
 import { allTemplates } from './phrases/templates'
 import { countTemplate, gainsTemplate, templateReady } from './phrases/engine'
@@ -36,6 +36,41 @@ export function inProgressWords(progress: Progress): string[] {
   return Object.entries(progress.words)
     .filter(([id, wp]) => !isWordKnown(wp) && wp.correct > 0)
     .map(([id]) => id)
+}
+
+// ============================================================
+// Слабые слова — работа над ошибками
+// ============================================================
+
+/** Слабое слово: попытки были, ошибки тоже */
+export interface WeakWord {
+  word: Word
+  correct: number
+  wrong: number
+}
+
+/**
+ * Слабые слова: слова с хотя бы одной неверной попыткой, отсортированные
+ * по «слабости» — больше ошибок выше; при равных — меньше верных ответов
+ * выше; при равных — более ранний урок выше (базовые слова важнее).
+ * Основа блока «Слабые слова» и практики ?pool=weak.
+ */
+export function weakWords(progress: Progress, limit = 20): WeakWord[] {
+  const out: WeakWord[] = []
+  for (const [id, wp] of Object.entries(progress.words)) {
+    if (wp.wrong <= 0) continue
+    const word = findWord(id)
+    if (!word) continue // слово удалено из словаря — счётчики не важны
+    out.push({ word, correct: wp.correct, wrong: wp.wrong })
+  }
+  out.sort(
+    (a, b) =>
+      b.wrong - a.wrong ||
+      a.correct - b.correct ||
+      a.word.lesson - b.word.lesson ||
+      a.word.id.localeCompare(b.word.id),
+  )
+  return out.slice(0, limit)
 }
 
 // ============================================================

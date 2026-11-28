@@ -829,7 +829,14 @@ export function activeExercise(word: Word, rand: () => number = Math.random): Ex
  * урока быстро доходит до 100% (раньше все слова выпадали поровну
  * и отстающие висели на 50–80% даже после нескольких сессий).
  */
-function pickPool(progress: Progress, lesson?: number): Word[] {
+function pickPool(progress: Progress, lesson?: number, pool?: Word[]): Word[] {
+  // Заданный пул («слабые слова»): недоученные — чаще, выученные — повторение
+  if (pool && pool.length) {
+    const known = knownSet(progress)
+    const notKnown = pool.filter((w) => !known.has(w.id))
+    const learned = pool.filter((w) => known.has(w.id))
+    return [...notKnown, ...notKnown, ...shuffle(learned)]
+  }
   if (lesson && lesson > 0) {
     const words = lessonPool(lesson)
     if (words.length) {
@@ -851,6 +858,10 @@ export interface MakeExerciseOpts {
   /** Поэтапная сборка («Слова по шагам»): плитки-кандидаты выдаются
    *  по одному шагу, с похожими отвлекающими */
   staged?: boolean
+  /** Заданный пул слов (например, «слабые слова» из /review):
+   *  тест-выбор, аудио и ввод — только по нему. Имеет приоритет над
+   *  уроком; недоученные слова пула спрашиваются чаще (как в уроке) */
+  pool?: Word[]
 }
 
 /** Скрытое/коллекционное заполнение шаблона для генератора упражнений */
@@ -867,7 +878,7 @@ export function makeExercise(
   rand: () => number = Math.random,
   opts: MakeExerciseOpts = {},
 ): Exercise | null {
-  const pool = pickPool(progress, opts.lesson)
+  const pool = pickPool(progress, opts.lesson, opts.pool)
   if (pool.length === 0) return null
   const word = pool[Math.floor(rand() * pool.length)]
   // Фронтир пользователя: варианты ответов не заходят в будущие уроки,
