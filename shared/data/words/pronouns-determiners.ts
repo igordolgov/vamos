@@ -18,13 +18,15 @@ export const PRONOUNS: Word[] = [
   p('p-tu', 'tú', ['ты'], 1, { role: 'subject', person: '2s', impliedGender: 'm', impliedNumber: 'sg', ruGen: 'тебя', ruDat: 'тебе' }, {
     ruHint: 'В Латинской Америке с друзьями и семьёй; «вы» (вежливое) — usted',
   }),
-  p('p-usted', 'usted', ['вы (вежл.)'], 1, { role: 'subject', person: '3s', impliedGender: 'm', impliedNumber: 'sg', ruGen: 'вас', ruDat: 'вам' }, {
+  // Вежливое обращение в русском — «Вы/Вас/Вам» с большой буквы
+  // (и usted, и ustedes — на «Вы» в ед. и мн. числе)
+  p('p-usted', 'usted', ['Вы (вежл.)'], 1, { role: 'subject', person: '3s', impliedGender: 'm', impliedNumber: 'sg', ruGen: 'Вас', ruDat: 'Вам' }, {
     ruHint: 'Глагол в форме 3-го лица ед.ч.: usted habla',
   }),
   p('p-el', 'él', ['он'], 1, { role: 'subject', person: '3s', impliedGender: 'm', impliedNumber: 'sg', ruGen: 'него', ruDat: 'ему' }),
   p('p-ella', 'ella', ['она'], 1, { role: 'subject', person: '3s', impliedGender: 'f', impliedNumber: 'sg', ruGen: 'неё', ruDat: 'ей' }),
   p('p-nosotros', 'nosotros', ['мы'], 1, { role: 'subject', person: '1p', impliedGender: 'm', impliedNumber: 'pl', ruGen: 'нас', ruDat: 'нам' }),
-  p('p-ustedes', 'ustedes', ['вы (мн. ч.)'], 1, { role: 'subject', person: '3p', impliedGender: 'm', impliedNumber: 'pl', ruGen: 'вас', ruDat: 'вам' }, {
+  p('p-ustedes', 'ustedes', ['Вы (мн. ч.)'], 1, { role: 'subject', person: '3p', impliedGender: 'm', impliedNumber: 'pl', ruGen: 'Вас', ruDat: 'Вам' }, {
     ruHint: 'В Латинской Америке единственная форма «вы» для мн.ч. (vosotros не используется)',
   }),
   p('p-ellos', 'ellos', ['они (муж.)'], 1, { role: 'subject', person: '3p', impliedGender: 'm', impliedNumber: 'pl', ruGen: 'них', ruDat: 'им' }),
@@ -33,8 +35,8 @@ export const PRONOUNS: Word[] = [
   // --- Местоимения-дополнения (урок 25) ---
   p('p-me', 'me', ['мне', 'меня'], 25, { role: 'object', io: true }, { ruHint: 'me gusta — мне нравится' }),
   p('p-te', 'te', ['тебе', 'тебя'], 25, { role: 'object', io: true }),
-  p('p-le', 'le', ['ему', 'ей', 'вам'], 25, { role: 'object', io: true }),
-  p('p-les', 'les', ['им', 'вам (мн.)'], 25, { role: 'object', io: true }),
+  p('p-le', 'le', ['ему', 'ей', 'Вам'], 25, { role: 'object', io: true }),
+  p('p-les', 'les', ['им', 'Вам (мн.)'], 25, { role: 'object', io: true }),
   p('p-nos', 'nos', ['нам', 'нас'], 25, { role: 'object', io: true }),
   p('p-lo', 'lo', ['его (вин. п)', 'это'], 25, { role: 'object' }, { ruHint: 'lo — «его» в винительном падеже (вижу его = Lo veo); «его»-владелец — su' }),
   p('p-la', 'la', ['её'], 25, { role: 'object' }),

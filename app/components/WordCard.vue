@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // ============================================================
 // WordCard.vue — карточка слова: испанское слово, перевод,
-// грамматические данные, статус и озвучка. Пилюли статуса
-// («выучено»/«в процессе»/«новое») и кнопка «Уже знал» стоят
-// в одной строке со словом. «Уже знал» — слово считается
-// выученным и включается во фразы, как пройденное в уроках.
+// грамматические данные, статус и озвучка. Пилюля статуса
+// («выучено»/«в процессе»/«новое») — крайний правый элемент строки;
+// кнопка «Уже знал» видна, пока слово НЕ выучено (слово считается
+// выученным и включается во фразы, как пройденное в уроках).
 // ============================================================
 import { computed } from 'vue'
 import type { PartOfSpeech, Word } from '#shared/types'
@@ -101,16 +101,19 @@ const nounInfo = computed(() => {
       h3.font-bold.text-xl.leading-tight.text-primary(class="break-words") {{ word.es }}
       SpeakButton(:text="word.es")
       .flex.items-center.gap-1(class="ml-auto shrink-0")
-        span.badge.badge-sm.font-medium(:class="statusBadge") {{ statusText }}
-        // «Уже знал»: пометка знания слова прямо из словаря.
+        // «Уже знал»: пометка знания слова прямо из словаря — только пока
+        // слово НЕ выучено (у выученного кнопка не нужна и не показывается).
         // Повторный клик снимает пометку (случайный клик не лишает контроля)
         button.btn.btn-xs.px-2(
+          v-if="status !== 'known'"
           :class="starred ? 'btn-success btn-outline font-medium' : 'btn-ghost text-base-content/45'"
           :aria-pressed="!!starred"
           :aria-label="t('words.markKnown') + ': ' + word.es"
           @click.stop="emit('toggle-star')"
         )
           | {{ starred ? '✓' : '✨' }} {{ t('words.markKnown') }}
+        // Пилюля степени выученности — крайний правый элемент строки
+        span.badge.badge-sm.font-medium(:class="statusBadge") {{ statusText }}
 
     // Перевод (+ альтернативные испанские варианты, если есть)
     p.font-medium(class="text-base-content/85")

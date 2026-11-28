@@ -23,7 +23,7 @@ export const RU = {
   'dash.stats.wordsTotal': '{n} слов в словаре',
   'dash.stats.phrases': 'доступно фраз: {n}',
   'dash.stats.phrasesTotal': '{n} возможных фраз',
-  'dash.stats.phrasesYou': 'Ты уже можешь сказать {n} {w}',
+  'dash.stats.phrasesYou': 'Ты уже можешь сказать фраз: {n}',
   'dash.review': 'На сегодня {n} {w} на повторение',
   'dash.reviewStart': 'Повторить',
   'dash.stats.answers': 'верных ответов',

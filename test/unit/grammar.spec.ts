@@ -308,6 +308,25 @@ describe('Будущее время и уточнения местоимений
     expect(t.ru({ s: getWord('p-ellos'), v: getWord('v-trabajar') } as unknown as Fill, 'aff')).toBe('Они (муж.) работают')
     expect(t.ru({ s: getWord('p-ellas'), v: getWord('v-trabajar') } as unknown as Fill, 'aff')).toBe('Они (жен.) работают')
   })
+
+  it('вежливое «Вы/Вас/Вам» — всегда с большой буквы (usted и ustedes)', () => {
+    // Просьба пользователя: в русском вежливое обращение пишется «Вы»
+    // в единственном и множественном числе (usted / ustedes)
+    const tener = TEMPLATES.find((x) => x.id === 't-pron-tener-noun')!
+    const tenerFill = (s: string) =>
+      ({ s: getWord(s), 'o#noun': getWord('n-casa'), 'o#det': null, 'o#num': 'sg', 'o#adj': null } as unknown as Fill)
+    expect(tener.ru(tenerFill('p-usted'), 'aff')).toBe('У Вас есть дом')
+    expect(tener.ru(tenerFill('p-ustedes'), 'aff')).toBe('У Вас есть дом')
+    expect(tener.ru(tenerFill('p-usted'), 'neg')).toBe('У Вас нет дома')
+    const como = TEMPLATES.find((x) => x.id === 't-qw-como-estar')!
+    expect(como.ru({ s: getWord('p-usted') } as unknown as Fill, 'qw')).toBe('Как Вы (вежл.)?')
+    // слово в словаре тоже с большой буквы (карточка, варианты тест-выбора)
+    expect(getWord('p-usted').ru[0]).toBe('Вы (вежл.)')
+    expect(getWord('p-ustedes').ru[0]).toBe('Вы (мн. ч.)')
+    expect(getWord('p-usted').pronoun?.ruGen).toBe('Вас')
+    expect(getWord('p-usted').pronoun?.ruDat).toBe('Вам')
+    expect(getWord('p-le').ru).toContain('Вам')
+  })
 })
 
 describe('tener с подлежащим-существительным (t-noun-v-do)', () => {

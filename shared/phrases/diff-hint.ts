@@ -73,8 +73,8 @@ const SUBJ_SET = new Set(['yo', 'tú', 'él', 'ella', 'usted', 'nosotros', 'uste
 const PRON_RU: Record<string, string> = {
   me: 'мне/меня', te: 'тебе', le: 'ему/ей', les: 'им', nos: 'нам/нас',
   lo: 'его', la: 'её', los: 'их (м.р.)', las: 'их (ж.р.)',
-  yo: 'я', tú: 'ты', él: 'он', ella: 'она', usted: 'вы (вежл.)',
-  nosotros: 'мы', ustedes: 'вы (мн. ч.)', ellos: 'они', ellas: 'они',
+  yo: 'я', tú: 'ты', él: 'он', ella: 'она', usted: 'Вы (вежл.)',
+  nosotros: 'мы', ustedes: 'Вы (мн. ч.)', ellos: 'они', ellas: 'они',
 }
 
 /** Глоссарий предлогов */

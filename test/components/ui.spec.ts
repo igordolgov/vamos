@@ -56,10 +56,16 @@ describe('WordCard', () => {
     await btn!.trigger('click')
     expect(wrapper.emitted('toggle-star')).toHaveLength(1)
     // помеченное состояние: aria-pressed=true, подсветка успеха
-    const starred = mount(WordCard, { props: { word: getWord('n-casa'), status: 'known', starred: true } })
+    const starred = mount(WordCard, { props: { word: getWord('n-casa'), starred: true } })
     const sBtn = starred.findAll('button').find((b) => b.text().includes('Уже знал'))!
     expect(sBtn.attributes('aria-pressed')).toBe('true')
     expect(sBtn.classes()).toContain('btn-success')
+  })
+
+  it('у выученного слова кнопки «Уже знал» нет — пилюля статуса справа (жалоба)', () => {
+    const known = mount(WordCard, { props: { word: getWord('n-casa'), status: 'known' } })
+    expect(known.findAll('button').some((b) => b.text().includes('Уже знал'))).toBe(false)
+    expect(known.text()).toContain('выучено')
   })
 })
 
